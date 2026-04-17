@@ -6,7 +6,6 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
 import '../../../auth/domain/services/auth_service.dart';
-import '../../../auth/domain/enums/user_role.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -25,6 +24,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       backgroundColor: AppColors.adminPageBackground,
       body: Column(
         children: [
+          // FIXED HEADER
           Container(
             height: 70,
             width: double.infinity,
@@ -61,143 +61,74 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ],
             ),
           ),
+          
+          // SCROLLABLE CONTENT AREA
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildRoleIndicator(context),
-                  const SizedBox(height: 12),
-                  _buildSectionTitle('Instructor'),
-                  SizedBox(
-                    height: 180,
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: Column(
-                        children: [
-                          _buildListItem(
-                            Icons.account_circle_outlined,
-                            'Prof Name 1',
-                            'Pending Request',
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ROLE INDICATOR REMOVED FROM HERE
+                    
+                    _buildSectionTitle('Instructor'),
+                    _buildFixedList([
+                      _buildListItem(Icons.account_circle_outlined, 'Prof Name 1', 'Pending Request'),
+                      _buildListItem(Icons.account_circle_outlined, 'Prof Name 2', 'Pending Request'),
+                      _buildListItem(Icons.account_circle_outlined, 'Prof Name 3', 'Pending Request'),
+                      _buildListItem(Icons.account_circle_outlined, 'Prof Name 4', 'Pending Request'),
+                    ]),
+                    
+                    const SizedBox(height: 20),
+                    _buildSectionTitle('Course'),
+                    _buildFixedList([
+                      _buildListItem(Icons.person, 'BSIT - 1A', 'Prof Name'),
+                      _buildListItem(Icons.person, 'BSIT - 2B', 'Prof Name'),
+                      _buildListItem(Icons.person, 'BSCS - 3A', 'Prof Name'),
+                      _buildListItem(Icons.person, 'BSCS - 4C', 'Prof Name'),
+                    ]),
+                    
+                    const SizedBox(height: 20),
+                    _buildSectionTitle('Subjects'),
+                    _buildFixedList([
+                      _buildListItem(Icons.menu_book, 'Ethics', 'Pending Prof. Designation'),
+                      _buildListItem(Icons.menu_book, 'Computing', 'Pending Prof. Designation'),
+                      _buildListItem(Icons.menu_book, 'Mathematics', 'Pending Prof. Designation'),
+                      _buildListItem(Icons.menu_book, 'Programming', 'Pending Prof. Designation'),
+                      _buildListItem(Icons.menu_book, 'Networking', 'Pending Prof. Designation'),
+                    ]),
+                    
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          context.goNamed(AppRoutes.adminRoleManager);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.adminPrimary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          _buildListItem(
-                            Icons.account_circle_outlined,
-                            'Prof Name 2',
-                            'Pending Request',
-                          ),
-                          _buildListItem(
-                            Icons.account_circle_outlined,
-                            'Prof Name 3',
-                            'Pending Request',
-                          ),
-                          _buildListItem(
-                            Icons.account_circle_outlined,
-                            'Prof Name 4',
-                            'Pending Request',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildSectionTitle('Course'),
-                  SizedBox(
-                    height: 180,
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: Column(
-                        children: [
-                          _buildListItem(
-                            Icons.person,
-                            'BSIT - 1A',
-                            'Prof Name',
-                          ),
-                          _buildListItem(
-                            Icons.person,
-                            'BSIT - 2B',
-                            'Prof Name',
-                          ),
-                          _buildListItem(
-                            Icons.person,
-                            'BSCS - 3A',
-                            'Prof Name',
-                          ),
-                          _buildListItem(
-                            Icons.person,
-                            'BSCS - 4C',
-                            'Prof Name',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildSectionTitle('Subjects'),
-                  SizedBox(
-                    height: 180,
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: Column(
-                        children: [
-                          _buildListItem(
-                            Icons.menu_book,
-                            'Ethics',
-                            'Pending Prof. Designation',
-                          ),
-                          _buildListItem(
-                            Icons.menu_book,
-                            'Computing',
-                            'Pending Prof. Designation',
-                          ),
-                          _buildListItem(
-                            Icons.menu_book,
-                            'Mathematics',
-                            'Pending Prof. Designation',
-                          ),
-                          _buildListItem(
-                            Icons.menu_book,
-                            'Programming',
-                            'Pending Prof. Designation',
-                          ),
-                          _buildListItem(
-                            Icons.menu_book,
-                            'Networking',
-                            'Pending Prof. Designation',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        context.goNamed(AppRoutes.adminRoleManager);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.adminPrimary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        icon: const Icon(Icons.manage_accounts, color: Colors.white),
+                        label: const Text(
+                          'Assign User Roles',
+                          style: TextStyle(color: Colors.white),
                         ),
                       ),
-                      icon: const Icon(
-                        Icons.manage_accounts,
-                        color: Colors.white,
-                      ),
-                      label: const Text(
-                        'Assign User Roles',
-                        style: TextStyle(color: Colors.white),
-                      ),
                     ),
-                  ),
-                  const Spacer(),
-                ],
+                    const SizedBox(height: 20), // Bottom padding for scroll
+                  ],
+                ),
               ),
             ),
           ),
+          
+          // FIXED BOTTOM NAVIGATION
           Container(
             height: 70,
             width: double.infinity,
@@ -218,6 +149,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
+  // Helper to keep the list sections consistent
+  Widget _buildFixedList(List<Widget> children) {
+    return SizedBox(
+      height: 180,
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(children: children),
+      ),
+    );
+  }
+
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
@@ -228,21 +170,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           fontWeight: FontWeight.bold,
           color: AppColors.adminPrimary,
         ),
-      ),
-    );
-  }
-
-  Widget _buildRoleIndicator(BuildContext context) {
-    final role = context.watch<AppState>().currentUser?.role.value ?? 'unknown';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.adminItemBackground,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        'Current Role: $role',
-        style: const TextStyle(fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -298,6 +225,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             _handleLogout();
           } else if (index == 0) {
             context.goNamed(AppRoutes.adminInstructors);
+          } else if (index == 1) {
+            context.goNamed(AppRoutes.adminStudents);
+          } else if (index == 3) {
+            context.goNamed(AppRoutes.adminRoleManager);
           }
         },
         child: AnimatedContainer(

@@ -39,7 +39,7 @@ dependencies:
   firebase_core: ^4.7.0
   firebase_auth: ^6.4.0
   cloud_firestore: ^6.1.0
-  sentry_flutter: ^8.14.2
+  sentry_flutter: ^9.18.0
 
 dev_dependencies:
   flutter_test:

@@ -1,10 +1,13 @@
 import 'package:go_router/go_router.dart';
 
 import '../../features/admin/domain/models/instructor.dart';
+import '../../features/admin/domain/models/student.dart';
 import '../../features/admin/presentation/screens/admin_dashboard_screen.dart';
 import '../../features/admin/presentation/screens/admin_instructor_profile_screen.dart';
 import '../../features/admin/presentation/screens/admin_instructor_screen.dart';
 import '../../features/admin/presentation/screens/admin_role_manager_screen.dart';
+import '../../features/admin/presentation/screens/admin_students_profile_screen.dart';
+import '../../features/admin/presentation/screens/admin_students_screen.dart';
 import '../../features/auth/domain/enums/user_role.dart';
 import '../../features/auth/presentation/screens/change_password_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
@@ -23,6 +26,8 @@ abstract class AppRoutes {
   static const adminInstructors = 'admin-instructors';
   static const adminInstructorProfile = 'admin-instructor-profile';
   static const adminRoleManager = 'admin-role-manager';
+  static const adminStudents = 'admin-students';
+  static const adminStudentsProfile = 'admin-students-profile';
   static const professorDashboard = 'professor-dashboard';
   static const studentDashboard = 'student-dashboard';
 
@@ -46,61 +51,45 @@ GoRouter createAppRouter(AppState appState) {
     refreshListenable: appState,
     redirect: (context, state) {
       final bool isGoingToLogin = state.matchedLocation == '/login';
-      final bool isGoingToForgotPassword =
-          state.matchedLocation == '/forgot-password';
-      final bool isGoingToChangePassword =
-          state.matchedLocation == '/change-password';
-      final bool isGoingToVerifyEmail =
-          state.matchedLocation == '/verify-email';
+      final bool isGoingToForgotPassword = state.matchedLocation == '/forgot-password';
+      final bool isGoingToChangePassword = state.matchedLocation == '/change-password';
+      final bool isGoingToVerifyEmail = state.matchedLocation == '/verify-email';
+      
       final bool isAdminRoute = state.matchedLocation.startsWith('/admin');
-      final bool isProfessorRoute = state.matchedLocation.startsWith(
-        '/professor',
-      );
+      final bool isProfessorRoute = state.matchedLocation.startsWith('/professor');
       final bool isStudentRoute = state.matchedLocation.startsWith('/student');
-      final bool isAuthRoute =
-          isGoingToLogin ||
-          isGoingToForgotPassword ||
-          isGoingToChangePassword ||
-          isGoingToVerifyEmail;
+      
+      final bool isAuthRoute = isGoingToLogin || isGoingToForgotPassword || 
+                               isGoingToChangePassword || isGoingToVerifyEmail;
+      
       final role = appState.currentUser?.role ?? UserRole.unknown;
 
-      final bool requiresVerifiedEmail =
-          appState.currentUser != null &&
-          !appState.currentUser!.isEmailVerified &&
-          !isGoingToVerifyEmail;
-
+      // Basic Auth Guard
       if (!appState.isAuthenticated && !isAuthRoute) {
         return '/login';
       }
 
-      if (appState.isAuthenticated && requiresVerifiedEmail) {
+      // Email Verification Guard
+      if (appState.isAuthenticated && 
+          appState.currentUser != null && 
+          !appState.currentUser!.isEmailVerified && 
+          !isGoingToVerifyEmail) {
         return '/verify-email';
       }
 
+      // Already logged in redirect
       if (appState.isAuthenticated && isGoingToLogin) {
-        if (appState.currentUser != null &&
-            !appState.currentUser!.isEmailVerified) {
-          return '/verify-email';
-        }
         return AppRoutes.pathForRole(role);
       }
 
-      if (appState.isAuthenticated &&
-          appState.currentUser != null &&
-          appState.currentUser!.isEmailVerified &&
-          isGoingToVerifyEmail) {
-        return AppRoutes.pathForRole(role);
-      }
-
+      // Role-based protection
       if (appState.isAuthenticated && appState.currentUser != null) {
         if (role == UserRole.admin && (isProfessorRoute || isStudentRoute)) {
           return AppRoutes.pathForRole(role);
         }
-
         if (role == UserRole.professor && (isAdminRoute || isStudentRoute)) {
           return AppRoutes.pathForRole(role);
         }
-
         if (role == UserRole.student && (isAdminRoute || isProfessorRoute)) {
           return AppRoutes.pathForRole(role);
         }
@@ -143,14 +132,44 @@ GoRouter createAppRouter(AppState appState) {
         path: '/admin/instructors/profile',
         name: AppRoutes.adminInstructorProfile,
         builder: (context, state) {
-          final Instructor instructor = state.extra! as Instructor;
-          return AdminInstructorProfileScreen(instructor: instructor);
+          // FIX: Handle the Map passed via state.extra
+          final extraData = state.extra as Map<String, dynamic>;
+          final Instructor instructor = extraData['instructor'] as Instructor;
+          final String? request = extraData['request'] as String?;
+          
+          return AdminInstructorProfileScreen(
+            instructor: instructor,
+            initialRequest: request, // Pass the request to the profile screen
+          );
         },
       ),
       GoRoute(
         path: '/admin/roles',
         name: AppRoutes.adminRoleManager,
         builder: (context, state) => const AdminRoleManagerScreen(),
+      ),
+      GoRoute(
+        path: '/admin/students',
+        name: AppRoutes.adminStudents,
+        builder: (context, state) => const AdminStudentsScreen(),
+      ),
+      GoRoute(
+        path: '/admin/students/profile',
+        name: AppRoutes.adminStudentsProfile,
+        builder: (context, state) {
+          final extraData = state.extra as Map<String, dynamic>;
+          final studentMap = extraData['student'] as Map<String, dynamic>;
+          
+          final studentData = StudentData(
+            name: studentMap['name'] as String,
+            course: studentMap['course'] as String,
+            yearSection: studentMap['yearSection'] as String,
+          );
+          
+          return AdminStudentsProfileScreen(
+            student: studentData,
+          );
+        },
       ),
       GoRoute(
         path: '/professor/dashboard',

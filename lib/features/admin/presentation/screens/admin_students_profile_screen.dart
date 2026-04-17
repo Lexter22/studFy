@@ -6,25 +6,22 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
 import '../../../auth/domain/services/auth_service.dart';
-import '../../domain/models/instructor.dart';
+import '../../domain/models/student.dart';
 
-class AdminInstructorProfileScreen extends StatefulWidget {
-  final Instructor instructor;
-  final String? initialRequest; // New parameter to hold the clicked request
+class AdminStudentsProfileScreen extends StatefulWidget {
+  final StudentData student;
 
-  const AdminInstructorProfileScreen({
-    super.key, 
-    required this.instructor, 
-    this.initialRequest,
+  const AdminStudentsProfileScreen({
+    super.key,
+    required this.student,
   });
 
   @override
-  State<AdminInstructorProfileScreen> createState() =>
-      _AdminInstructorProfileScreenState();
+  State<AdminStudentsProfileScreen> createState() =>
+      _AdminStudentsProfileScreenState();
 }
 
-class _AdminInstructorProfileScreenState
-    extends State<AdminInstructorProfileScreen> {
+class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen> {
   final AuthService _authService = const AuthService();
   int? _hoveredIndex;
 
@@ -73,7 +70,7 @@ class _AdminInstructorProfileScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionTitle('Instructor Profile'),
+                  _buildSectionTitle('Student Profile'),
                   Container(
                     width: double.infinity,
                     decoration: BoxDecoration(
@@ -98,21 +95,21 @@ class _AdminInstructorProfileScreenState
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                widget.instructor.name,
+                                widget.student.name,
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                               Text(
-                                'Course: ${widget.instructor.course}',
+                                'Course & Section: ${widget.student.course} - ${widget.student.yearSection}',
                                 style: const TextStyle(
                                   fontSize: 13,
                                   color: Colors.black87,
                                 ),
                               ),
                               Text(
-                                'Subject: ${widget.instructor.subject}',
+                                'Other Info: Enrollment Status',
                                 style: const TextStyle(
                                   fontSize: 13,
                                   color: Colors.black87,
@@ -142,24 +139,7 @@ class _AdminInstructorProfileScreenState
                   ),
                   const SizedBox(height: 20),
                   
-                  // REQUESTS SECTION: Dynamic based on source
-                  _buildSectionTitle('Requests'),
-                  if (widget.initialRequest != null)
-                    _buildRequestItem(
-                      _getIconForRequest(widget.initialRequest!), 
-                      widget.initialRequest!,
-                    )
-                  else ...[
-                    // Default view if accessed via Search List
-                    _buildRequestItem(Icons.person_add_alt_1, 'Class Creation'),
-                    _buildRequestItem(
-                      Icons.access_time_filled,
-                      'Schedule Conflict Request',
-                    ),
-                  ],
-
-                  const SizedBox(height: 20),
-                  _buildSectionTitle('Subjects Handled'),
+                  _buildSectionTitle('Schedule for A.Y. 2025-2026 (1st sem)'),
                   Container(
                     decoration: BoxDecoration(
                       color: AppColors.adminItemBackground,
@@ -168,7 +148,7 @@ class _AdminInstructorProfileScreenState
                     clipBehavior: Clip.antiAlias,
                     child: Column(
                       children: [
-                        _buildSubjectHeader(),
+                        _buildScheduleHeader(),
                         ConstrainedBox(
                           constraints: const BoxConstraints(maxHeight: 250),
                           child: ListView.builder(
@@ -176,15 +156,15 @@ class _AdminInstructorProfileScreenState
                             physics: const BouncingScrollPhysics(),
                             itemCount: 8,
                             itemBuilder: (context, index) =>
-                                _buildSubjectDataRow(),
+                                _buildScheduleDataRow(),
                           ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 20),
-                  _buildSectionTitle('Assign Class'),
-                  _buildAssignClassForm(),
+                  _buildSectionTitle('Assign Subject'),
+                  _buildAssignSubjectForm(),
                   const SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -211,13 +191,6 @@ class _AdminInstructorProfileScreenState
         ],
       ),
     );
-  }
-
-  IconData _getIconForRequest(String request) {
-    if (request.toLowerCase().contains('creation')) return Icons.person_add_alt_1;
-    if (request.toLowerCase().contains('removal')) return Icons.person_remove_alt_1;
-    if (request.toLowerCase().contains('conflict')) return Icons.access_time_filled;
-    return Icons.notifications;
   }
 
   Widget _buildDashboardHeader() {
@@ -297,14 +270,14 @@ class _AdminInstructorProfileScreenState
     );
   }
 
-  Widget _buildAssignClassForm() {
+  Widget _buildAssignSubjectForm() {
     return Column(
       children: [
-        _buildInputField('Course Code'),
+        _buildInputField('Subject Code'),
         const SizedBox(height: 8),
         Row(
           children: [
-            Expanded(child: _buildInputField('Subject name by course code')),
+            Expanded(child: _buildInputField('Subject Name')),
             const SizedBox(width: 8),
             Expanded(child: _buildInputField('Academic Year')),
           ],
@@ -322,7 +295,7 @@ class _AdminInstructorProfileScreenState
           children: [
             Expanded(child: _buildInputField('Year Level')),
             const SizedBox(width: 8),
-            Expanded(child: _buildInputField('Parent Section')),
+            Expanded(child: _buildInputField('Section')),
           ],
         ),
         const SizedBox(height: 8),
@@ -337,7 +310,7 @@ class _AdminInstructorProfileScreenState
     );
   }
 
-  Widget _buildSubjectHeader() {
+  Widget _buildScheduleHeader() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       color: Colors.black12,
@@ -353,7 +326,7 @@ class _AdminInstructorProfileScreenState
           Expanded(
             flex: 3,
             child: Text(
-              'Course & Section',
+              'Professor',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13),
             ),
@@ -371,7 +344,7 @@ class _AdminInstructorProfileScreenState
     );
   }
 
-  Widget _buildSubjectDataRow() {
+  Widget _buildScheduleDataRow() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: const BoxDecoration(
@@ -382,12 +355,12 @@ class _AdminInstructorProfileScreenState
         children: [
           Expanded(
             flex: 3,
-            child: Text('Subject Name', style: TextStyle(fontSize: 14)),
+            child: Text('Subject', style: TextStyle(fontSize: 14)),
           ),
           Expanded(
             flex: 3,
             child: Text(
-              'BSIT - 1A',
+              'Professor',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13),
             ),
@@ -395,7 +368,7 @@ class _AdminInstructorProfileScreenState
           Expanded(
             flex: 2,
             child: Text(
-              '09:00 - Rm 1',
+              'Time & Room',
               textAlign: TextAlign.right,
               style: TextStyle(fontSize: 12),
             ),
@@ -436,24 +409,6 @@ class _AdminInstructorProfileScreenState
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildRequestItem(IconData icon, String label) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.adminItemBackground,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 28, color: Colors.black87),
-          const SizedBox(width: 12),
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-        ],
       ),
     );
   }

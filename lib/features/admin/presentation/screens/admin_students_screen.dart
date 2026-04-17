@@ -5,83 +5,93 @@ import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
-import '../../domain/models/instructor.dart';
+import '../../domain/models/student.dart';
 
-class AdminInstructorScreen extends StatefulWidget {
-  const AdminInstructorScreen({super.key});
+class AdminStudentsScreen extends StatefulWidget {
+  const AdminStudentsScreen({super.key});
 
   @override
-  State<AdminInstructorScreen> createState() => _AdminInstructorScreenState();
+  State<AdminStudentsScreen> createState() => _AdminStudentsScreenState();
 }
 
-class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
+class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
   int _hoveredNavIndex = -1;
 
-  final TextEditingController _profNameController = TextEditingController();
+  final TextEditingController _studentNameController = TextEditingController();
   final TextEditingController _courseController = TextEditingController();
-  final TextEditingController _subjectController = TextEditingController();
+  final TextEditingController _yearSectionController = TextEditingController();
 
-  final List<Instructor> _allInstructors = const [
-    Instructor(name: 'Juan Dela Cruz', course: 'BSIT', subject: 'Computer Programming'),
-    Instructor(name: 'Pedro', course: 'BSIE', subject: 'Mathematics'),
-    Instructor(name: 'Jose', course: 'DIT', subject: 'Communication'),
-    Instructor(name: 'Maria Santos', course: 'BSCS', subject: 'Data Structures'),
-    Instructor(name: 'Ricardo Dalisay', course: 'BSIT', subject: 'Networking'),
+  final List<StudentData> _allStudents = const [
+    StudentData(name: 'Juan Santos', course: 'BSIT', yearSection: '2nd Year - A'),
+    StudentData(name: 'Maria Garcia', course: 'BSIT', yearSection: '3rd Year - B'),
+    StudentData(name: 'Pedro Reyes', course: 'BSCS', yearSection: '2nd Year - A'),
+    StudentData(name: 'Rosa Lopez', course: 'BSIE', yearSection: '1st Year - C'),
+    StudentData(name: 'Carlos Tan', course: 'BSIT', yearSection: '4th Year - A'),
+    StudentData(name: 'Anna De Guzman', course: 'BSCS', yearSection: '3rd Year - B'),
+    StudentData(name: 'Miguel Cruz', course: 'DIT', yearSection: '2nd Year - A'),
+    StudentData(name: 'Sofia Mendoza', course: 'BSHE', yearSection: '1st Year - D'),
   ];
 
   final List<String> _courseList = ['BSIT', 'BSIE', 'DIT', 'BSCS', 'BSHM'];
-  final List<String> _subjectList = ['Computer Programming', 'Mathematics', 'Communication', 'Ethics', 'Networking'];
+  final List<String> _yearSectionList = [
+    '1st Year - A',
+    '1st Year - B',
+    '1st Year - C',
+    '2nd Year - A',
+    '2nd Year - B',
+    '3rd Year - A',
+    '3rd Year - B',
+    '4th Year - A',
+  ];
 
-  late List<Instructor> _filteredInstructors;
+  late List<StudentData> _filteredStudents;
 
   @override
   void initState() {
     super.initState();
-    _filteredInstructors = _allInstructors;
+    _filteredStudents = _allStudents;
   }
 
   @override
   void dispose() {
-    _profNameController.dispose();
+    _studentNameController.dispose();
     _courseController.dispose();
-    _subjectController.dispose();
+    _yearSectionController.dispose();
     super.dispose();
   }
 
   void _filterList() {
     setState(() {
-      _filteredInstructors = _allInstructors.where((instructor) {
-        final nameMatch = instructor.name.toLowerCase().contains(_profNameController.text.toLowerCase());
-        final courseMatch = instructor.course.toLowerCase().contains(_courseController.text.toLowerCase());
-        final subjectMatch = instructor.subject.toLowerCase().contains(_subjectController.text.toLowerCase());
-        return nameMatch && courseMatch && subjectMatch;
+      _filteredStudents = _allStudents.where((student) {
+        final nameMatch = student.name.toLowerCase().contains(_studentNameController.text.toLowerCase());
+        final courseMatch = student.course.toLowerCase().contains(_courseController.text.toLowerCase());
+        final yearSectionMatch = student.yearSection.toLowerCase().contains(_yearSectionController.text.toLowerCase());
+        return nameMatch && courseMatch && yearSectionMatch;
       }).toList();
       // Sort alphabetically by name
-      _filteredInstructors.sort((a, b) => a.name.compareTo(b.name));
+      _filteredStudents.sort((a, b) => a.name.compareTo(b.name));
     });
   }
 
   void _clearFilters() {
-    _profNameController.clear();
+    _studentNameController.clear();
     _courseController.clear();
-    _subjectController.clear();
+    _yearSectionController.clear();
     setState(() {
-      _filteredInstructors = _allInstructors;
+      _filteredStudents = _allStudents;
     });
   }
 
-  // UPDATED NAVIGATION LOGIC
-  void _navigateToInstructorProfile(String name, String? request) {
-    final instructor = _allInstructors.firstWhere(
-      (i) => i.name == name,
-      orElse: () => _allInstructors.first,
-    );
-    
+  void _navigateToStudentProfile(StudentData student, String? request) {
     context.pushNamed(
-      AppRoutes.adminInstructorProfile,
+      AppRoutes.adminStudentsProfile,
       extra: {
-        'instructor': instructor,
-        'request': request, // Passing the specific request string
+        'student': {
+          'name': student.name,
+          'course': student.course,
+          'yearSection': student.yearSection,
+        },
+        'request': request,
       },
     );
   }
@@ -99,24 +109,24 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionTitle('Pending Requests', null),
+                  _buildSectionTitle('Pending Enrollment', null),
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 160),
                     child: SingleChildScrollView(
                       physics: const BouncingScrollPhysics(),
                       child: Column(
                         children: [
-                          _buildRequestItem('Juan Dela Cruz', 'Class Creation'),
-                          _buildRequestItem('Pedro', 'Removal of Student'),
+                          _buildRequestItem('Juan Santos', 'Pending Verification'),
+                          _buildRequestItem('Maria Garcia', 'Missing Documents'),
                         ],
                       ),
                     ),
                   ),
                   const SizedBox(height: 20),
-                  _buildSectionTitle('Instructor List', 'Total: ${_filteredInstructors.length}'),
+                  _buildSectionTitle('Student List', 'Total: ${_filteredStudents.length}'),
                   _buildSearchArea(),
                   const SizedBox(height: 12),
-                  _buildInstructorListArea(),
+                  _buildStudentListArea(),
                 ],
               ),
             ),
@@ -176,10 +186,10 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
                   height: 40,
                   decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6)),
                   child: TextField(
-                    controller: _profNameController,
+                    controller: _studentNameController,
                     onChanged: (_) => _filterList(),
                     decoration: const InputDecoration(
-                      hintText: 'Professor Name',
+                      hintText: 'Student Name',
                       hintStyle: TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.bold),
                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       border: InputBorder.none,
@@ -196,7 +206,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
             children: [
               Expanded(child: _buildComboField('Course', _courseController, _courseList)),
               const SizedBox(width: 8),
-              Expanded(child: _buildComboField('Subject', _subjectController, _subjectList)),
+              Expanded(child: _buildComboField('Year & Section', _yearSectionController, _yearSectionList)),
             ],
           ),
         ],
@@ -232,39 +242,40 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
     );
   }
 
-  Map<String, List<Instructor>> _groupInstructorsByCourse() {
-    final grouped = <String, List<Instructor>>{};
-    for (final instructor in _filteredInstructors) {
-      grouped.putIfAbsent(instructor.course, () => []).add(instructor);
+  Map<String, List<StudentData>> _groupStudentsByCourseAndSection() {
+    final grouped = <String, List<StudentData>>{};
+    for (final student in _filteredStudents) {
+      final key = '${student.course} - ${student.yearSection}';
+      grouped.putIfAbsent(key, () => []).add(student);
     }
-    // Sort course keys alphabetically
+    // Sort group keys alphabetically
     final sortedGroups = Map.fromEntries(
       grouped.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
     );
     return sortedGroups;
   }
 
-  Widget _buildInstructorListArea() {
-    if (_filteredInstructors.isEmpty) {
+  Widget _buildStudentListArea() {
+    if (_filteredStudents.isEmpty) {
       return Expanded(
         child: Container(
           decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-          child: const Center(child: Text("No instructors found.")),
+          child: const Center(child: Text("No students found.")),
         ),
       );
     }
 
-    final groupedInstructors = _groupInstructorsByCourse();
+    final groupedStudents = _groupStudentsByCourseAndSection();
     return Expanded(
       child: Container(
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
         child: ListView.builder(
           padding: const EdgeInsets.all(8),
-          itemCount: groupedInstructors.length * 2 + _filteredInstructors.length, // Rough estimate for headers
+          itemCount: groupedStudents.length * 2 + _filteredStudents.length,
           itemBuilder: (context, index) {
             int itemCount = 0;
-            for (final entry in groupedInstructors.entries) {
-              // Header for this course group
+            for (final entry in groupedStudents.entries) {
+              // Header for this course/section group
               if (itemCount == index) {
                 return Padding(
                   padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
@@ -280,12 +291,12 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
               }
               itemCount++;
 
-              // Instructors in this group
-              for (final instructor in entry.value) {
+              // Students in this group
+              for (final student in entry.value) {
                 if (itemCount == index) {
-                  return InstructorListItem(
-                    instructor: instructor,
-                    onTap: () => _navigateToInstructorProfile(instructor.name, null),
+                  return StudentListItem(
+                    student: student,
+                    onTap: () => _navigateToStudentProfile(student, null),
                   );
                 }
                 itemCount++;
@@ -299,27 +310,24 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
   }
 
   Widget _buildRequestItem(String title, String subtitle) {
-    return GestureDetector(
-      onTap: () => _navigateToInstructorProfile(title, subtitle),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(color: AppColors.adminItemBackground, borderRadius: BorderRadius.circular(8)),
-        child: Row(
-          children: [
-            const Icon(Icons.account_circle_outlined, size: 40, color: Colors.black),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Text(subtitle, style: const TextStyle(fontSize: 14, color: Colors.black87)),
-                ],
-              ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(color: AppColors.adminItemBackground, borderRadius: BorderRadius.circular(8)),
+      child: Row(
+        children: [
+          const Icon(Icons.account_circle_outlined, size: 40, color: Colors.black),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                Text(subtitle, style: const TextStyle(fontSize: 14, color: Colors.black87)),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -353,9 +361,9 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
             context.read<AppState>().logout();
             context.goNamed(AppRoutes.login);
           } else if (index == 0) {
-            // Already on instructors
+            context.goNamed(AppRoutes.adminInstructors);
           } else if (index == 1) {
-            context.goNamed(AppRoutes.adminStudents);
+            // Already on students
           } else if (index == 2) {
             context.goNamed(AppRoutes.adminDashboard);
           } else if (index == 3) {
@@ -382,11 +390,11 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
   }
 }
 
-class InstructorListItem extends StatelessWidget {
-  final Instructor instructor;
+class StudentListItem extends StatelessWidget {
+  final StudentData student;
   final VoidCallback onTap;
 
-  const InstructorListItem({super.key, required this.instructor, required this.onTap});
+  const StudentListItem({super.key, required this.student, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -401,9 +409,9 @@ class InstructorListItem extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Expanded(flex: 3, child: Text(instructor.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold))),
-            Expanded(flex: 2, child: Text(instructor.course, style: const TextStyle(fontSize: 13, color: Colors.black54))),
-            Expanded(flex: 3, child: Text(instructor.subject, style: const TextStyle(fontSize: 13, color: Colors.black54), overflow: TextOverflow.ellipsis)),
+            Expanded(flex: 3, child: Text(student.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold))),
+            Expanded(flex: 2, child: Text(student.course, style: const TextStyle(fontSize: 13, color: Colors.black54))),
+            Expanded(flex: 3, child: Text(student.yearSection, style: const TextStyle(fontSize: 13, color: Colors.black54), overflow: TextOverflow.ellipsis)),
           ],
         ),
       ),

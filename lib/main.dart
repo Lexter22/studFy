@@ -9,13 +9,18 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  await SentryFlutter.init(
-    (options) {
-      options.dsn = const String.fromEnvironment('SENTRY_DSN');
-      options.tracesSampleRate = 0.1;
-    },
-    appRunner: () {
-      runApp(const StudfyApp());
-    },
-  );
+  const dsn = String.fromEnvironment('SENTRY_DSN');
+  if (dsn.isNotEmpty) {
+    await SentryFlutter.init(
+      (options) {
+        options.dsn = dsn;
+        options.tracesSampleRate = 0.1;
+      },
+      appRunner: () {
+        runApp(const StudfyApp());
+      },
+    );
+  } else {
+    runApp(const StudfyApp());
+  }
 }
