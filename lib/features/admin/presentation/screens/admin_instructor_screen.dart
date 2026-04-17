@@ -359,7 +359,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
           } else if (index == 2) {
             context.goNamed(AppRoutes.adminDashboard);
           } else if (index == 3) {
-            context.goNamed(AppRoutes.adminRoleManager);
+            context.goNamed(AppRoutes.adminSubjects);
           }
         },
         child: AnimatedContainer(

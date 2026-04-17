@@ -447,7 +447,7 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
           } else if (index == 2) {
             context.goNamed(AppRoutes.adminDashboard);
           } else if (index == 3) {
-            context.goNamed(AppRoutes.adminRoleManager);
+            context.goNamed(AppRoutes.adminSubjects);
           }
         },
         child: AnimatedContainer(

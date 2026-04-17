@@ -8,6 +8,8 @@ import '../../features/admin/presentation/screens/admin_instructor_screen.dart';
 import '../../features/admin/presentation/screens/admin_role_manager_screen.dart';
 import '../../features/admin/presentation/screens/admin_students_profile_screen.dart';
 import '../../features/admin/presentation/screens/admin_students_screen.dart';
+import '../../features/admin/presentation/screens/admin_subjects_screen.dart';
+import '../../features/admin/presentation/screens/admin_subjects_profile_screen.dart';
 import '../../features/auth/domain/enums/user_role.dart';
 import '../../features/auth/presentation/screens/change_password_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
@@ -28,6 +30,8 @@ abstract class AppRoutes {
   static const adminRoleManager = 'admin-role-manager';
   static const adminStudents = 'admin-students';
   static const adminStudentsProfile = 'admin-students-profile';
+  static const adminSubjects = 'admin-subjects';
+  static const adminSubjectsProfile = 'admin-subjects-profile';
   static const professorDashboard = 'professor-dashboard';
   static const studentDashboard = 'student-dashboard';
 
@@ -168,6 +172,23 @@ GoRouter createAppRouter(AppState appState) {
           
           return AdminStudentsProfileScreen(
             student: studentData,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/admin/subjects',
+        name: AppRoutes.adminSubjects,
+        builder: (context, state) => const AdminSubjectsScreen(),
+      ),
+      GoRoute(
+        path: '/admin/subjects/profile',
+        name: AppRoutes.adminSubjectsProfile,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return AdminSubjectsProfileScreen(
+            subjectName: extra['subjectName'] as String,
+            courseSection: extra['courseSection'] as String,
+            professor: extra['professor'] as String,
           );
         },
       ),

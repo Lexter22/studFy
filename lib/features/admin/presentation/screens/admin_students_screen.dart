@@ -22,26 +22,22 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
   final TextEditingController _yearSectionController = TextEditingController();
 
   final List<StudentData> _allStudents = const [
-    StudentData(name: 'Juan Santos', course: 'BSIT', yearSection: '2nd Year - A'),
-    StudentData(name: 'Maria Garcia', course: 'BSIT', yearSection: '3rd Year - B'),
-    StudentData(name: 'Pedro Reyes', course: 'BSCS', yearSection: '2nd Year - A'),
-    StudentData(name: 'Rosa Lopez', course: 'BSIE', yearSection: '1st Year - C'),
-    StudentData(name: 'Carlos Tan', course: 'BSIT', yearSection: '4th Year - A'),
-    StudentData(name: 'Anna De Guzman', course: 'BSCS', yearSection: '3rd Year - B'),
-    StudentData(name: 'Miguel Cruz', course: 'DIT', yearSection: '2nd Year - A'),
-    StudentData(name: 'Sofia Mendoza', course: 'BSHE', yearSection: '1st Year - D'),
+    StudentData(name: 'Juan Santos', course: 'BSIT', yearSection: '3-1'),
+    StudentData(name: 'Maria Garcia', course: 'BSIT', yearSection: '3-2'),
+    StudentData(name: 'Pedro Reyes', course: 'BSCS', yearSection: '2-1'),
+    StudentData(name: 'Rosa Lopez', course: 'BSIE', yearSection: '1-3'),
+    StudentData(name: 'Carlos Tan', course: 'BSIT', yearSection: '4-1'),
+    StudentData(name: 'Anna De Guzman', course: 'BSCS', yearSection: '3-2'),
+    StudentData(name: 'Miguel Cruz', course: 'DIT', yearSection: '2-1'),
+    StudentData(name: 'Sofia Mendoza', course: 'BSHE', yearSection: '1-4'),
   ];
 
   final List<String> _courseList = ['BSIT', 'BSIE', 'DIT', 'BSCS', 'BSHM'];
   final List<String> _yearSectionList = [
-    '1st Year - A',
-    '1st Year - B',
-    '1st Year - C',
-    '2nd Year - A',
-    '2nd Year - B',
-    '3rd Year - A',
-    '3rd Year - B',
-    '4th Year - A',
+    '1-1', '1-2', '1-3', '1-4',
+    '2-1', '2-2', '2-3',
+    '3-1', '3-2', '3-3',
+    '4-1', '4-2',
   ];
 
   late List<StudentData> _filteredStudents;
@@ -109,15 +105,15 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionTitle('Pending Enrollment', null),
+                  _buildSectionTitle('Recent', null),
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 160),
                     child: SingleChildScrollView(
                       physics: const BouncingScrollPhysics(),
                       child: Column(
                         children: [
-                          _buildRequestItem('Juan Santos', 'Pending Verification'),
-                          _buildRequestItem('Maria Garcia', 'Missing Documents'),
+                          _buildRequestItem('BSIT 2-1', 'Prof. Juan Dela Cruz'),
+                          _buildRequestItem('BSCS 3-2', 'Prof. Maria Santos'),
                         ],
                       ),
                     ),
@@ -245,7 +241,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
   Map<String, List<StudentData>> _groupStudentsByCourseAndSection() {
     final grouped = <String, List<StudentData>>{};
     for (final student in _filteredStudents) {
-      final key = '${student.course} - ${student.yearSection}';
+      final key = '${student.course} ${student.yearSection}';
       grouped.putIfAbsent(key, () => []).add(student);
     }
     // Sort group keys alphabetically
@@ -367,7 +363,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
           } else if (index == 2) {
             context.goNamed(AppRoutes.adminDashboard);
           } else if (index == 3) {
-            context.goNamed(AppRoutes.adminRoleManager);
+            context.goNamed(AppRoutes.adminSubjects);
           }
         },
         child: AnimatedContainer(

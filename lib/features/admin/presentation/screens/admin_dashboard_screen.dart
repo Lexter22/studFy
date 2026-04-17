@@ -227,8 +227,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             context.goNamed(AppRoutes.adminInstructors);
           } else if (index == 1) {
             context.goNamed(AppRoutes.adminStudents);
+          } else if (index == 2) {
+            // Already on dashboard
           } else if (index == 3) {
-            context.goNamed(AppRoutes.adminRoleManager);
+            context.goNamed(AppRoutes.adminSubjects);
           }
         },
         child: AnimatedContainer(

@@ -492,7 +492,7 @@ class _AdminInstructorProfileScreenState
           } else if (index == 2) {
             context.goNamed(AppRoutes.adminDashboard);
           } else if (index == 3) {
-            context.goNamed(AppRoutes.adminRoleManager);
+            context.goNamed(AppRoutes.adminSubjects);
           }
         },
         child: AnimatedContainer(
