@@ -60,13 +60,14 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       backgroundColor: AppColors.adminPageBackground,
       body: Column(
         children: [
           _buildDashboardHeader(),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 90.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -414,19 +415,42 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
   }
 
   Widget _buildDashboardFooter() {
-    return Container(
-      height: 70,
-      width: double.infinity,
-      color: AppColors.adminPrimary,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildNavItem(Icons.layers, 'INSTRUCTOR', 0),
-          _buildNavItem(Icons.group, 'STUDENTS', 1),
-          _buildNavItem(Icons.home, 'DASHBOARD', 2),
-          _buildNavItem(Icons.book, 'SUBJECTS', 3),
-          _buildNavItem(Icons.logout, 'LOGOUT', 4),
-        ],
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width > 800
+                ? 650
+                : MediaQuery.of(context).size.width - 20,
+          ),
+          child: Container(
+            height: 70,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: AppColors.adminPrimary,
+              borderRadius: BorderRadius.circular(35),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildNavItem(Icons.layers, 'INSTRUCTOR', 0),
+                _buildNavItem(Icons.group, 'STUDENTS', 1),
+                _buildNavItem(Icons.home, 'DASHBOARD', 2),
+                _buildNavItem(Icons.book, 'SUBJECTS', 3),
+                _buildNavItem(Icons.logout, 'LOGOUT', 4),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -452,21 +476,23 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: isHovered ? AppColors.adminPrimaryHover : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
+            color: isHovered ? Colors.white.withOpacity(0.1) : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
           ),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: Colors.white, size: 26),
+              Icon(icon, color: Colors.white, size: 24),
+              const SizedBox(height: 4),
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: 9,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: isHovered ? FontWeight.bold : FontWeight.normal,
+                  letterSpacing: 0.5,
                 ),
               ),
             ],

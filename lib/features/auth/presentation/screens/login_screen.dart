@@ -130,17 +130,14 @@ Widget build(BuildContext context) {
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   maxWidth: isDesktop ? 500 : double.infinity,
-                  // Forces the box to take up the full available height 
-                  // minus the margin we define below
                   minHeight: double.infinity, 
                 ),
                 child: Container(
-                  // ADDED: 10 margin for top and bottom spacing
                   margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(28), // Rounded corners for the "floating" look
+                    borderRadius: BorderRadius.circular(28),
                   ),
                   child: SingleChildScrollView(
                     child: Column(
@@ -175,21 +172,25 @@ Widget build(BuildContext context) {
                           },
                         ),
                         const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            SizedBox(
-                              height: 24, width: 24,
-                              child: Checkbox(
-                                value: _rememberMe,
-                                activeColor: AppColors.authPrimary,
-                                onChanged: (val) => setState(() => _rememberMe = val ?? false),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.start, // Changed from .center to .start
+                            children: [
+                              SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: Checkbox(
+                                  value: _rememberMe,
+                                  activeColor: AppColors.authPrimary,
+                                  onChanged: (val) => setState(() => _rememberMe = val ?? false),
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            const Text('Remember me', style: TextStyle(fontSize: 13)),
-                          ],
-                        ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Remember me', 
+                                style: TextStyle(fontSize: 13),
+                              ),
+                            ],
+                          ),
                         const SizedBox(height: 24),
                         SizedBox(
                           width: double.infinity,
@@ -241,6 +242,34 @@ Widget build(BuildContext context) {
                           assetPath: 'assets/images/outlook.png',
                           onTap: () {},
                         ),
+                        
+                        // --- NEW CODE START ---
+                        const SizedBox(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text(
+                              "Don't have an account? ",
+                              style: TextStyle(fontSize: 13, color: Colors.black87),
+                            ),
+                            GestureDetector(
+                              onTap: () {
+                                // Update this route to your actual registration page route name
+                                // context.goNamed(AppRoutes.register);
+                                debugPrint("Register link tapped!");
+                              },
+                              child: const Text(
+                                "Create an account",
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.authPrimary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        // --- NEW CODE END ---
                       ],
                     ),
                   ),

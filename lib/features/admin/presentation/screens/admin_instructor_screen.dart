@@ -15,7 +15,7 @@ class AdminInstructorScreen extends StatefulWidget {
 }
 
 class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
-  int _hoveredNavIndex = -1;
+  int? _hoveredIndex;
 
   final TextEditingController _profNameController = TextEditingController();
   final TextEditingController _courseController = TextEditingController();
@@ -89,6 +89,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       backgroundColor: AppColors.adminPageBackground,
       body: Column(
         children: [
@@ -121,7 +122,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
               ),
             ),
           ),
-          _buildFooter(),
+          _buildNavBar(),
         ],
       ),
     );
@@ -259,8 +260,8 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
       child: Container(
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
         child: ListView.builder(
-          padding: const EdgeInsets.all(8),
-          itemCount: groupedInstructors.length * 2 + _filteredInstructors.length, // Rough estimate for headers
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 98),
+          itemCount: groupedInstructors.length * 2 + _filteredInstructors.length,
           itemBuilder: (context, index) {
             int itemCount = 0;
             for (final entry in groupedInstructors.entries) {
@@ -324,29 +325,52 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
     );
   }
 
-  Widget _buildFooter() {
-    return Container(
-      height: 70,
-      width: double.infinity,
-      color: AppColors.adminPrimary,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildNavItem(Icons.layers, 'INSTRUCTOR', 0),
-          _buildNavItem(Icons.group, 'STUDENTS', 1),
-          _buildNavItem(Icons.home, 'DASHBOARD', 2),
-          _buildNavItem(Icons.book, 'SUBJECTS', 3),
-          _buildNavItem(Icons.logout, 'LOGOUT', 4),
-        ],
+  Widget _buildNavBar() {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width > 800
+                ? 650
+                : MediaQuery.of(context).size.width - 20,
+          ),
+          child: Container(
+            height: 70,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: AppColors.adminPrimary,
+              borderRadius: BorderRadius.circular(35),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildNavItem(Icons.layers, 'INSTRUCTOR', 0),
+                _buildNavItem(Icons.group, 'STUDENTS', 1),
+                _buildNavItem(Icons.home, 'DASHBOARD', 2),
+                _buildNavItem(Icons.book, 'SUBJECTS', 3),
+                _buildNavItem(Icons.logout, 'LOGOUT', 4),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildNavItem(IconData icon, String label, int index) {
-    final bool isHovered = _hoveredNavIndex == index;
+    final bool isHovered = _hoveredIndex == index;
     return MouseRegion(
-      onEnter: (_) => setState(() => _hoveredNavIndex = index),
-      onExit: (_) => setState(() => _hoveredNavIndex = -1),
+      onEnter: (_) => setState(() => _hoveredIndex = index),
+      onExit: (_) => setState(() => _hoveredIndex = null),
       child: GestureDetector(
         onTap: () {
           if (index == 4) {
@@ -364,16 +388,25 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: isHovered ? AppColors.adminPrimaryHover : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
+            color: isHovered ? Colors.white.withOpacity(0.1) : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
           ),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: Colors.white, size: 26),
-              Text(label, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+              Icon(icon, color: Colors.white, size: 24),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 9,
+                  fontWeight: isHovered ? FontWeight.bold : FontWeight.normal,
+                  letterSpacing: 0.5,
+                ),
+              ),
             ],
           ),
         ),
