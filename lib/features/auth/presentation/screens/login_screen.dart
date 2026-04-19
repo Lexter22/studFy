@@ -22,12 +22,30 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final AuthService _authService = const AuthService();
+  final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   bool _rememberMe = false;
   bool _obscurePassword = true;
+  bool _isButtonEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(_validateInputs);
+    _passwordController.addListener(_validateInputs);
+  }
+
+  void _validateInputs() {
+    final bool isNotEmpty = _emailController.text.isNotEmpty && _passwordController.text.isNotEmpty;
+    if (isNotEmpty != _isButtonEnabled) {
+      setState(() {
+        _isButtonEnabled = isNotEmpty;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -36,31 +54,39 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK', style: TextStyle(color: AppColors.authPrimary, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
+
     try {
       final user = await _authService.signInWithEmailAndPassword(
-        email: _emailController.text,
+        email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       if (user.role == UserRole.unknown) {
         await _authService.signOut();
-        if (!mounted) {
-          return;
-        }
-
+        if (!mounted) return;
         context.read<AppState>().logout();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'No role assigned for this account. Ask the admin to set Admin, Professor, or Student in Firestore.',
-            ),
-          ),
-        );
+        _showErrorDialog('Access Denied', 'No role assigned. Please contact the administrator.');
         return;
       }
 
@@ -68,181 +94,156 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (!user.isEmailVerified) {
         await _authService.sendEmailVerification();
-        if (!mounted) {
-          return;
-        }
+        if (!mounted) return;
         context.goNamed(AppRoutes.verifyEmail);
         return;
       }
 
       context.go(AppRoutes.pathForRole(user.role));
     } on FirebaseAuthException catch (error, stackTrace) {
-      await ErrorTelemetry.captureException(
-        error,
-        stackTrace,
-        operation: 'auth.login',
-        extras: {'code': error.code, 'email': _emailController.text.trim()},
-      );
-      if (!mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message ?? 'Login failed')));
+      await ErrorTelemetry.captureException(error, stackTrace, operation: 'auth.login');
+      String errorMessage = 'Login failed. Please check your credentials.';
+      if (error.code == 'user-not-found') errorMessage = 'Account does not exist.';
+      if (error.code == 'wrong-password') errorMessage = 'Incorrect password.';
+      if (error.code == 'invalid-email') errorMessage = 'The email format is invalid.';
+      _showErrorDialog('Login Error', errorMessage);
     } catch (error, stackTrace) {
-      await ErrorTelemetry.captureException(
-        error,
-        stackTrace,
-        operation: 'auth.login.unexpected',
-        extras: {'email': _emailController.text.trim()},
-      );
-      if (!mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Login failed')));
+      await ErrorTelemetry.captureException(error, stackTrace, operation: 'auth.login.unexpected');
+      _showErrorDialog('Error', 'An unexpected error occurred.');
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.authPageBackground,
-      body: Column(
+@override
+Widget build(BuildContext context) {
+  final bool isDesktop = MediaQuery.of(context).size.width > 800;
+
+  return Scaffold(
+    backgroundColor: AppColors.authPageBackground,
+    body: Form(
+      key: _formKey,
+      child: Column(
         children: [
           const StudfyHeader(backgroundColor: AppColors.authPrimary),
           Expanded(
-            child: Container(
-              margin: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(28),
-              ),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 30,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: isDesktop ? 500 : double.infinity,
+                  // Forces the box to take up the full available height 
+                  // minus the margin we define below
+                  minHeight: double.infinity, 
                 ),
-                child: Column(
-                  children: [
-                    const Text(
-                      'Login to Portal',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-                    _buildTextField(
-                      'Email',
-                      isPassword: false,
-                      controller: _emailController,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      'Password',
-                      isPassword: true,
-                      controller: _passwordController,
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                child: Container(
+                  // ADDED: 10 margin for top and bottom spacing
+                  margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(28), // Rounded corners for the "floating" look
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.max,
                       children: [
-                        SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: Checkbox(
-                            value: _rememberMe,
-                            activeColor: AppColors.authPrimary,
-                            onChanged: (val) {
-                              setState(() => _rememberMe = val ?? false);
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 8),
                         const Text(
-                          'Remember me',
-                          style: TextStyle(fontSize: 13),
+                          'Login to Portal',
+                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 55,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.authPrimary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          elevation: 0,
+                        const SizedBox(height: 30),
+                        _buildTextField(
+                          'Email',
+                          isPassword: false,
+                          controller: _emailController,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) return 'Required';
+                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                              return 'Invalid format';
+                            }
+                            return null;
+                          },
                         ),
-                        onPressed: _handleLogin,
-                        child: const Text(
-                          'Login',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        const SizedBox(height: 16),
+                        _buildTextField(
+                          'Password',
+                          isPassword: true,
+                          controller: _passwordController,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) return 'Required';
+                            if (value.length < 6) return 'Too short';
+                            return null;
+                          },
                         ),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        context.goNamed(AppRoutes.forgotPassword);
-                      },
-                      child: const Text(
-                        'Forgot Password?',
-                        style: TextStyle(
-                          color: AppColors.authPrimary,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              height: 24, width: 24,
+                              child: Checkbox(
+                                value: _rememberMe,
+                                activeColor: AppColors.authPrimary,
+                                onChanged: (val) => setState(() => _rememberMe = val ?? false),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('Remember me', style: TextStyle(fontSize: 13)),
+                          ],
                         ),
-                      ),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 30,
-                          height: 1.5,
-                          color: Colors.black87,
-                        ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 10),
-                          child: Text(
-                            'or',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 55,
+                          child: Opacity(
+                            opacity: _isButtonEnabled ? 1.0 : 0.5,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.authPrimary,
+                                disabledBackgroundColor: AppColors.authPrimary,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                elevation: 0,
+                              ),
+                              onPressed: _isButtonEnabled ? _handleLogin : null,
+                              child: const Text(
+                                'Login',
+                                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
                             ),
                           ),
                         ),
-                        Container(
-                          width: 30,
-                          height: 1.5,
-                          color: Colors.black87,
+                        TextButton(
+                          onPressed: () => context.goNamed(AppRoutes.forgotPassword),
+                          child: const Text(
+                            'Forgot Password?',
+                            style: TextStyle(color: AppColors.authPrimary, fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(width: 30, height: 1.5, color: Colors.black87),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 10),
+                              child: Text('or', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            ),
+                            Container(width: 30, height: 1.5, color: Colors.black87),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        SocialLoginButton(
+                          label: 'Continue with Google',
+                          assetPath: 'assets/images/google.png',
+                          onTap: () {},
+                        ),
+                        const SizedBox(height: 12),
+                        SocialLoginButton(
+                          label: 'Continue with Outlook',
+                          assetPath: 'assets/images/outlook.png',
+                          onTap: () {},
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
-                    SocialLoginButton(
-                      label: 'Continue with Google',
-                      assetPath: 'assets/images/google.png',
-                      onTap: () {},
-                    ),
-                    const SizedBox(height: 12),
-                    SocialLoginButton(
-                      label: 'Continue with Outlook',
-                      assetPath: 'assets/images/outlook.png',
-                      onTap: () {},
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -250,17 +251,20 @@ class _LoginScreenState extends State<LoginScreen> {
           const StudfyFooter(backgroundColor: AppColors.authPrimary),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildTextField(
     String hint, {
     required bool isPassword,
     required TextEditingController controller,
+    String? Function(String?)? validator,
   }) {
-    return TextField(
+    return TextFormField(
       controller: controller,
       obscureText: isPassword ? _obscurePassword : false,
+      validator: validator,
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
@@ -268,25 +272,24 @@ class _LoginScreenState extends State<LoginScreen> {
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
-                  _obscurePassword
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
+                  _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                   color: Colors.grey,
                 ),
-                onPressed: () {
-                  setState(() {
-                    _obscurePassword = !_obscurePassword;
-                  });
-                },
+                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
               )
             : null,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 18,
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide.none,
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: Colors.red, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: Colors.red, width: 2.0),
         ),
       ),
     );
