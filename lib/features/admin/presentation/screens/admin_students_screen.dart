@@ -150,7 +150,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
               Text('STUDFY', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
             ],
           ),
-          Text('Admin 1', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+          Text('Admin 1', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -329,7 +329,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
     );
   }
 
-  Widget _buildNavBar() {
+Widget _buildNavBar() {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Padding(

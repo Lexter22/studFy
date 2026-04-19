@@ -17,12 +17,13 @@ class AdminInstructorScreen extends StatefulWidget {
 class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
   int? _hoveredIndex;
 
+  // Controllers & State for Filtering
   final TextEditingController _profNameController = TextEditingController();
-  final TextEditingController _courseController = TextEditingController();
-  final TextEditingController _subjectController = TextEditingController();
+  String? _selectedCourse;
+  String? _selectedSubject;
 
   final List<Instructor> _allInstructors = const [
-    Instructor(name: 'Juan Dela Cruz', course: 'BSIT', subject: 'Computer Programming'),
+    Instructor(name: 'Juan Dela Cruz', course: 'BSIT', subject: 'Programming'),
     Instructor(name: 'Pedro', course: 'BSIE', subject: 'Mathematics'),
     Instructor(name: 'Jose', course: 'DIT', subject: 'Communication'),
     Instructor(name: 'Maria Santos', course: 'BSCS', subject: 'Data Structures'),
@@ -30,101 +31,354 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
   ];
 
   final List<String> _courseList = ['BSIT', 'BSIE', 'DIT', 'BSCS', 'BSHM'];
-  final List<String> _subjectList = ['Computer Programming', 'Mathematics', 'Communication', 'Ethics', 'Networking'];
+  final List<String> _subjectList = ['Programming', 'Mathematics', 'Communication', 'Data Structures', 'Networking'];
 
   late List<Instructor> _filteredInstructors;
 
   @override
   void initState() {
     super.initState();
-    _filteredInstructors = _allInstructors;
+    _filteredInstructors = List.from(_allInstructors);
   }
 
   @override
   void dispose() {
     _profNameController.dispose();
-    _courseController.dispose();
-    _subjectController.dispose();
     super.dispose();
   }
 
+  // --- CORE FILTER LOGIC ---
   void _filterList() {
     setState(() {
       _filteredInstructors = _allInstructors.where((instructor) {
-        final nameMatch = instructor.name.toLowerCase().contains(_profNameController.text.toLowerCase());
-        final courseMatch = instructor.course.toLowerCase().contains(_courseController.text.toLowerCase());
-        final subjectMatch = instructor.subject.toLowerCase().contains(_subjectController.text.toLowerCase());
+        final nameMatch = instructor.name
+            .toLowerCase()
+            .contains(_profNameController.text.toLowerCase());
+        
+        final courseMatch = _selectedCourse == null || 
+            _selectedCourse!.isEmpty || 
+            instructor.course == _selectedCourse;
+        
+        final subjectMatch = _selectedSubject == null || 
+            _selectedSubject!.isEmpty || 
+            instructor.subject == _selectedSubject;
+
         return nameMatch && courseMatch && subjectMatch;
       }).toList();
-      // Sort alphabetically by name
-      _filteredInstructors.sort((a, b) => a.name.compareTo(b.name));
     });
   }
 
   void _clearFilters() {
     _profNameController.clear();
-    _courseController.clear();
-    _subjectController.clear();
     setState(() {
-      _filteredInstructors = _allInstructors;
+      _selectedCourse = null;
+      _selectedSubject = null;
+      _filteredInstructors = List.from(_allInstructors);
     });
   }
 
-  // UPDATED NAVIGATION LOGIC
   void _navigateToInstructorProfile(String name, String? request) {
     final instructor = _allInstructors.firstWhere(
       (i) => i.name == name,
       orElse: () => _allInstructors.first,
     );
-    
+
     context.pushNamed(
       AppRoutes.adminInstructorProfile,
       extra: {
         'instructor': instructor,
-        'request': request, // Passing the specific request string
+        'request': request,
       },
+    );
+  }
+
+  void _showActionDialog(String action, String name, String request) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('$action Request?'),
+        content: Text('Are you sure you want to $action the "$request" from $name?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Request $action-ed successfully')),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: action == 'Approve' ? Colors.green : Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text(action, style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true,
       backgroundColor: AppColors.adminPageBackground,
-      body: Column(
+      body: Stack(
         children: [
-          _buildHeader(),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle('Pending Requests', null),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 160),
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: Column(
-                        children: [
-                          _buildRequestItem('Juan Dela Cruz', 'Class Creation'),
-                          _buildRequestItem('Pedro', 'Removal of Student'),
-                        ],
-                      ),
-                    ),
+          Column(
+            children: [
+              _buildHeader(),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 110),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionLabel('Pending Requests'),
+                      _buildRequestsArea(),
+                      const SizedBox(height: 12),
+                      _buildSectionLabel('Instructor List'),
+                      _buildSearchFilterArea(),
+                      const SizedBox(height: 16),
+                      _buildInstructorTableArea(),
+                    ],
                   ),
-                  const SizedBox(height: 20),
-                  _buildSectionTitle('Instructor List', 'Total: ${_filteredInstructors.length}'),
-                  _buildSearchArea(),
-                  const SizedBox(height: 12),
-                  _buildInstructorListArea(),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
           _buildNavBar(),
         ],
       ),
+    );
+  }
+
+  // --- UI COMPONENTS ---
+
+  Widget _buildSectionLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6, left: 4),
+      child: Text(text, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF800000))),
+    );
+  }
+
+  Widget _buildRequestsArea() {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        children: [
+          _buildPendingCard('Pedro', 'Account Edit Request'),
+          _buildPendingCard('Juan Dela Cruz', 'Class Creation Request'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPendingCard(String name, String subtitle) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))]),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              CircleAvatar(backgroundColor: Colors.grey.shade200, child: const Icon(Icons.person, color: Colors.grey)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                  ],
+                ),
+              ),
+              _buildStatusBadge(),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: _buildActionBtn('Approve', Icons.check, const Color(0xFFD4EDDA), const Color(0xFF28A745), () => _showActionDialog('Approve', name, subtitle))),
+              const SizedBox(width: 8),
+              Expanded(child: _buildActionBtn('Reject', Icons.close, const Color(0xFFF8D7DA), const Color(0xFFDC3545), () => _showActionDialog('Reject', name, subtitle))),
+              const SizedBox(width: 8),
+              Expanded(child: _buildViewDetailsBtn(() => _navigateToInstructorProfile(name, subtitle))),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchFilterArea() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.black12)),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _profNameController,
+                  onChanged: (_) => _filterList(),
+                  decoration: InputDecoration(
+                    hintText: 'Professor Name',
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              _buildSearchButton(),
+              const SizedBox(width: 8),
+              _buildClearFilterButton(),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(child: _buildGlobalDropdown('Course', _courseList, _selectedCourse, (val) => setState(() => _selectedCourse = val))),
+              const SizedBox(width: 10),
+              Expanded(child: _buildGlobalDropdown('Subject', _subjectList, _selectedSubject, (val) => setState(() => _selectedSubject = val))),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInstructorTableArea() {
+    return Column(
+      children: _filteredInstructors.map((instructor) {
+        List<String> specificCourses = (instructor.name == 'Juan Dela Cruz') ? ['BSIT', 'BSIE'] : [instructor.course];
+        List<String> specificSubjects = (instructor.name == 'Juan Dela Cruz') ? ['Mathematics', 'Networking', 'Communication'] : [instructor.subject];
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(8)),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => _navigateToInstructorProfile(instructor.name, null),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  children: [
+                    Expanded(flex: 2, child: Text(instructor.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.adminPrimary))),
+                    const SizedBox(width: 8),
+                    Expanded(flex: 2, child: _buildTableDropdown(instructor.course, specificCourses)),
+                    const SizedBox(width: 8),
+                    Expanded(flex: 3, child: _buildTableDropdown(instructor.subject, specificSubjects)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  // --- REUSABLE HELPERS ---
+
+  Widget _buildActionBtn(String label, IconData icon, Color bg, Color text, VoidCallback onTap) {
+    return Material(
+      color: bg,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(height: 38, alignment: Alignment.center, child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, size: 14, color: text), const SizedBox(width: 4), Text(label, style: TextStyle(color: text, fontSize: 12, fontWeight: FontWeight.bold))])),
+      ),
+    );
+  }
+
+  Widget _buildViewDetailsBtn(VoidCallback onTap) {
+    return Material(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(side: const BorderSide(color: Colors.black12), borderRadius: BorderRadius.circular(8)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(height: 38, alignment: Alignment.center, child: Row(mainAxisAlignment: MainAxisAlignment.center, children: const [Text('View Details', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)), SizedBox(width: 2), Icon(Icons.chevron_right, size: 16, color: Colors.grey)])),
+      ),
+    );
+  }
+
+  Widget _buildGlobalDropdown(String hint, List<String> items, String? currentValue, Function(String?) onChanged) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.black12), borderRadius: BorderRadius.circular(8)),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          hint: Text(hint, style: const TextStyle(fontSize: 14)),
+          value: currentValue,
+          isExpanded: true,
+          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+          onChanged: (val) {
+            onChanged(val);
+            _filterList();
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTableDropdown(String value, List<String> items) {
+    String currentValue = items.contains(value) ? value : items.first;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.black12), borderRadius: BorderRadius.circular(6)),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: currentValue,
+          isExpanded: true,
+          style: const TextStyle(fontSize: 12, color: Colors.black87),
+          onChanged: (val) {},
+          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchButton() {
+    return Material(
+      color: const Color(0xFF1A46A0),
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: _filterList,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), child: Row(children: const [Icon(Icons.search, color: Colors.white, size: 18), SizedBox(width: 4), Text('Search', style: TextStyle(color: Colors.white))])),
+      ),
+    );
+  }
+
+  Widget _buildClearFilterButton() {
+    return Material(
+      color: Colors.grey.shade200,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: _clearFilters,
+        borderRadius: BorderRadius.circular(8),
+        child: const Padding(padding: EdgeInsets.all(10), child: Icon(Icons.filter_alt_off, color: Colors.black54)),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(color: Colors.yellow.shade100, borderRadius: BorderRadius.circular(20)),
+      child: const Text('● Pending', style: TextStyle(color: Color(0xFFB8860B), fontSize: 11, fontWeight: FontWeight.bold)),
     );
   }
 
@@ -137,190 +391,9 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
       child: const Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.school, color: Colors.white, size: 28),
-              Text('STUDFY', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
-            ],
-          ),
-          Text('Admin 1', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+          Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.school, color: Colors.white, size: 28), Text('STUDFY', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900))]),
+          Text('Admin 1', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title, String? trailingText) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.adminPrimary)),
-          if (trailingText != null)
-            Text(trailingText, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.adminPrimary)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchArea() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: AppColors.adminItemBackground, borderRadius: BorderRadius.circular(8)),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  height: 40,
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6)),
-                  child: TextField(
-                    controller: _profNameController,
-                    onChanged: (_) => _filterList(),
-                    decoration: const InputDecoration(
-                      hintText: 'Professor Name',
-                      hintStyle: TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.bold),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      border: InputBorder.none,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(onPressed: _clearFilters, icon: const Icon(Icons.filter_alt_off, color: Colors.black54)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(child: _buildComboField('Course', _courseController, _courseList)),
-              const SizedBox(width: 8),
-              Expanded(child: _buildComboField('Subject', _subjectController, _subjectList)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildComboField(String hint, TextEditingController controller, List<String> items) {
-    return Container(
-      height: 40,
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6)),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: controller,
-              onChanged: (_) => _filterList(),
-              decoration: InputDecoration(
-                hintText: hint,
-                hintStyle: const TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.bold),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                border: InputBorder.none,
-              ),
-            ),
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
-            onSelected: (val) { controller.text = val; _filterList(); },
-            itemBuilder: (ctx) => items.map((choice) => PopupMenuItem(value: choice, child: Text(choice))).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Map<String, List<Instructor>> _groupInstructorsByCourse() {
-    final grouped = <String, List<Instructor>>{};
-    for (final instructor in _filteredInstructors) {
-      grouped.putIfAbsent(instructor.course, () => []).add(instructor);
-    }
-    // Sort course keys alphabetically
-    final sortedGroups = Map.fromEntries(
-      grouped.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
-    );
-    return sortedGroups;
-  }
-
-  Widget _buildInstructorListArea() {
-    if (_filteredInstructors.isEmpty) {
-      return Expanded(
-        child: Container(
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-          child: const Center(child: Text("No instructors found.")),
-        ),
-      );
-    }
-
-    final groupedInstructors = _groupInstructorsByCourse();
-    return Expanded(
-      child: Container(
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-        child: ListView.builder(
-          padding: const EdgeInsets.fromLTRB(8, 8, 8, 98),
-          itemCount: groupedInstructors.length * 2 + _filteredInstructors.length,
-          itemBuilder: (context, index) {
-            int itemCount = 0;
-            for (final entry in groupedInstructors.entries) {
-              // Header for this course group
-              if (itemCount == index) {
-                return Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
-                  child: Text(
-                    entry.key,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.adminPrimary,
-                    ),
-                  ),
-                );
-              }
-              itemCount++;
-
-              // Instructors in this group
-              for (final instructor in entry.value) {
-                if (itemCount == index) {
-                  return InstructorListItem(
-                    instructor: instructor,
-                    onTap: () => _navigateToInstructorProfile(instructor.name, null),
-                  );
-                }
-                itemCount++;
-              }
-            }
-            return const SizedBox.shrink();
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRequestItem(String title, String subtitle) {
-    return GestureDetector(
-      onTap: () => _navigateToInstructorProfile(title, subtitle),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(color: AppColors.adminItemBackground, borderRadius: BorderRadius.circular(8)),
-        child: Row(
-          children: [
-            const Icon(Icons.account_circle_outlined, size: 40, color: Colors.black),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Text(subtitle, style: const TextStyle(fontSize: 14, color: Colors.black87)),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -377,9 +450,9 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
             context.read<AppState>().logout();
             context.goNamed(AppRoutes.login);
           } else if (index == 0) {
-            // Already on instructors
+            context.goNamed(AppRoutes.adminInstructors);
           } else if (index == 1) {
-            context.goNamed(AppRoutes.adminStudents);
+            // Already on students
           } else if (index == 2) {
             context.goNamed(AppRoutes.adminDashboard);
           } else if (index == 3) {
@@ -409,35 +482,6 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class InstructorListItem extends StatelessWidget {
-  final Instructor instructor;
-  final VoidCallback onTap;
-
-  const InstructorListItem({super.key, required this.instructor, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: AppColors.adminItemBackground.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            Expanded(flex: 3, child: Text(instructor.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold))),
-            Expanded(flex: 2, child: Text(instructor.course, style: const TextStyle(fontSize: 13, color: Colors.black54))),
-            Expanded(flex: 3, child: Text(instructor.subject, style: const TextStyle(fontSize: 13, color: Colors.black54), overflow: TextOverflow.ellipsis)),
-          ],
         ),
       ),
     );

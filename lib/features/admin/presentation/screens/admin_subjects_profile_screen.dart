@@ -381,7 +381,7 @@ class _AdminSubjectsProfileScreenState
             'Admin 1',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 22,
+              fontSize: 15,
               fontWeight: FontWeight.bold,
             ),
           ),
