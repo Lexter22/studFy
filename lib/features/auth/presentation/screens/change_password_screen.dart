@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/widgets/studfy_footer.dart';
 import '../../../../core/widgets/studfy_header.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
@@ -21,7 +20,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       backgroundColor: AppColors.authPageBackground,
       body: Column(
         children: [
-          const StudfyHeader(backgroundColor: AppColors.authPrimary),
+          const StudfyHeader(backgroundColor: AppColors.authPageBackground),
           Expanded(
             child: Container(
               margin: const EdgeInsets.all(16),
@@ -132,7 +131,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               ),
             ),
           ),
-          const StudfyFooter(backgroundColor: AppColors.authPrimary),
         ],
       ),
     );

@@ -11,8 +11,8 @@ import '../../domain/models/instructor.dart';
 // ── Simple model for a handled subject row ────────────────────────────────────
 class _HandledSubject {
   final String subjectName;
-  final String courseSection; 
-  final String timeRoom;      
+  final String courseSection;
+  final String timeRoom;
 
   const _HandledSubject({
     required this.subjectName,
@@ -40,16 +40,17 @@ class _AdminInstructorProfileScreenState
     extends State<AdminInstructorProfileScreen> {
   // ── Profile edit state ────────────────────────────────────────────────────
   bool _isEditing = false;
+  int? _hoveredIndex;
   late Instructor _currentInstructor;
   late TextEditingController _nameController;
   late TextEditingController _courseController;
   final TextEditingController _passwordController = TextEditingController();
 
   // ── Assign Class form controllers ─────────────────────────────────────────
-  final TextEditingController _courseCodeCtrl    = TextEditingController();
-  final TextEditingController _subjectNameCtrl   = TextEditingController();
-  final TextEditingController _academicYearCtrl  = TextEditingController();
-  
+  final TextEditingController _courseCodeCtrl = TextEditingController();
+  final TextEditingController _subjectNameCtrl = TextEditingController();
+  final TextEditingController _academicYearCtrl = TextEditingController();
+
   // Dropdown Selections
   String? _selectedCourse;
   String? _selectedSemester;
@@ -61,17 +62,29 @@ class _AdminInstructorProfileScreenState
 
   // ── Subjects handled list ────────────────────────────────────────────────
   final List<_HandledSubject> _handledSubjects = [
-    const _HandledSubject(subjectName: 'Subject Name', courseSection: 'BSIT 2-1', timeRoom: 'MWF 8:00 / MC-101'),
-    const _HandledSubject(subjectName: 'Subject Name', courseSection: 'BSIT 3-1', timeRoom: 'TTH 10:00 / C-202'),
-    const _HandledSubject(subjectName: 'Subject Name', courseSection: 'BSCS 1-2', timeRoom: 'MWF 1:00 / MC-305'),
-    const _HandledSubject(subjectName: 'Subject Name', courseSection: 'BSIT 4-1', timeRoom: 'TTH 3:00 / C-110'),
+    const _HandledSubject(
+        subjectName: 'Subject Name',
+        courseSection: 'BSIT 2-1',
+        timeRoom: 'MWF 8:00 / MC-101'),
+    const _HandledSubject(
+        subjectName: 'Subject Name',
+        courseSection: 'BSIT 3-1',
+        timeRoom: 'TTH 10:00 / C-202'),
+    const _HandledSubject(
+        subjectName: 'Subject Name',
+        courseSection: 'BSCS 1-2',
+        timeRoom: 'MWF 1:00 / MC-305'),
+    const _HandledSubject(
+        subjectName: 'Subject Name',
+        courseSection: 'BSIT 4-1',
+        timeRoom: 'TTH 3:00 / C-110'),
   ];
 
   @override
   void initState() {
     super.initState();
     _currentInstructor = widget.instructor;
-    _nameController   = TextEditingController(text: _currentInstructor.name);
+    _nameController = TextEditingController(text: _currentInstructor.name);
     _courseController = TextEditingController(text: _currentInstructor.course);
   }
 
@@ -86,6 +99,37 @@ class _AdminInstructorProfileScreenState
     super.dispose();
   }
 
+  // ── Pop-up Helpers ────────────────────────────────────────────────────────
+
+  void _showSuccessDialog(String message, {IconData icon = Icons.check_circle, Color iconColor = Colors.green}) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: iconColor, size: 60),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        actions: [
+          Center(
+            child: TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Close', style: TextStyle(color: Color(0xFF3B71CA), fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── Profile helpers ───────────────────────────────────────────────────────
 
   void _saveEdits() {
@@ -97,9 +141,7 @@ class _AdminInstructorProfileScreenState
       );
       _isEditing = false;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile updated successfully')),
-    );
+    _showSuccessDialog('Profile updated successfully');
   }
 
   void _showDeleteDialog() {
@@ -110,7 +152,8 @@ class _AdminInstructorProfileScreenState
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Confirm Deletion',
-            style: TextStyle(color: Color(0xFF800000), fontWeight: FontWeight.bold)),
+            style: TextStyle(
+                color: Color(0xFF800000), fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,20 +172,51 @@ class _AdminInstructorProfileScreenState
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
           ElevatedButton(
             onPressed: () async {
               if (_passwordController.text == 'admin123') {
-                Navigator.of(ctx).pop();
-                await Future.delayed(Duration.zero);
-                if (!mounted) return;
-                context.pop();
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Instructor deleted successfully')));
+                Navigator.of(ctx).pop(); // Close password dialog
+                
+                // Show specialized success pop-up for deletion
+                await showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (successCtx) => AlertDialog(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.delete_forever, color: Color(0xFF800000), size: 60),
+                        SizedBox(height: 16),
+                        Text('Instructor deleted successfully', 
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontWeight: FontWeight.bold)
+                        ),
+                      ],
+                    ),
+                    actions: [
+                      Center(
+                        child: TextButton(
+                          onPressed: () {
+                            Navigator.pop(successCtx);
+                            context.pop(); // Return to list screen
+                          }, 
+                          child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold))
+                        ),
+                      )
+                    ],
+                  )
+                );
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Incorrect Password')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Incorrect Password')));
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF800000)),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF800000)),
             child: const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -168,8 +242,10 @@ class _AdminInstructorProfileScreenState
   }
 
   void _commitAssignment() {
-    final courseSection = '${_selectedCourse ?? ''} ${_selectedYearLevel ?? ''}-${_selectedSection ?? ''}';
-    final timeRoom = '${_selectedDay ?? ''} ${_selectedTime ?? ''} / ${_selectedRoom ?? ''}';
+    final courseSection =
+        '${_selectedCourse ?? ''} ${_selectedYearLevel ?? ''}-${_selectedSection ?? ''}';
+    final timeRoom =
+        '${_selectedDay ?? ''} ${_selectedTime ?? ''} / ${_selectedRoom ?? ''}';
 
     setState(() {
       _handledSubjects.add(_HandledSubject(
@@ -179,7 +255,7 @@ class _AdminInstructorProfileScreenState
       ));
     });
     _clearAssignForm();
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Class assigned successfully')));
+    _showSuccessDialog('Class assigned successfully');
   }
 
   void _showDeleteSubjectDialog(int index) {
@@ -188,7 +264,9 @@ class _AdminInstructorProfileScreenState
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Confirm Removal', style: TextStyle(color: Color(0xFF800000), fontWeight: FontWeight.bold)),
+        title: const Text('Confirm Removal',
+            style: TextStyle(
+                color: Color(0xFF800000), fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -197,22 +275,27 @@ class _AdminInstructorProfileScreenState
             TextField(
               controller: _passwordController,
               obscureText: true,
-              decoration: const InputDecoration(hintText: 'Admin Password', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                  hintText: 'Admin Password', border: OutlineInputBorder()),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
               if (_passwordController.text == 'admin123') {
                 setState(() => _handledSubjects.removeAt(index));
                 Navigator.pop(ctx);
+                _showSuccessDialog('Subject removed successfully', icon: Icons.delete_sweep, iconColor: Colors.orange);
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Incorrect Password')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Incorrect Password')));
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF800000)),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF800000)),
             child: const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -242,9 +325,11 @@ class _AdminInstructorProfileScreenState
                       _buildProfileCard(),
                       const SizedBox(height: 20),
                       _buildSectionLabel('Requests'),
-                      _buildRequestItem(Icons.person_add, widget.initialRequest ?? 'Class Creation'),
+                      _buildRequestItem(Icons.person_add,
+                          widget.initialRequest ?? 'Class Creation'),
                       const SizedBox(height: 8),
-                      _buildRequestItem(Icons.access_time_filled, 'Schedule Conflict Request'),
+                      _buildRequestItem(
+                          Icons.access_time_filled, 'Schedule Conflict Request'),
                       const SizedBox(height: 24),
                       _buildSectionLabel('Subjects Handled'),
                       _buildSubjectsTable(),
@@ -269,33 +354,44 @@ class _AdminInstructorProfileScreenState
 
   Widget _buildSubjectsTable() {
     return Container(
-      decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+          color: Colors.grey.shade50, borderRadius: BorderRadius.circular(8)),
       child: Column(
         children: [
-          _buildSubjectRowRaw('Subject Name', 'Course & Section', 'Time & Room', isHeader: true),
-          ..._handledSubjects.asMap().entries.map((entry) => 
-              _buildSubjectRowRaw(entry.value.subjectName, entry.value.courseSection, entry.value.timeRoom, index: entry.key)),
+          _buildSubjectRowRaw('Subject Name', 'Course & Section', 'Time & Room',
+              isHeader: true),
+          ..._handledSubjects.asMap().entries.map((entry) => _buildSubjectRowRaw(
+              entry.value.subjectName,
+              entry.value.courseSection,
+              entry.value.timeRoom,
+              index: entry.key)),
         ],
       ),
     );
   }
 
-  Widget _buildSubjectRowRaw(String col1, String col2, String col3, {bool isHeader = false, int? index}) {
-    final style = TextStyle(fontSize: 12, fontWeight: isHeader ? FontWeight.bold : FontWeight.normal);
+  Widget _buildSubjectRowRaw(String col1, String col2, String col3,
+      {bool isHeader = false, int? index}) {
+    final style = TextStyle(
+        fontSize: 12, fontWeight: isHeader ? FontWeight.bold : FontWeight.normal);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey.shade200))),
+      decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: Colors.grey.shade200))),
       child: Row(
         children: [
           Expanded(flex: 3, child: Text(col1, style: style)),
-          Expanded(flex: 2, child: Text(col2, textAlign: TextAlign.center, style: style)),
-          Expanded(flex: 2, child: Text(col3, textAlign: TextAlign.right, style: style)),
+          Expanded(
+              flex: 2, child: Text(col2, textAlign: TextAlign.center, style: style)),
+          Expanded(
+              flex: 2, child: Text(col3, textAlign: TextAlign.right, style: style)),
           if (!isHeader)
             SizedBox(
               width: 35,
               child: IconButton(
                 padding: EdgeInsets.zero,
-                icon: const Icon(Icons.delete_outline, color: Color(0xFF800000), size: 18),
+                icon: const Icon(Icons.delete_outline,
+                    color: Color(0xFF800000), size: 18),
                 onPressed: () => _showDeleteSubjectDialog(index!),
               ),
             )
@@ -309,7 +405,8 @@ class _AdminInstructorProfileScreenState
   Widget _buildAssignClassForm() {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+          color: Colors.grey.shade50, borderRadius: BorderRadius.circular(8)),
       child: Column(
         children: [
           _buildCourseCodeHybrid(),
@@ -321,23 +418,58 @@ class _AdminInstructorProfileScreenState
           ]),
           const SizedBox(height: 8),
           Row(children: [
-            Expanded(child: _buildDropdown('Course', ['BSIT', 'BSCS', 'BSCpE'], _selectedCourse, (v) => setState(() => _selectedCourse = v))),
+            Expanded(
+                child: _buildDropdown(
+                    'Course',
+                    ['BSIT', 'BSCS', 'BSCpE'],
+                    _selectedCourse,
+                    (v) => setState(() => _selectedCourse = v))),
             const SizedBox(width: 8),
-            Expanded(child: _buildDropdown('Semester', ['1st Semester', '2nd Semester'], _selectedSemester, (v) => setState(() => _selectedSemester = v))),
+            Expanded(
+                child: _buildDropdown(
+                    'Semester',
+                    ['1st Semester', '2nd Semester'],
+                    _selectedSemester,
+                    (v) => setState(() => _selectedSemester = v))),
           ]),
           const SizedBox(height: 8),
           Row(children: [
-            Expanded(child: _buildDropdown('Year Level', ['1', '2', '3', '4'], _selectedYearLevel, (v) => setState(() => _selectedYearLevel = v))),
+            Expanded(
+                child: _buildDropdown(
+                    'Year Level',
+                    ['1', '2', '3', '4'],
+                    _selectedYearLevel,
+                    (v) => setState(() => _selectedYearLevel = v))),
             const SizedBox(width: 8),
-            Expanded(child: _buildDropdown('Section', ['1', '2', '3'], _selectedSection, (v) => setState(() => _selectedSection = v))),
+            Expanded(
+                child: _buildDropdown(
+                    'Section',
+                    ['1', '2', '3'],
+                    _selectedSection,
+                    (v) => setState(() => _selectedSection = v))),
           ]),
           const SizedBox(height: 8),
           Row(children: [
-            Expanded(child: _buildDropdown('Day', ['MWF', 'TTH', 'SAT'], _selectedDay, (v) => setState(() => _selectedDay = v))),
+            Expanded(
+                child: _buildDropdown(
+                    'Day',
+                    ['MWF', 'TTH', 'SAT'],
+                    _selectedDay,
+                    (v) => setState(() => _selectedDay = v))),
             const SizedBox(width: 8),
-            Expanded(child: _buildDropdown('Time', ['7:00-9:00', '9:00-11:00', '1:00-3:00'], _selectedTime, (v) => setState(() => _selectedTime = v))),
+            Expanded(
+                child: _buildDropdown(
+                    'Time',
+                    ['7:00-9:00', '9:00-11:00', '1:00-3:00'],
+                    _selectedTime,
+                    (v) => setState(() => _selectedTime = v))),
             const SizedBox(width: 8),
-            Expanded(child: _buildDropdown('Room #', ['MC-101', 'MC-305', 'C-110'], _selectedRoom, (v) => setState(() => _selectedRoom = v))),
+            Expanded(
+                child: _buildDropdown(
+                    'Room #',
+                    ['MC-101', 'MC-305', 'C-110'],
+                    _selectedRoom,
+                    (v) => setState(() => _selectedRoom = v))),
           ]),
         ],
       ),
@@ -347,15 +479,22 @@ class _AdminInstructorProfileScreenState
   Widget _buildCourseCodeHybrid() {
     return Row(
       children: [
-        Expanded(child: _buildFormInput('Course Code (e.g. CSC101)', controller: _courseCodeCtrl)),
+        Expanded(
+            child: _buildFormInput('Course Code (e.g. CSC101)',
+                controller: _courseCodeCtrl)),
         const SizedBox(width: 4),
         Container(
           height: 35,
-          decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.black12), borderRadius: BorderRadius.circular(4)),
+          decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: Colors.black12),
+              borderRadius: BorderRadius.circular(4)),
           child: PopupMenuButton<String>(
             icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
             onSelected: (val) => setState(() => _courseCodeCtrl.text = val),
-            itemBuilder: (ctx) => ['CSC101', 'IT202', 'NET301'].map((c) => PopupMenuItem(value: c, child: Text(c))).toList(),
+            itemBuilder: (ctx) => ['CSC101', 'IT202', 'NET301']
+                .map((c) => PopupMenuItem(value: c, child: Text(c)))
+                .toList(),
           ),
         ),
       ],
@@ -365,7 +504,10 @@ class _AdminInstructorProfileScreenState
   Widget _buildFormInput(String hint, {TextEditingController? controller}) {
     return Container(
       height: 35,
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.black12)),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: Colors.black12)),
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Center(
         child: TextField(
@@ -384,18 +526,26 @@ class _AdminInstructorProfileScreenState
     );
   }
 
-  Widget _buildDropdown(String hint, List<String> items, String? value, ValueChanged<String?> onChanged) {
+  Widget _buildDropdown(String hint, List<String> items, String? value,
+      ValueChanged<String?> onChanged) {
     return Container(
       height: 35,
       padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.black12)),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: Colors.black12)),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
-          hint: Text(hint, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+          hint: Text(hint,
+              style: const TextStyle(fontSize: 11, color: Colors.grey)),
           isExpanded: true,
           isDense: true,
-          items: items.map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 11)))).toList(),
+          items: items
+              .map((s) => DropdownMenuItem(
+                  value: s, child: Text(s, style: const TextStyle(fontSize: 11))))
+              .toList(),
           onChanged: onChanged,
         ),
       ),
@@ -404,16 +554,36 @@ class _AdminInstructorProfileScreenState
 
   Widget _buildHeader() {
     return Container(
-      height: 70, width: double.infinity, color: AppColors.adminPrimary,
+      height: 70,
+      width: double.infinity,
+      color: AppColors.adminPrimary,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(children: [
-            IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => context.pop()),
-            const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.school, color: Colors.white, size: 28), Text('STUDFY', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900))])
-          ]),
-          const Text('Admin 1', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+          // REMOVED: IconButton and the outer Row that contained the back arrow
+          const Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.school, color: Colors.white, size: 28),
+              Text(
+                'STUDFY',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const Text(
+            'Admin 1',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     );
@@ -422,29 +592,45 @@ class _AdminInstructorProfileScreenState
   Widget _buildProfileCard() {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.black.withOpacity(0.05))),
+      decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.black.withOpacity(0.05))),
       child: Row(
         children: [
-          const CircleAvatar(radius: 40, backgroundColor: Colors.white, child: Icon(Icons.person_outline, size: 50, color: Colors.black)),
+          const CircleAvatar(
+              radius: 40,
+              backgroundColor: Colors.white,
+              child: Icon(Icons.person_outline, size: 50, color: Colors.black)),
           const SizedBox(width: 16),
           Expanded(
-            child: _isEditing 
-              ? Column(children: [
-                  _buildFormInput('Name', controller: _nameController),
-                  const SizedBox(height: 4),
-                  _buildFormInput('Course Handled', controller: _courseController),
-                ])
-              : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(_currentInstructor.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  Text('Course: ${_currentInstructor.course}', style: const TextStyle(color: Colors.black54)),
-                ]),
+            child: _isEditing
+                ? Column(children: [
+                    _buildFormInput('Name', controller: _nameController),
+                    const SizedBox(height: 4),
+                    _buildFormInput('Course Handled',
+                        controller: _courseController),
+                  ])
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                        Text(_currentInstructor.name,
+                            style: const TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.bold)),
+                        Text('Course: ${_currentInstructor.course}',
+                            style: const TextStyle(color: Colors.black54)),
+                      ]),
           ),
           Column(children: [
-            _isEditing 
-              ? _buildSmallActionBtn('Save', Icons.save, Colors.green, onTap: _saveEdits)
-              : _buildSmallActionBtn('Edit', Icons.edit_document, const Color(0xFF3B71CA), onTap: () => setState(() => _isEditing = true)),
+            _isEditing
+                ? _buildSmallActionBtn('Save', Icons.save, Colors.green,
+                    onTap: _saveEdits)
+                : _buildSmallActionBtn('Edit', Icons.edit_document,
+                    const Color(0xFF3B71CA),
+                    onTap: () => setState(() => _isEditing = true)),
             const SizedBox(height: 8),
-            _buildSmallActionBtn('Delete', Icons.warning, const Color(0xFF800000), onTap: _showDeleteDialog),
+            _buildSmallActionBtn('Delete', Icons.warning, const Color(0xFF800000),
+                onTap: _showDeleteDialog),
           ]),
         ],
       ),
@@ -456,21 +642,35 @@ class _AdminInstructorProfileScreenState
       alignment: Alignment.bottomCenter,
       child: Padding(
         padding: const EdgeInsets.all(10),
-        child: Container(
-          height: 70,
-          decoration: BoxDecoration(
-            color: AppColors.adminPrimary, borderRadius: BorderRadius.circular(35),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 15, offset: const Offset(0, 5))],
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width > 800
+                ? 650
+                : MediaQuery.of(context).size.width - 20,
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildNavItem(Icons.layers, 'INSTRUCTOR', 0),
-              _buildNavItem(Icons.group, 'STUDENTS', 1),
-              _buildNavItem(Icons.home, 'DASHBOARD', 2),
-              _buildNavItem(Icons.book, 'SUBJECTS', 3),
-              _buildNavItem(Icons.logout, 'LOGOUT', 4),
-            ],
+          child: Container(
+            height: 70,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: AppColors.adminPrimary,
+              borderRadius: BorderRadius.circular(35),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5))
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildNavItem(Icons.layers, 'INSTRUCTOR', 0),
+                _buildNavItem(Icons.group, 'STUDENTS', 1),
+                _buildNavItem(Icons.home, 'DASHBOARD', 2),
+                _buildNavItem(Icons.book, 'SUBJECTS', 3),
+                _buildNavItem(Icons.logout, 'LOGOUT', 4),
+              ],
+            ),
           ),
         ),
       ),
@@ -478,9 +678,11 @@ class _AdminInstructorProfileScreenState
   }
 
   Widget _buildNavItem(IconData icon, String label, int index) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
+    final bool isHovered = _hoveredIndex == index;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hoveredIndex = index),
+      onExit: (_) => setState(() => _hoveredIndex = null),
+      child: GestureDetector(
         onTap: () {
           if (index == 4) {
             context.read<AppState>().logout();
@@ -495,20 +697,56 @@ class _AdminInstructorProfileScreenState
             context.goNamed(AppRoutes.adminSubjects);
           }
         },
-        child: Column(mainAxisSize: MainAxisSize.min, children: [Icon(icon, color: Colors.white, size: 24), Text(label, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold))]),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: isHovered ? Colors.white.withOpacity(0.1) : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: Colors.white, size: 24),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 9,
+                  fontWeight: isHovered ? FontWeight.bold : FontWeight.normal,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildSectionLabel(String text) {
-    return Padding(padding: const EdgeInsets.only(bottom: 12), child: Text(text, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF800000))));
+    return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Text(text,
+            style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF800000))));
   }
 
   Widget _buildRequestItem(IconData icon, String title) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.black12)),
-      child: Row(children: [Icon(icon, color: const Color(0xFF800000), size: 24), const SizedBox(width: 16), Text(title)]),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.black12)),
+      child: Row(children: [
+        Icon(icon, color: const Color(0xFF800000), size: 24),
+        const SizedBox(width: 16),
+        Text(title)
+      ]),
     );
   }
 
@@ -516,25 +754,53 @@ class _AdminInstructorProfileScreenState
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        _buildActionBtn('Discard', Icons.block, const Color(0xFF800000), onTap: _clearAssignForm),
+        _buildActionBtn('Discard', Icons.block, const Color(0xFF800000),
+            onTap: _clearAssignForm),
         const SizedBox(width: 12),
-        _buildActionBtn('Save', Icons.save, const Color(0xFF3B71CA), onTap: _commitAssignment),
+        _buildActionBtn('Save', Icons.save, const Color(0xFF3B71CA),
+            onTap: _commitAssignment),
       ],
     );
   }
 
-  Widget _buildSmallActionBtn(String label, IconData icon, Color color, {VoidCallback? onTap}) {
-    return Material(color: color, borderRadius: BorderRadius.circular(4), child: InkWell(onTap: onTap, child: Container(width: 80, padding: const EdgeInsets.symmetric(vertical: 6), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, size: 12, color: Colors.white), const SizedBox(width: 4), Text(label, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))]))));
+  Widget _buildSmallActionBtn(String label, IconData icon, Color color,
+      {VoidCallback? onTap}) {
+    return Material(
+        color: color,
+        borderRadius: BorderRadius.circular(4),
+        child: InkWell(
+            onTap: onTap,
+            child: Container(
+                width: 80,
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(icon, size: 12, color: Colors.white),
+                      const SizedBox(width: 4),
+                      Text(label,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold))
+                    ]))));
   }
 
-  Widget _buildActionBtn(String label, IconData icon, Color color, {VoidCallback? onTap}) {
-    return Material(color: color, borderRadius: BorderRadius.circular(4), child: InkWell(onTap: onTap, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), child: Row(children: [Icon(icon, size: 16, color: Colors.white), const SizedBox(width: 8), Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))]))));
-  }
-}
-
-class _UpperCaseFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
-    return newValue.copyWith(text: newValue.text.toUpperCase());
+  Widget _buildActionBtn(String label, IconData icon, Color color,
+      {VoidCallback? onTap}) {
+    return Material(
+        color: color,
+        borderRadius: BorderRadius.circular(4),
+        child: InkWell(
+            onTap: onTap,
+            child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(children: [
+                  Icon(icon, size: 16, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Text(label,
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold))
+                ]))));
   }
 }

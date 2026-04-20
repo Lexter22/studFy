@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/widgets/studfy_footer.dart';
 import '../../../../core/widgets/studfy_header.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/services/error_telemetry.dart';
@@ -123,7 +122,7 @@ Widget build(BuildContext context) {
       key: _formKey,
       child: Column(
         children: [
-          const StudfyHeader(backgroundColor: AppColors.authPrimary),
+          const StudfyHeader(backgroundColor: AppColors.authPageBackground),
           Expanded(
             child: Align(
               alignment: Alignment.topCenter,
@@ -252,18 +251,19 @@ Widget build(BuildContext context) {
                               "Don't have an account? ",
                               style: TextStyle(fontSize: 13, color: Colors.black87),
                             ),
-                            GestureDetector(
-                              onTap: () {
-                                // Update this route to your actual registration page route name
-                                // context.goNamed(AppRoutes.register);
-                                debugPrint("Register link tapped!");
-                              },
-                              child: const Text(
-                                "Create an account",
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.authPrimary,
+                            MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: GestureDetector(
+                                onTap: () {
+                                  context.goNamed(AppRoutes.accountCreation);
+                                },
+                                child: const Text(
+                                  "Create an account",
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.authPrimary,
+                                  ),
                                 ),
                               ),
                             ),
@@ -277,7 +277,6 @@ Widget build(BuildContext context) {
               ),
             ),
           ),
-          const StudfyFooter(backgroundColor: AppColors.authPrimary),
         ],
       ),
     ),

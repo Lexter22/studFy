@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
-import '../../../../core/widgets/studfy_footer.dart';
 import '../../../../core/widgets/studfy_header.dart';
 import '../../domain/services/auth_service.dart';
 
@@ -66,8 +65,8 @@ Widget build(BuildContext context) {
     body: Column(
       children: [
         const StudfyHeader(
-          backgroundColor: AppColors.authPrimary,
-          showBackButton: false, // Changed from true to false
+          backgroundColor: AppColors.authPageBackground,
+          showBackButton: false,
         ),
         Expanded(
           child: Container(
@@ -139,7 +138,6 @@ Widget build(BuildContext context) {
             ),
           ),
         ),
-        const StudfyFooter(backgroundColor: AppColors.authPrimary),
       ],
     ),
   );

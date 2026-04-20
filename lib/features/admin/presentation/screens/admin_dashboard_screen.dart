@@ -92,7 +92,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       const SizedBox(height: 24),
                       _buildSectionTitle('Instructor'),
 
-                      // INSTRUCTOR LIST (With Buttons)
+                      // INSTRUCTOR LIST (With Buttons - UPDATED TO MATCH IMAGE 2)
                       _buildFixedList([
                         _buildActionListItem('Prof Name', 'Pending Request'),
                         _buildActionListItem('Prof Name', 'Pending Request'),
@@ -186,12 +186,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Widget _buildStatCard(IconData icon, String label, String count, Color color) {
   return Container(
-    // Increased width from ~0.28 to 0.30 to make them fill more space
     width: MediaQuery.of(context).size.width * 0.30,
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18), // Increased vertical padding
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
     decoration: BoxDecoration(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(20), // More rounded for a bigger "pop"
+      borderRadius: BorderRadius.circular(20),
       boxShadow: [
         BoxShadow(
           color: Colors.black.withOpacity(0.1),
@@ -205,13 +204,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       children: [
         Row(
           children: [
-            Icon(icon, size: 22, color: color), // Bigger Icon
+            Icon(icon, size: 22, color: color),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 label,
                 style: const TextStyle(
-                  fontSize: 14, // Increased font size
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                   height: 1.2,
@@ -220,7 +219,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 16), // More space before the count
+        const SizedBox(height: 16),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -232,7 +231,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             child: Text(
               count,
               style: const TextStyle(
-                fontSize: 26, // Much bigger count font
+                fontSize: 26,
                 fontWeight: FontWeight.w900,
                 color: Colors.white,
               ),
@@ -259,43 +258,51 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
+// UPDATED ACTION ITEM (Matching Image 2 Style)
 Widget _buildActionListItem(String name, String status) {
   return Container(
     margin: const EdgeInsets.only(bottom: 12),
-    padding: const EdgeInsets.all(12),
+    padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: const Color(0xFFF8F9FA),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: Colors.black12),
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.04),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        )
+      ],
     ),
     child: Column(
       children: [
         Row(
           children: [
-            const Icon(Icons.account_circle, size: 40),
+            CircleAvatar(
+              backgroundColor: Colors.grey.shade100,
+              child: Icon(Icons.person, color: Colors.grey.shade400),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  Text(status, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                  Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                  Text(status, style: const TextStyle(color: Colors.grey, fontSize: 13)),
                 ],
               ),
             ),
             _buildStatusBadge(),
           ],
         ),
-        const SizedBox(height: 16), // Space sa pagitan ng profile at buttons
-        
-        // DITO ANG PAGBABAGO: Row para magkakatabi ang buttons
+        const SizedBox(height: 16),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween, // Kakalat sila sa buong lapad
           children: [
-            // Ginamit ang Expanded para maging pantay-pantay ang laki nila kung gusto mo
-            _buildSmallButton('Approve', Icons.check, Colors.green.shade100, Colors.green),
-            _buildSmallButton('Reject', Icons.close, Colors.red.shade100, Colors.red),
-            _buildViewDetailsButton(),
+            Expanded(child: _buildActionBtn('Approve', Icons.check, const Color(0xFFD4EDDA), const Color(0xFF28A745), () {})),
+            const SizedBox(width: 8),
+            Expanded(child: _buildActionBtn('Reject', Icons.close, const Color(0xFFF8D7DA), const Color(0xFFDC3545), () {})),
+            const SizedBox(width: 8),
+            Expanded(child: _buildViewDetailsBtn(() {})),
           ],
         ),
       ],
@@ -334,68 +341,65 @@ Widget _buildActionListItem(String name, String status) {
   // --- SMALLER UI COMPONENTS ---
   Widget _buildStatusBadge() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-          color: const Color(0xFFF2EECF), // background
+          color: const Color(0xFFF2EECF),
           borderRadius: BorderRadius.circular(20),
           ),
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          child: Text(
-            '● Pending',
-            style: TextStyle(
-              color: Color(0xFFBDA702), // text + dot
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+      child: const Text(
+        '● Pending',
+        style: TextStyle(
+          color: Color(0xFFBDA702),
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
         ),
-    );
-  }
-
-  // Increased horizontal padding from 12 to 20 for a wider look
-  Widget _buildSmallButton(String label, IconData icon, Color bg, Color text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8), // Wider padding
-      decoration: BoxDecoration(
-        color: bg, 
-        borderRadius: BorderRadius.circular(8), // Slightly more rounded
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: text),
-          const SizedBox(width: 6),
-          Text(
-            label, 
-            style: TextStyle(
-              color: text, 
-              fontSize: 12, // Slightly larger text
-              fontWeight: FontWeight.bold
-            ),
-          ),
-        ],
       ),
     );
   }
 
-  Widget _buildViewDetailsButton() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8), // Wider padding
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.black12),
+  // UPDATED BUTTON HELPERS (Matching Image 2 Layout)
+  Widget _buildActionBtn(String label, IconData icon, Color bg, Color text, VoidCallback onTap) {
+    return Material(
+      color: bg,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(8),
+        child: Container(
+          height: 38, 
+          alignment: Alignment.center, 
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center, 
+            children: [
+              Icon(icon, size: 14, color: text), 
+              const SizedBox(width: 4), 
+              Text(label, style: TextStyle(color: text, fontSize: 12, fontWeight: FontWeight.bold))
+            ]
+          )
+        ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: const [
-          Text(
-            'View Details', 
-            style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)
-          ),
-          SizedBox(width: 6),
-          Icon(Icons.chevron_right, size: 14, color: Colors.grey),
-        ],
+    );
+  }
+
+  Widget _buildViewDetailsBtn(VoidCallback onTap) {
+    return Material(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(side: const BorderSide(color: Colors.black12), borderRadius: BorderRadius.circular(8)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          height: 38, 
+          alignment: Alignment.center, 
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center, 
+            children: const [
+              Text('View Details', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)), 
+              SizedBox(width: 2), 
+              Icon(Icons.chevron_right, size: 16, color: Colors.grey)
+            ]
+          )
+        ),
       ),
     );
   }

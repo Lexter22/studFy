@@ -140,8 +140,47 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
                     children: [
                       _buildSectionLabel('Pending Requests'),
                       _buildRequestsArea(),
-                      const SizedBox(height: 12),
-                      _buildSectionLabel('Instructor List'),
+                      const SizedBox(height: 20),
+
+                      // UPDATED HEADER: Title and Count inline
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            const Text(
+                              'Instructor List',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF800000),
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                const Text(
+                                  'Total: ',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Text(
+                                  '${_filteredInstructors.length}',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF800000),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       _buildSearchFilterArea(),
                       const SizedBox(height: 16),
                       _buildInstructorTableArea(),
@@ -220,19 +259,27 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
   Widget _buildSearchFilterArea() {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.black12)),
+      decoration: BoxDecoration(
+        color: Colors.white, 
+        borderRadius: BorderRadius.circular(12), 
+        border: Border.all(color: Colors.black12)
+      ),
       child: Column(
         children: [
           Row(
             children: [
               Expanded(
-                child: TextField(
-                  controller: _profNameController,
-                  onChanged: (_) => _filterList(),
-                  decoration: InputDecoration(
-                    hintText: 'Professor Name',
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                child: SizedBox(
+                  height: 45,
+                  child: TextField(
+                    controller: _profNameController,
+                    onChanged: (_) => _filterList(),
+                    decoration: InputDecoration(
+                      hintText: 'Professor Name',
+                      hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
                   ),
                 ),
               ),
@@ -316,11 +363,12 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
 
   Widget _buildGlobalDropdown(String hint, List<String> items, String? currentValue, Function(String?) onChanged) {
     return Container(
+      height: 45,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.black12), borderRadius: BorderRadius.circular(8)),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          hint: Text(hint, style: const TextStyle(fontSize: 14)),
+          hint: Text(hint, style: const TextStyle(fontSize: 14, color: Colors.grey)),
           value: currentValue,
           isExpanded: true,
           items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),

@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
-import '../../../../core/widgets/studfy_footer.dart';
 import '../../../../core/widgets/studfy_header.dart';
 import '../../domain/services/auth_service.dart';
 
@@ -100,7 +99,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
       backgroundColor: AppColors.authPageBackground,
       body: Column(
         children: [
-          const StudfyHeader(backgroundColor: AppColors.authPrimary),
+          const StudfyHeader(backgroundColor: AppColors.authPageBackground),
           Expanded(
             child: Container(
               margin: const EdgeInsets.all(16),
@@ -160,7 +159,6 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
               ),
             ),
           ),
-          const StudfyFooter(backgroundColor: AppColors.authPrimary),
         ],
       ),
     );

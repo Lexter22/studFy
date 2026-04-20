@@ -13,6 +13,7 @@ import '../../features/admin/presentation/screens/admin_subjects_profile_screen.
 import '../../features/auth/domain/enums/user_role.dart';
 import '../../features/auth/presentation/screens/change_password_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
+import '../../features/auth/presentation/screens/account_creation_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/verify_email_screen.dart';
 import '../../features/professor/presentation/screens/professor_dashboard_screen.dart';
@@ -24,6 +25,7 @@ abstract class AppRoutes {
   static const forgotPassword = 'forgot-password';
   static const changePassword = 'change-password';
   static const verifyEmail = 'verify-email';
+  static const accountCreation = 'account-creation';
   static const adminDashboard = 'admin-dashboard';
   static const adminInstructors = 'admin-instructors';
   static const adminInstructorProfile = 'admin-instructor-profile';
@@ -63,8 +65,11 @@ GoRouter createAppRouter(AppState appState) {
       final bool isProfessorRoute = state.matchedLocation.startsWith('/professor');
       final bool isStudentRoute = state.matchedLocation.startsWith('/student');
       
+      final bool isGoingToAccountCreation = state.matchedLocation == '/account-creation';
+
       final bool isAuthRoute = isGoingToLogin || isGoingToForgotPassword || 
-                               isGoingToChangePassword || isGoingToVerifyEmail;
+                               isGoingToChangePassword || isGoingToVerifyEmail ||
+                               isGoingToAccountCreation;
       
       final role = appState.currentUser?.role ?? UserRole.unknown;
 
@@ -121,6 +126,11 @@ GoRouter createAppRouter(AppState appState) {
         path: '/verify-email',
         name: AppRoutes.verifyEmail,
         builder: (context, state) => const VerifyEmailScreen(),
+      ),
+      GoRoute(
+        path: '/account-creation',
+        name: AppRoutes.accountCreation,
+        builder: (context, state) => const AccountCreationScreen(),
       ),
       GoRoute(
         path: '/admin/dashboard',
