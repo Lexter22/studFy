@@ -15,19 +15,20 @@ class AdminSubjectsScreen extends StatefulWidget {
 
 class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
   int? _hoveredIndex;
+  int? _hoveredSubjectIndex;
 
   final TextEditingController _subjectNameController = TextEditingController();
   final TextEditingController _courseController = TextEditingController();
   final TextEditingController _professorController = TextEditingController();
 
-  // Pending subject items (top section — matches the picture)
+  // Pending subject items (top section)
   final List<Map<String, String>> _pendingSubjects = const [
     {'name': 'Ethics', 'status': 'Pending Prof. Designation'},
     {'name': 'Ethics', 'status': 'Pending Student Enrollment'},
     {'name': 'Ethics', 'status': 'Edit Subject'},
   ];
 
-  // Subject list (bottom section — matches the picture)
+  // Subject list (bottom section)
   final List<Map<String, String>> _allSubjects = const [
     {'name': 'Computer Programming', 'course': 'BSIT', 'section': '3-1', 'professor': 'Juan Dela Cruz'},
     {'name': 'Data Structures',       'course': 'BSIT', 'section': '3-2', 'professor': 'Juan Dela Cruz'},
@@ -99,35 +100,69 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
     return Scaffold(
       extendBody: true,
       backgroundColor: AppColors.adminPageBackground,
-      body: Column(
+      body: Stack(
         children: [
-          _buildHeader(),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle('Pending Tasks', null),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 160),
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: Column(
-                        children: _pendingSubjects
-                            .map((s) => _buildSubjectItem(s['name']!, s['status']!))
-                            .toList(),
+          Column(
+            children: [
+              _buildHeader(),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 110),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionTitle('Pending Requests', null),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 350),
+                        child: SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          child: Column(
+                            children: _pendingSubjects
+                                .map((s) => _buildSubjectItem(s['name']!, s['status']!))
+                                .toList(),
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 20),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            _buildSectionTitle('Subject List', null),
+                            Row(
+                              children: [
+                                const Text(
+                                  'Total: ',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Text(
+                                  '${_filteredSubjects.length}',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.adminPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      _buildSearchArea(),
+                      const SizedBox(height: 16),
+                      _buildSubjectListArea(),
+                    ],
                   ),
-                  const SizedBox(height: 20),
-                  _buildSectionTitle('Subject List', 'Total: ${_filteredSubjects.length}'),
-                  _buildSearchArea(),
-                  const SizedBox(height: 12),
-                  _buildSubjectListArea(),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
           _buildNavBar(),
         ],
@@ -135,7 +170,6 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
     );
   }
 
-  // ── Header (identical to instructor screen) ──────────────────────────────
   Widget _buildHeader() {
     return Container(
       height: 70,
@@ -188,81 +222,53 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
     );
   }
 
-  // ── Pending subject card (book icon + name + status) ─────────────────────
   Widget _buildSubjectItem(String name, String status) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-          color: AppColors.adminItemBackground,
-          borderRadius: BorderRadius.circular(8)),
-      child: Row(
-        children: [
-          const Icon(Icons.menu_book, size: 40, color: Colors.black),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name,
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold)),
-                Text(status,
-                    style: const TextStyle(fontSize: 14, color: Colors.black87)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+    return _PendingSubjectCard(name: name, status: status);
   }
 
-  // ── Search area: text field + Course/Professor dropdowns + Search button ──
   Widget _buildSearchArea() {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-          color: AppColors.adminItemBackground,
-          borderRadius: BorderRadius.circular(8)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.black12),
+      ),
       child: Column(
         children: [
           Row(
             children: [
               Expanded(
-                child: Container(
-                  height: 40,
-                  decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(6)),
+                child: SizedBox(
+                  height: 45,
                   child: TextField(
                     controller: _subjectNameController,
                     onChanged: (_) => _filterList(),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Subject Name',
-                      hintStyle: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold),
+                      hintStyle:
+                          const TextStyle(color: Colors.grey, fontSize: 14),
                       contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      border: InputBorder.none,
+                          const EdgeInsets.symmetric(horizontal: 12),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              IconButton(
-                  onPressed: _clearFilters,
-                  icon: const Icon(Icons.filter_alt_off, color: Colors.black54)),
+              _buildSearchButton(),
+              const SizedBox(width: 8),
+              _buildClearFilterButton(),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
                   child: _buildComboField(
                       'Course', _courseController, _courseList)),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Expanded(
                   child: _buildComboField(
                       'Professor', _professorController, _professorList)),
@@ -273,12 +279,47 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
     );
   }
 
+  Widget _buildSearchButton() {
+    return Material(
+      color: const Color(0xFF1A46A0),
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: _filterList,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: const Row(children: [
+              Icon(Icons.search, color: Colors.white, size: 18),
+              SizedBox(width: 4),
+              Text('Search', style: TextStyle(color: Colors.white))
+            ])),
+      ),
+    );
+  }
+
+  Widget _buildClearFilterButton() {
+    return Material(
+      color: Colors.grey.shade200,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: _clearFilters,
+        borderRadius: BorderRadius.circular(8),
+        child: const Padding(
+            padding: EdgeInsets.all(10),
+            child: Icon(Icons.filter_alt_off, color: Colors.black54)),
+      ),
+    );
+  }
+
   Widget _buildComboField(
       String hint, TextEditingController controller, List<String> items) {
     return Container(
-      height: 40,
+      height: 45,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.circular(6)),
+          color: Colors.white,
+          border: Border.all(color: Colors.black12),
+          borderRadius: BorderRadius.circular(8)),
       child: Row(
         children: [
           Expanded(
@@ -287,11 +328,8 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
               onChanged: (_) => _filterList(),
               decoration: InputDecoration(
                 hintText: hint,
-                hintStyle: const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+                contentPadding: EdgeInsets.zero,
                 border: InputBorder.none,
               ),
             ),
@@ -312,79 +350,126 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
     );
   }
 
-  // ── Subject list area ─────────────────────────────────────────────────────
-  Map<String, List<Map<String, String>>> _groupSubjectsByCourseSection() {
-    final grouped = <String, List<Map<String, String>>>{};
-    for (final subject in _filteredSubjects) {
-      final key = '${subject['course']!} ${subject['section']!}';
-      grouped.putIfAbsent(key, () => []).add(subject);
-    }
-    return Map.fromEntries(
-      grouped.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
-    );
+  List<String> _getCoursesForSubject(String subjectName) {
+    return _allSubjects
+        .where((s) => s['name'] == subjectName)
+        .map((s) => '${s['course']!} ${s['section']!}')
+        .toSet()
+        .toList();
   }
 
   Widget _buildSubjectListArea() {
     if (_filteredSubjects.isEmpty) {
-      return Expanded(
-        child: Container(
-          decoration: BoxDecoration(
-              color: Colors.white, borderRadius: BorderRadius.circular(12)),
-          child: const Center(child: Text('No subjects found.')),
-        ),
+      return Container(
+        height: 100,
+        decoration: BoxDecoration(
+            color: Colors.white, borderRadius: BorderRadius.circular(12)),
+        child: const Center(child: Text('No subjects found.')),
       );
     }
 
-    final grouped = _groupSubjectsByCourseSection();
+    return Column(
+      children: List.generate(_filteredSubjects.length, (index) {
+        final subject = _filteredSubjects[index];
+        final isHovered = _hoveredSubjectIndex == index;
+        final courses = _getCoursesForSubject(subject['name']!);
 
-    // Build a flat list of header + item widgets
-    final List<Widget> rows = [];
-    for (final entry in grouped.entries) {
-      // Group header
-      rows.add(Padding(
-        padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
-        child: Text(
-          entry.key,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: AppColors.adminPrimary,
+        return MouseRegion(
+          onEnter: (_) => setState(() => _hoveredSubjectIndex = index),
+          onExit: (_) => setState(() => _hoveredSubjectIndex = null),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            decoration: BoxDecoration(
+              color: isHovered ? Colors.grey.shade100 : Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => context.pushNamed(
+                  AppRoutes.adminSubjectsProfile,
+                  extra: {
+                    'subjectName': subject['name']!,
+                    'courseSection': '${subject['course']!} ${subject['section']!}',
+                    'professor': subject['professor']!,
+                  },
+                ),
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Text(
+                          subject['name']!,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: isHovered ? AppColors.adminPrimary : Colors.black87,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: _buildTableDropdown(
+                          '${subject['course']!} ${subject['section']!}',
+                          courses,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 3,
+                        child: Container(
+                          height: 32,
+                          alignment: Alignment.center,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: Colors.black12),
+                          ),
+                          child: Text(
+                            subject['professor']!,
+                            style: const TextStyle(fontSize: 12, color: Colors.black54),
+                            overflow: TextOverflow.visible,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
-        ),
-      ));
-      // Items in this group
-      for (final subject in entry.value) {
-        rows.add(GestureDetector(
-          onTap: () => context.pushNamed(
-            AppRoutes.adminSubjectsProfile,
-            extra: {
-              'subjectName': subject['name']!,
-              'courseSection': '${subject['course']!} ${subject['section']!}',
-              'professor': subject['professor']!,
-            },
-          ),
-          child: _SubjectListItem(
-            subjectName: subject['name']!,
-            courseSection: '${subject['course']!} ${subject['section']!}',
-            professor: subject['professor']!,
-          ),
-        ));
-      }
-    }
+        );
+      }),
+    );
+  }
 
-    return Expanded(
-      child: Container(
-        decoration: BoxDecoration(
-            color: Colors.white, borderRadius: BorderRadius.circular(12)),
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(8, 8, 8, 98),
-          children: rows,
+  Widget _buildTableDropdown(String value, List<String> items) {
+    String currentValue = items.contains(value) ? value : items.first;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      height: 32,
+      decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: Colors.black12),
+          borderRadius: BorderRadius.circular(6)),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: currentValue,
+          isExpanded: true,
+          icon: const Icon(Icons.arrow_drop_down, size: 18, color: Colors.black54),
+          style: const TextStyle(fontSize: 12, color: Colors.black87),
+          onChanged: (val) {},
+          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
         ),
       ),
     );
   }
 
-  // ── Footer (identical to instructor screen) ───────────────────────────────
   Widget _buildNavBar() {
     return Align(
       alignment: Alignment.bottomCenter,
@@ -475,46 +560,146 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
   }
 }
 
-// ── Subject list row widget ───────────────────────────────────────────────────
-class _SubjectListItem extends StatelessWidget {
-  final String subjectName;
-  final String courseSection;
-  final String professor;
+class _PendingSubjectCard extends StatefulWidget {
+  final String name;
+  final String status;
 
-  const _SubjectListItem({
-    required this.subjectName,
-    required this.courseSection,
-    required this.professor,
-  });
+  const _PendingSubjectCard({required this.name, required this.status});
+
+  @override
+  State<_PendingSubjectCard> createState() => _PendingSubjectCardState();
+}
+
+class _PendingSubjectCardState extends State<_PendingSubjectCard> {
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.adminItemBackground.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(8),
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: _isHovered
+                  ? Colors.black.withOpacity(0.08)
+                  : Colors.black.withOpacity(0.04),
+              blurRadius: _isHovered ? 15 : 10,
+              offset: _isHovered ? const Offset(0, 6) : const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Color(0xFFFFF3E0),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.bookmark_outline,
+                      color: Colors.orange, size: 24),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(widget.name,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 19,
+                              color: Colors.black87)),
+                      const SizedBox(height: 2),
+                      Text(widget.status,
+                          style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                ),
+                _buildStatusBadge(),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                _buildViewDetailsBtn(() {
+                  context.pushNamed(
+                    AppRoutes.adminSubjectsProfile,
+                    extra: {
+                      'subjectName': widget.name,
+                      'courseSection': 'BSIT 3-1',
+                      'professor': 'Juan Dela Cruz',
+                    },
+                  );
+                }),
+              ],
+            ),
+          ],
+        ),
       ),
-      child: Row(
+    );
+  }
+
+  Widget _buildStatusBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF9E7),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFF7DC6F)),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-              flex: 3,
-              child: Text(subjectName,
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.bold))),
-          Expanded(
-              flex: 2,
-              child: Text(courseSection,
-                  style: const TextStyle(
-                      fontSize: 13, color: Colors.black54))),
-          Expanded(
-              flex: 3,
-              child: Text(professor,
-                  style: const TextStyle(
-                      fontSize: 13, color: Colors.black54),
-                  overflow: TextOverflow.ellipsis)),
+          CircleAvatar(radius: 3.5, backgroundColor: Color(0xFFB8860B)),
+          SizedBox(width: 6),
+          Text('Pending',
+              style: TextStyle(
+                  color: Color(0xFFB8860B),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildViewDetailsBtn(VoidCallback onTap) {
+    return Material(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+          side: const BorderSide(color: Colors.black12),
+          borderRadius: BorderRadius.circular(8)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+            height: 42,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            alignment: Alignment.center,
+            child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('View Details',
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w500)),
+                  SizedBox(width: 4),
+                  Icon(Icons.chevron_right, size: 18, color: Colors.grey)
+                ])),
       ),
     );
   }

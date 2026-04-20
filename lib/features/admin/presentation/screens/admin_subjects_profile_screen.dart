@@ -7,6 +7,7 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
 import '../../../auth/domain/services/auth_service.dart';
 import '../../../../core/widgets/app_dialog.dart';
+import '../../domain/models/student.dart';
 
 class AdminSubjectsProfileScreen extends StatefulWidget {
   final String subjectName;
@@ -33,6 +34,7 @@ class _AdminSubjectsProfileScreenState
   final Size _btnSize = const Size(85, 32);
 
   // ── Controllers ──────────────────────────────────────────────────────────
+  final TextEditingController _subjectNameController = TextEditingController();
   final TextEditingController _professorNameController =
       TextEditingController();
   final TextEditingController _courseSectionController =
@@ -42,12 +44,28 @@ class _AdminSubjectsProfileScreenState
 
   final TextEditingController _studentNumberController =
       TextEditingController();
+  final TextEditingController _studentSearchController =
+      TextEditingController();
   final TextEditingController _academicYearController =
       TextEditingController();
   final TextEditingController _semesterController = TextEditingController();
 
+  bool _isSubjectEditing = false;
+  bool _isEnrollEditing = false;
+
+  late List<String> _filteredStudents;
+
+  @override
+  void initState() {
+    super.initState();
+    _subjectNameController.text = widget.subjectName;
+    _professorNameController.text = widget.professor;
+    _courseSectionController.text = widget.courseSection;
+    _filteredStudents = List.from(_allStudents);
+  }
+
   // Mock student list — 30 students, alphabetical by surname (Surname, First M.)
-  final List<String> _students = const [
+  final List<String> _allStudents = [
     'Aquino, Mark A.',
     'Bautista, Claire B.',
     'Castillo, Ryan C.',
@@ -82,33 +100,79 @@ class _AdminSubjectsProfileScreenState
 
   @override
   void dispose() {
+    _subjectNameController.dispose();
     _professorNameController.dispose();
     _courseSectionController.dispose();
     _timeController.dispose();
     _roomController.dispose();
     _studentNumberController.dispose();
+    _studentSearchController.dispose();
     _academicYearController.dispose();
     _semesterController.dispose();
     super.dispose();
   }
 
+  void _filterStudents() {
+    setState(() {
+      _filteredStudents = _allStudents
+          .where((s) => s
+              .toLowerCase()
+              .contains(_studentSearchController.text.toLowerCase()))
+          .toList();
+    });
+  }
+
+  void _clearStudentFilter() {
+    _studentSearchController.clear();
+    setState(() {
+      _filteredStudents = List.from(_allStudents);
+    });
+  }
+
   void _confirmAction(String action, VoidCallback onConfirm) {
     final isDelete = action == 'Delete';
-    AppDialog.confirm(
-      context,
-      title: 'Confirm $action',
-      message: 'Are you sure you want to $action?',
-      type: isDelete ? DialogType.error : DialogType.success,
-      confirmLabel: action,
-      onConfirm: () {
-        onConfirm();
-        AppDialog.result(
-          context,
-          type: isDelete ? DialogType.error : DialogType.success,
-          message: '$action completed successfully.',
-        );
-      },
-    );
+
+    if (isDelete) {
+      AppDialog.password(
+        context,
+        title: 'Confirm Deletion',
+        message: 'Are you sure you want to delete this record? This action cannot be undone.',
+        type: DialogType.error,
+        confirmLabel: 'Delete',
+        onConfirm: (pw) async {
+          if (pw == 'admin123') {
+            onConfirm();
+            AppDialog.result(
+              context,
+              type: DialogType.error,
+              message: 'Record deleted successfully.',
+            );
+          } else {
+            AppDialog.alert(
+              context,
+              title: 'Incorrect Password',
+              message: 'The admin password you entered is incorrect.',
+            );
+          }
+        },
+      );
+    } else {
+      AppDialog.confirm(
+        context,
+        title: 'Confirm $action',
+        message: 'Are you sure you want to $action?',
+        type: DialogType.success,
+        confirmLabel: action,
+        onConfirm: () {
+          onConfirm();
+          AppDialog.result(
+            context,
+            type: DialogType.success,
+            message: '$action completed successfully.',
+          );
+        },
+      );
+    }
   }
 
   @override
@@ -125,116 +189,71 @@ class _AdminSubjectsProfileScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Subject Offered card ──────────────────────────────
+                  // ── Subject Offered section ──────────────────────────────
                   _buildSectionTitle('Subject Offered'),
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.adminItemBackground,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                widget.subjectName,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Professor Assigned',
-                                style: TextStyle(
-                                    fontSize: 13, color: Colors.grey[700]),
-                              ),
-                              Text(
-                                widget.courseSection,
-                                style: TextStyle(
-                                    fontSize: 13, color: Colors.grey[700]),
-                              ),
-                              Text(
-                                'Time',
-                                style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.grey[800]),
-                              ),
-                              Text(
-                                'Room #',
-                                style: TextStyle(
-                                    fontSize: 13, color: Colors.grey[700]),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Column(
-                          children: [
-                            _buildActionButton(
-                              'Edit',
-                              Colors.blue.shade600,
-                              Icons.edit_note,
-                            ),
-                            const SizedBox(height: 8),
-                            _buildActionButton(
-                              'Delete',
-                              AppColors.adminPrimary,
-                              Icons.delete,
-                              onTap: () => _confirmAction('Delete', () {}),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // ── Edit Subject form ─────────────────────────────────
-                  _buildSectionTitle('Edit Subject'),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.black12),
                     ),
                     child: Column(
                       children: [
-                        _buildInputField(
-                            'Professor Name', _professorNameController),
+                        _buildInputField('Subject Name', _subjectNameController,
+                            enabled: _isSubjectEditing),
+                        const SizedBox(height: 8),
+                        _buildInputField('Professor Name', _professorNameController,
+                            enabled: _isSubjectEditing),
                         const SizedBox(height: 8),
                         _buildInputField(
-                            'Course & Section', _courseSectionController),
+                            'Course & Section', _courseSectionController,
+                            enabled: _isSubjectEditing),
                         const SizedBox(height: 8),
                         Row(
                           children: [
                             Expanded(
-                                child: _buildInputField('Time', _timeController)),
+                                child: _buildInputField('Time', _timeController,
+                                    enabled: _isSubjectEditing)),
                             const SizedBox(width: 8),
                             Expanded(
-                                child:
-                                    _buildInputField('Room #', _roomController)),
+                                child: _buildInputField('Room #', _roomController,
+                                    enabled: _isSubjectEditing)),
                           ],
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            _buildActionButton(
-                                'Discard', AppColors.adminPrimary, Icons.block),
+                            _buildActionBtn(
+                              _isSubjectEditing ? 'Discard' : 'Delete',
+                              const Color(0xFF801E1E),
+                              _isSubjectEditing ? Icons.warning : Icons.delete,
+                              () {
+                                if (_isSubjectEditing) {
+                                  setState(() => _isSubjectEditing = false);
+                                } else {
+                                  _confirmAction('Delete', () {});
+                                }
+                              },
+                            ),
                             const SizedBox(width: 8),
-                            _buildActionButton(
-                              'Save',
-                              Colors.blue.shade600,
-                              Icons.save,
-                              onTap: () => _confirmAction('Save', () {}),
+                            _buildActionBtn(
+                              _isSubjectEditing ? 'Save' : 'Edit',
+                              const Color(0xFF1E63D2),
+                              _isSubjectEditing
+                                  ? Icons.save
+                                  : Icons.edit_square,
+                              () {
+                                if (_isSubjectEditing) {
+                                  _confirmAction('Save', () {
+                                    setState(() => _isSubjectEditing = false);
+                                  });
+                                } else {
+                                  setState(() => _isSubjectEditing = true);
+                                }
+                              },
                             ),
                           ],
                         ),
@@ -242,46 +261,42 @@ class _AdminSubjectsProfileScreenState
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
 
-                  // ── Enroll Student/s form ─────────────────────────────
+                  // ── Enroll Student/s section ─────────────────────────────
                   _buildSectionTitle('Enroll Student/s (For Specific Students)'),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.black12),
                     ),
                     child: Column(
                       children: [
                         _buildInputField(
-                            'Student Number / Student Name',
-                            _studentNumberController),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                                child: _buildInputField(
-                                    'Academic Year', _academicYearController)),
-                            const SizedBox(width: 8),
-                            Expanded(
-                                child: _buildInputField(
-                                    'Semester', _semesterController)),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
+                            'Student Number / Student Name', _studentNumberController,
+                            enabled: true),
+                        const SizedBox(height: 12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            _buildActionButton(
-                                'Discard', AppColors.adminPrimary, Icons.block),
-                            const SizedBox(width: 8),
-                            _buildActionButton(
-                              'Save',
-                              Colors.blue.shade600,
-                              Icons.save,
-                              onTap: () => _confirmAction('Save', () {}),
+                            _buildActionBtn(
+                              'Add student',
+                              const Color(0xFF1E63D2),
+                              Icons.add_circle_outline,
+                              () {
+                                if (_studentNumberController.text.isNotEmpty) {
+                                  _confirmAction('Enroll', () {
+                                    setState(() {
+                                      _allStudents.add(_studentNumberController.text);
+                                      _filteredStudents = List.from(_allStudents);
+                                      _studentNumberController.clear();
+                                    });
+                                  });
+                                }
+                              },
                             ),
                           ],
                         ),
@@ -289,25 +304,88 @@ class _AdminSubjectsProfileScreenState
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
 
-                  // ── Student List ──────────────────────────────────────
-                  _buildSectionTitleWithCount('Student List', _students.length),
+                  // ── Enrolled Students section ─────────────────────────────
+                  _buildSectionTitleWithCount(
+                      'Enrolled Students', _allStudents.length),
+                  
+                  // Search area for student list
                   Container(
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.adminItemBackground,
-                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.black12),
                     ),
-                    clipBehavior: Clip.antiAlias,
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _students.length,
-                      itemBuilder: (context, index) =>
-                          _buildStudentRow(_students[index]),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _buildInputField(
+                            'Search Student Name',
+                            _studentSearchController,
+                            enabled: true,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildActionBtn(
+                          'Search',
+                          const Color(0xFF1E63D2),
+                          Icons.search,
+                          _filterStudents,
+                        ),
+                        const SizedBox(width: 8),
+                        Material(
+                          color: Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(6),
+                          child: InkWell(
+                            onTap: _clearStudentFilter,
+                            borderRadius: BorderRadius.circular(6),
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              child: const Icon(Icons.filter_alt_off,
+                                  color: Colors.black54, size: 20),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                  const SizedBox(height: 12),
 
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD4D4D4),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: _filteredStudents.isEmpty
+                          ? const Padding(
+                              padding: EdgeInsets.all(20),
+                              child: Center(
+                                  child: Text('No students match your search.',
+                                      style: TextStyle(color: Colors.grey))),
+                            )
+                          : ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: _filteredStudents.length,
+                              itemBuilder: (context, index) {
+                                final isLast =
+                                    index == _filteredStudents.length - 1;
+                                return _buildStudentItem(
+                                    _filteredStudents[index], !isLast);
+                              },
+                            ),
+                    ),
+                  ),
                   const SizedBox(height: 20),
                 ],
               ),
@@ -384,29 +462,31 @@ class _AdminSubjectsProfileScreenState
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 10, left: 4),
       child: Text(
         title,
         style: const TextStyle(
-          fontSize: 18,
+          fontSize: 20,
           fontWeight: FontWeight.bold,
-          color: AppColors.adminPrimary,
+          color: Color(0xFF800000),
         ),
       ),
     );
   }
 
-  Widget _buildInputField(String hint, TextEditingController controller) {
+  Widget _buildInputField(String hint, TextEditingController controller,
+      {bool enabled = true}) {
     return Container(
       height: 40,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: enabled ? Colors.white : const Color(0xFFF9F9F9),
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: Colors.black12),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: TextField(
         controller: controller,
+        enabled: enabled,
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
@@ -414,77 +494,91 @@ class _AdminSubjectsProfileScreenState
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(vertical: 10),
         ),
-        style: const TextStyle(fontSize: 13),
+        style: TextStyle(
+            fontSize: 13,
+            color: enabled ? Colors.black87 : Colors.black54,
+            fontWeight: enabled ? FontWeight.w500 : FontWeight.normal),
       ),
     );
   }
 
-  Widget _buildActionButton(
-    String label,
-    Color color,
-    IconData icon, {
-    VoidCallback? onTap,
-  }) {
-    return SizedBox(
-      width: _btnSize.width,
-      height: _btnSize.height,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          padding: EdgeInsets.zero,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-        ),
-        onPressed: onTap ?? () {},
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: Colors.white, size: 14),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
+  Widget _buildActionBtn(
+      String label, Color color, IconData icon, VoidCallback onTap) {
+    return Material(
+      color: color,
+      borderRadius: BorderRadius.circular(6),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: Colors.white, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // ── Student list row with edit + delete icons ─────────────────────────────
-  Widget _buildStudentRow(String name) {
+  Widget _buildStudentItem(String name, bool showBorder) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.black12)),
+        border: showBorder
+            ? const Border(bottom: BorderSide(color: Color(0xFFE0E0E0)))
+            : null,
       ),
       child: Row(
         children: [
           Expanded(
             child: Text(name,
                 style: const TextStyle(
-                    fontSize: 14, fontWeight: FontWeight.w500)),
+                    fontSize: 14,
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w500)),
           ),
-          IconButton(
-            onPressed: () {},
-            icon: Icon(Icons.edit_note,
-                color: Colors.blue.shade600, size: 22),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            onPressed: () =>
-                _confirmAction('Delete', () {}),
-            icon: Icon(Icons.delete_outline,
-                color: Colors.red.shade600, size: 22),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
+          Row(
+            children: [
+              IconButton(
+                onPressed: () {
+                  context.pushNamed(
+                    AppRoutes.adminStudentsProfile,
+                    extra: {
+                      'student': {
+                        'name': name,
+                        'course': 'BSIT',
+                        'yearSection': '3-1',
+                        'subjects': ['Programming', 'Mathematics'],
+                      },
+                    },
+                  );
+                },
+                icon: const Icon(Icons.edit_square,
+                    color: Color(0xFF1E63D2), size: 22),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+              const SizedBox(width: 14),
+              IconButton(
+                onPressed: () => _confirmAction('Delete', () {}),
+                icon: const Icon(Icons.delete,
+                    color: Color(0xFFE74C3C), size: 22),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
           ),
         ],
       ),
