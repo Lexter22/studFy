@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/studfy_header.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/widgets/app_dialog.dart';
 
 class AccountCreationScreen extends StatefulWidget {
   const AccountCreationScreen({super.key});
@@ -108,41 +109,7 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
 
   // ── Pop-ups ────────────────────────────────────────────────────────────────
 
-  void _showDialog(String title, String message, {bool isSuccess = false}) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Icon(
-              isSuccess ? Icons.check_circle_outline : Icons.error_outline,
-              color: isSuccess ? Colors.green : Colors.red,
-              size: 22,
-            ),
-            const SizedBox(width: 8),
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          ],
-        ),
-        content: Text(message, style: const TextStyle(fontSize: 14)),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              if (isSuccess) context.goNamed(AppRoutes.login);
-            },
-            child: Text(
-              'OK',
-              style: TextStyle(
-                color: isSuccess ? Colors.green : AppColors.authPrimary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   // ── Submit ─────────────────────────────────────────────────────────────────
 
@@ -161,35 +128,44 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
                 _yearSectionController.text.isEmpty));
 
     if (anyEmpty) {
-      _showDialog('Incomplete Form', 'All fields must be filled before submitting.');
+      AppDialog.alert(context,
+          title: 'Incomplete Form',
+          message: 'All fields must be filled before submitting.',
+          type: DialogType.warning);
       return;
     }
 
     // Email format
     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(_emailController.text.trim())) {
-      _showDialog('Invalid Email', 'Please enter a valid email address (e.g. name@domain.com).');
+      AppDialog.alert(context,
+          title: 'Invalid Email',
+          message: 'Please enter a valid email address (e.g. name@domain.com).');
       return;
     }
 
     // Password length
     if (_passwordController.text.length < 8) {
-      _showDialog('Weak Password', 'Password must be at least 8 characters long.');
+      AppDialog.alert(context,
+          title: 'Weak Password',
+          message: 'Password must be at least 8 characters long.');
       return;
     }
 
     // Password match
     if (_passwordController.text != _confirmPasswordController.text) {
-      _showDialog('Password Mismatch', 'Password and Confirm Password do not match.');
+      AppDialog.alert(context,
+          title: 'Password Mismatch',
+          message: 'Password and Confirm Password do not match.');
       return;
     }
 
     // TODO: Implement actual Firebase account creation here
 
-    _showDialog(
-      'Account Created!',
-      'Your account has been created successfully. You may now log in.',
-      isSuccess: true,
-    );
+    AppDialog.result(context,
+        type: DialogType.success,
+        message: 'Your account has been created successfully.\nYou may now log in.',
+        buttonLabel: 'Go to Login',
+        onDismiss: () => context.goNamed(AppRoutes.login));
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────

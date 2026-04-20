@@ -6,6 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
 import '../../../auth/domain/services/auth_service.dart';
+import '../../../../core/widgets/app_dialog.dart';
 
 class AdminSubjectsProfileScreen extends StatefulWidget {
   final String subjectName;
@@ -92,30 +93,21 @@ class _AdminSubjectsProfileScreenState
   }
 
   void _confirmAction(String action, VoidCallback onConfirm) {
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Confirm $action'),
-        content: Text('Are you sure you want to $action?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              onConfirm();
-            },
-            child: Text(
-              action,
-              style: TextStyle(
-                color: action == 'Delete' ? Colors.red : Colors.blue,
-              ),
-            ),
-          ),
-        ],
-      ),
+    final isDelete = action == 'Delete';
+    AppDialog.confirm(
+      context,
+      title: 'Confirm $action',
+      message: 'Are you sure you want to $action?',
+      type: isDelete ? DialogType.error : DialogType.success,
+      confirmLabel: action,
+      onConfirm: () {
+        onConfirm();
+        AppDialog.result(
+          context,
+          type: isDelete ? DialogType.error : DialogType.success,
+          message: '$action completed successfully.',
+        );
+      },
     );
   }
 

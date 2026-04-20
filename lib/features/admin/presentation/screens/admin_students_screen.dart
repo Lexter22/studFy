@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -16,81 +17,131 @@ class AdminStudentsScreen extends StatefulWidget {
 
 class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
   int? _hoveredIndex;
+  int? _hoveredStudentIndex;
 
-  final TextEditingController _studentNameController = TextEditingController();
-  final TextEditingController _courseController = TextEditingController();
-  final TextEditingController _yearSectionController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
-  final List<StudentData> _allStudents = const [
-    StudentData(name: 'Juan Santos', course: 'BSIT', yearSection: '3-1'),
-    StudentData(name: 'Maria Garcia', course: 'BSIT', yearSection: '3-2'),
-    StudentData(name: 'Pedro Reyes', course: 'BSCS', yearSection: '2-1'),
-    StudentData(name: 'Rosa Lopez', course: 'BSIE', yearSection: '1-3'),
-    StudentData(name: 'Carlos Tan', course: 'BSIT', yearSection: '4-1'),
-    StudentData(name: 'Anna De Guzman', course: 'BSCS', yearSection: '3-2'),
-    StudentData(name: 'Miguel Cruz', course: 'DIT', yearSection: '2-1'),
-    StudentData(name: 'Sofia Mendoza', course: 'BSHE', yearSection: '1-4'),
+  String? _selectedCourse;
+  String? _selectedSubject;
+
+  late final List<String> _courseSectionList;
+  final List<String> _subjectList = [
+    'Programming',
+    'Mathematics',
+    'Communication',
+    'Data Structures',
+    'Networking',
+    'Web Development',
+    'Database Management',
+    'Operating Systems',
+    'Software Engineering',
+    'Discrete Math',
   ];
 
-  final List<String> _courseList = ['BSIT', 'BSIE', 'DIT', 'BSCS', 'BSHM'];
-  final List<String> _yearSectionList = [
-    '1-1', '1-2', '1-3', '1-4',
-    '2-1', '2-2', '2-3',
-    '3-1', '3-2', '3-3',
-    '4-1', '4-2',
-  ];
+  // Each student keeps its own selected course & subject for the row dropdowns.
+  // We store them as parallel lists of the same index as _allStudents.
+  late final List<StudentData> _allStudents;
 
   late List<StudentData> _filteredStudents;
+
+  // Per-row selected subject (index-aligned with _allStudents)
+  late List<String> _rowSubject;
+  // Per-row randomized subjects (2-4 items)
+  late List<List<String>> _studentSubjects;
 
   @override
   void initState() {
     super.initState();
-    _filteredStudents = _allStudents;
+    _allStudents = [
+      const StudentData(name: 'Abad, Jose',        course: 'BSCS', yearSection: '1-1'),
+      const StudentData(name: 'Bautista, Arnel',   course: 'BSIT', yearSection: '2-2'),
+      const StudentData(name: 'Castillo, Elena',   course: 'BSIE', yearSection: '3-3'),
+      const StudentData(name: 'Cruz, Miguel',      course: 'DIT',  yearSection: '2-1'),
+      const StudentData(name: 'De Guzman, Anna',   course: 'BSCS', yearSection: '3-2'),
+      const StudentData(name: 'Dela Cruz, Maria',  course: 'BSIT', yearSection: '1-1'),
+      const StudentData(name: 'Evangelista, Mark', course: 'BSIT', yearSection: '4-1'),
+      const StudentData(name: 'Ferrer, Grace',     course: 'BSHM', yearSection: '2-3'),
+      const StudentData(name: 'Flores, Diane',     course: 'BSCS', yearSection: '1-1'),
+      const StudentData(name: 'Garcia, Maria',     course: 'BSIT', yearSection: '3-2'),
+      const StudentData(name: 'Gomez, Paolo',      course: 'DIT',  yearSection: '1-2'),
+      const StudentData(name: 'Gonzales, Kevin',   course: 'BSIT', yearSection: '2-2'),
+      const StudentData(name: 'Hernandez, Rico',   course: 'BSCS', yearSection: '4-2'),
+      const StudentData(name: 'Ignacio, Jerome',   course: 'DIT',  yearSection: '3-1'),
+      const StudentData(name: 'Javier, Lita',      course: 'BSIE', yearSection: '2-1'),
+      const StudentData(name: 'Lopez, Rosa',       course: 'BSIE', yearSection: '1-3'),
+      const StudentData(name: 'Luna, Antonio',     course: 'BSCS', yearSection: '3-1'),
+      const StudentData(name: 'Mendoza, Sofia',    course: 'BSHM', yearSection: '1-4'),
+      const StudentData(name: 'Mercado, Pilar',    course: 'BSIT', yearSection: '3-3'),
+      const StudentData(name: 'Noble, Rey',        course: 'DIT',  yearSection: '4-1'),
+      const StudentData(name: 'Ortega, Susan',     course: 'BSHM', yearSection: '1-1'),
+      const StudentData(name: 'Pascual, Ben',      course: 'BSCS', yearSection: '2-2'),
+      const StudentData(name: 'Quezon, Manuel',    course: 'BSIE', yearSection: '4-3'),
+      const StudentData(name: 'Reyes, Pedro',      course: 'BSCS', yearSection: '2-1'),
+      const StudentData(name: 'Rivera, Rosa',      course: 'BSIT', yearSection: '1-2'),
+      const StudentData(name: 'Salazar, Jose',     course: 'DIT',  yearSection: '2-2'),
+      const StudentData(name: 'Santos, Juan',      course: 'BSIT', yearSection: '3-1'),
+      const StudentData(name: 'Tan, Carlos',       course: 'BSIT', yearSection: '4-1'),
+      const StudentData(name: 'Tolentino, Linda',  course: 'BSHM', yearSection: '3-2'),
+      const StudentData(name: 'Umali, Victor',     course: 'BSIE', yearSection: '1-2'),
+      const StudentData(name: 'Valenzuela, Gina',  course: 'BSCS', yearSection: '4-1'),
+    ]..sort((a, b) => a.name.compareTo(b.name));
+
+    _filteredStudents = List.from(_allStudents);
+
+    // Randomize 2-4 subjects per student
+    final random = Random();
+    _studentSubjects = _allStudents.map((_) {
+      final count = random.nextInt(3) + 2; // 2, 3, or 4
+      final shuffled = List<String>.from(_subjectList)..shuffle(random);
+      return shuffled.take(count).toList();
+    }).toList();
+
+    // Set default selected subject
+    _rowSubject = _studentSubjects.map((list) => list.first).toList();
+
+    // Generate Course & Section list for dropdown
+    final List<String> baseCourses = ['BSIT', 'BSIE', 'DIT', 'BSCS', 'BSHM'];
+    _courseSectionList = [];
+    for (var c in baseCourses) {
+      for (var y = 1; y <= 4; y++) {
+        for (var s = 1; s <= 3; s++) {
+          _courseSectionList.add("$c $y-$s");
+        }
+      }
+    }
   }
 
   @override
   void dispose() {
-    _studentNameController.dispose();
-    _courseController.dispose();
-    _yearSectionController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
-  void _filterList() {
+  // ── Filtering ─────────────────────────────────────────────────────────────
+
+  void _applyFilter() {
     setState(() {
-      _filteredStudents = _allStudents.where((student) {
-        final nameMatch = student.name.toLowerCase().contains(_studentNameController.text.toLowerCase());
-        final courseMatch = student.course.toLowerCase().contains(_courseController.text.toLowerCase());
-        final yearSectionMatch = student.yearSection.toLowerCase().contains(_yearSectionController.text.toLowerCase());
-        return nameMatch && courseMatch && yearSectionMatch;
+      _filteredStudents = _allStudents.where((s) {
+        final nameMatch = s.name
+            .toLowerCase()
+            .contains(_searchController.text.toLowerCase());
+        final courseMatch =
+            _selectedCourse == null || "${s.course} ${s.yearSection}" == _selectedCourse;
+        return nameMatch && courseMatch;
       }).toList();
-      // Sort alphabetically by name
-      _filteredStudents.sort((a, b) => a.name.compareTo(b.name));
     });
   }
 
-  void _clearFilters() {
-    _studentNameController.clear();
-    _courseController.clear();
-    _yearSectionController.clear();
+  void _clearFilter() {
+    _searchController.clear();
     setState(() {
-      _filteredStudents = _allStudents;
+      _selectedCourse = null;
+      _selectedSubject = null;
+      _filteredStudents = List.from(_allStudents);
     });
   }
 
-  void _navigateToStudentProfile(StudentData student, String? request) {
-    context.pushNamed(
-      AppRoutes.adminStudentsProfile,
-      extra: {
-        'student': {
-          'name': student.name,
-          'course': student.course,
-          'yearSection': student.yearSection,
-        },
-        'request': request,
-      },
-    );
-  }
+  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -102,34 +153,320 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
           _buildHeader(),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionTitle('Recent', null),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 160),
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: Column(
-                        children: [
-                          _buildRequestItem('BSIT 2-1', 'Prof. Juan Dela Cruz'),
-                          _buildRequestItem('BSCS 3-2', 'Prof. Maria Santos'),
-                        ],
-                      ),
+                  const Text(
+                    'Student List',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.adminPrimary,
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  _buildSectionTitle('Student List', 'Total: ${_filteredStudents.length}'),
+                  const SizedBox(height: 12),
                   _buildSearchArea(),
                   const SizedBox(height: 12),
-                  _buildStudentListArea(),
+                  Expanded(child: _buildStudentList()),
                 ],
               ),
             ),
           ),
           _buildNavBar(),
         ],
+      ),
+    );
+  }
+
+  // ── Search area ───────────────────────────────────────────────────────────
+
+  Widget _buildSearchArea() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                height: 42,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.black12),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (_) => _applyFilter(),
+                  decoration: const InputDecoration(
+                    hintText: 'Student Name/Student Number',
+                    hintStyle: TextStyle(color: Colors.grey, fontSize: 13),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    border: InputBorder.none,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Material(
+              color: AppColors.adminPrimary,
+              borderRadius: BorderRadius.circular(8),
+              child: InkWell(
+                onTap: _applyFilter,
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  height: 42,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.search, color: Colors.white, size: 18),
+                      SizedBox(width: 4),
+                      Text('Search',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: _clearFilter,
+              icon: const Icon(Icons.filter_alt_off, color: Colors.black54),
+              tooltip: 'Clear filters',
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(child: _buildFilterDropdown(
+              hint: 'Course & Section',
+              value: _selectedCourse,
+              items: _courseSectionList,
+              onChanged: (val) {
+                setState(() => _selectedCourse = val);
+                _applyFilter();
+              },
+            )),
+            const SizedBox(width: 8),
+            Expanded(child: _buildFilterDropdown(
+              hint: 'Subject',
+              value: _selectedSubject,
+              items: _subjectList,
+              onChanged: (val) => setState(() => _selectedSubject = val),
+            )),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFilterDropdown({
+    required String hint,
+    required String? value,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return DropdownMenu<String>(
+      expandedInsets: EdgeInsets.zero,
+      initialSelection: value,
+      hintText: hint,
+      enableSearch: true,
+      enableFilter: true,
+      requestFocusOnTap: true,
+      menuHeight: 300,
+      onSelected: onChanged,
+      dropdownMenuEntries: items.map((e) => DropdownMenuEntry(
+        value: e,
+        label: e,
+        style: MenuItemButton.styleFrom(
+          visualDensity: VisualDensity.compact,
+        ),
+      )).toList(),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+        constraints: const BoxConstraints(maxHeight: 42),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Colors.black12),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Colors.black12),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppColors.adminPrimary, width: 1),
+        ),
+      ),
+    );
+  }
+
+  // ── Student list ──────────────────────────────────────────────────────────
+
+  Widget _buildStudentList() {
+    if (_filteredStudents.isEmpty) {
+      return const Center(child: Text('No students found.'));
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(0, 4, 0, 98),
+        itemCount: _filteredStudents.length,
+        separatorBuilder: (_, unused) =>
+            const Divider(height: 1, color: Colors.black12, indent: 12, endIndent: 12),
+        itemBuilder: (context, index) {
+          final student = _filteredStudents[index];
+          final originalIndex = _allStudents.indexOf(student);
+          return _buildStudentRow(student, originalIndex);
+        },
+      ),
+    );
+  }
+
+  Widget _buildStudentRow(StudentData student, int originalIndex) {
+    final hasMeta = originalIndex >= 0;
+    final isHovered = _hoveredStudentIndex == originalIndex;
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hoveredStudentIndex = originalIndex),
+      onExit: (_) => setState(() => _hoveredStudentIndex = null),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          context.pushNamed(
+            AppRoutes.adminStudentsProfile,
+            extra: {
+              'student': {
+                'name': student.name,
+                'course': student.course,
+                'yearSection': student.yearSection,
+                'subjects': hasMeta ? _studentSubjects[originalIndex] : <String>[],
+              },
+            },
+          );
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: isHovered
+                ? Colors.black.withOpacity(0.05)
+                : Colors.transparent,
+            border: Border(
+              bottom: BorderSide(
+                color: isHovered ? Colors.black12 : Colors.transparent,
+                width: 0.5,
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Hero(
+                  tag: 'student-name-${student.name}',
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Text(
+                      student.name,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: isHovered ? FontWeight.bold : FontWeight.w500,
+                        color: isHovered ? AppColors.adminPrimary : Colors.black87,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                flex: 2,
+                child: Container(
+                  height: 32,
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.black12),
+                  ),
+                  child: Text(
+                    "${student.course} ${student.yearSection}",
+                    style: const TextStyle(fontSize: 11, color: Colors.black87),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                flex: 2,
+                child: _buildRowDropdown(
+                  value: hasMeta ? _rowSubject[originalIndex] : _subjectList.first,
+                  items: hasMeta
+                      ? _studentSubjects[originalIndex]
+                      : [_subjectList.first],
+                  onChanged: hasMeta
+                      ? (val) {
+                          if (val != null) {
+                            setState(() => _rowSubject[originalIndex] = val);
+                          }
+                        }
+                      : null,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRowDropdown({
+    required String value,
+    required List<String> items,
+    required ValueChanged<String?>? onChanged,
+  }) {
+    return DropdownMenu<String>(
+      expandedInsets: EdgeInsets.zero,
+      initialSelection: items.contains(value) ? value : items.first,
+      enableSearch: true,
+      enableFilter: true,
+      requestFocusOnTap: true,
+      menuHeight: 200,
+      onSelected: onChanged,
+      dropdownMenuEntries: items.map((e) => DropdownMenuEntry(
+        value: e,
+        label: e,
+        style: MenuItemButton.styleFrom(
+          visualDensity: VisualDensity.compact,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+        ),
+      )).toList(),
+      textStyle: const TextStyle(fontSize: 11, color: Colors.black87),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.grey.shade100,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+        constraints: const BoxConstraints(maxHeight: 32),
+        isDense: true,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: const BorderSide(color: Colors.black12),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: const BorderSide(color: Colors.black12),
+        ),
       ),
     );
   }
@@ -147,189 +484,24 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.school, color: Colors.white, size: 28),
-              Text('STUDFY', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+              Text('STUDFY',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900)),
             ],
           ),
-          Text('Admin 1', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+          Text('Admin 1',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title, String? trailingText) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.adminPrimary)),
-          if (trailingText != null)
-            Text(trailingText, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.adminPrimary)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchArea() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: AppColors.adminItemBackground, borderRadius: BorderRadius.circular(8)),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  height: 40,
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6)),
-                  child: TextField(
-                    controller: _studentNameController,
-                    onChanged: (_) => _filterList(),
-                    decoration: const InputDecoration(
-                      hintText: 'Student Name',
-                      hintStyle: TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.bold),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      border: InputBorder.none,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(onPressed: _clearFilters, icon: const Icon(Icons.filter_alt_off, color: Colors.black54)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(child: _buildComboField('Course', _courseController, _courseList)),
-              const SizedBox(width: 8),
-              Expanded(child: _buildComboField('Year & Section', _yearSectionController, _yearSectionList)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildComboField(String hint, TextEditingController controller, List<String> items) {
-    return Container(
-      height: 40,
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6)),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: controller,
-              onChanged: (_) => _filterList(),
-              decoration: InputDecoration(
-                hintText: hint,
-                hintStyle: const TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.bold),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                border: InputBorder.none,
-              ),
-            ),
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
-            onSelected: (val) { controller.text = val; _filterList(); },
-            itemBuilder: (ctx) => items.map((choice) => PopupMenuItem(value: choice, child: Text(choice))).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Map<String, List<StudentData>> _groupStudentsByCourseAndSection() {
-    final grouped = <String, List<StudentData>>{};
-    for (final student in _filteredStudents) {
-      final key = '${student.course} ${student.yearSection}';
-      grouped.putIfAbsent(key, () => []).add(student);
-    }
-    // Sort group keys alphabetically
-    final sortedGroups = Map.fromEntries(
-      grouped.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
-    );
-    return sortedGroups;
-  }
-
-  Widget _buildStudentListArea() {
-    if (_filteredStudents.isEmpty) {
-      return Expanded(
-        child: Container(
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-          child: const Center(child: Text("No students found.")),
-        ),
-      );
-    }
-
-    final groupedStudents = _groupStudentsByCourseAndSection();
-    return Expanded(
-      child: Container(
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-        child: ListView.builder(
-          padding: const EdgeInsets.fromLTRB(8, 8, 8, 98),
-          itemCount: groupedStudents.length * 2 + _filteredStudents.length,
-          itemBuilder: (context, index) {
-            int itemCount = 0;
-            for (final entry in groupedStudents.entries) {
-              // Header for this course/section group
-              if (itemCount == index) {
-                return Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
-                  child: Text(
-                    entry.key,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.adminPrimary,
-                    ),
-                  ),
-                );
-              }
-              itemCount++;
-
-              // Students in this group
-              for (final student in entry.value) {
-                if (itemCount == index) {
-                  return StudentListItem(
-                    student: student,
-                    onTap: () => _navigateToStudentProfile(student, null),
-                  );
-                }
-                itemCount++;
-              }
-            }
-            return const SizedBox.shrink();
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRequestItem(String title, String subtitle) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(color: AppColors.adminItemBackground, borderRadius: BorderRadius.circular(8)),
-      child: Row(
-        children: [
-          const Icon(Icons.account_circle_outlined, size: 40, color: Colors.black),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                Text(subtitle, style: const TextStyle(fontSize: 14, color: Colors.black87)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-Widget _buildNavBar() {
+  Widget _buildNavBar() {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Padding(
@@ -383,7 +555,7 @@ Widget _buildNavBar() {
           } else if (index == 0) {
             context.goNamed(AppRoutes.adminInstructors);
           } else if (index == 1) {
-            // Already on students
+            context.goNamed(AppRoutes.adminStudents);
           } else if (index == 2) {
             context.goNamed(AppRoutes.adminDashboard);
           } else if (index == 3) {
@@ -394,7 +566,8 @@ Widget _buildNavBar() {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: isHovered ? Colors.white.withOpacity(0.1) : Colors.transparent,
+            color:
+                isHovered ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Column(
@@ -407,41 +580,13 @@ Widget _buildNavBar() {
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 9,
-                  fontWeight: isHovered ? FontWeight.bold : FontWeight.normal,
+                  fontWeight:
+                      isHovered ? FontWeight.bold : FontWeight.normal,
                   letterSpacing: 0.5,
                 ),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class StudentListItem extends StatelessWidget {
-  final StudentData student;
-  final VoidCallback onTap;
-
-  const StudentListItem({super.key, required this.student, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: AppColors.adminItemBackground.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            Expanded(flex: 3, child: Text(student.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold))),
-            Expanded(flex: 2, child: Text(student.course, style: const TextStyle(fontSize: 13, color: Colors.black54))),
-            Expanded(flex: 3, child: Text(student.yearSection, style: const TextStyle(fontSize: 13, color: Colors.black54), overflow: TextOverflow.ellipsis)),
-          ],
         ),
       ),
     );

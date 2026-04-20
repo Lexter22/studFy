@@ -7,6 +7,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
 import '../../domain/models/instructor.dart';
+import '../../../../core/widgets/app_dialog.dart';
 
 // ── Simple model for a handled subject row ────────────────────────────────────
 class _HandledSubject {
@@ -102,31 +103,12 @@ class _AdminInstructorProfileScreenState
   // ── Pop-up Helpers ────────────────────────────────────────────────────────
 
   void _showSuccessDialog(String message, {IconData icon = Icons.check_circle, Color iconColor = Colors.green}) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: iconColor, size: 60),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        actions: [
-          Center(
-            child: TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Close', style: TextStyle(color: Color(0xFF3B71CA), fontWeight: FontWeight.bold)),
-            ),
-          ),
-        ],
-      ),
+    AppDialog.result(
+      context,
+      type: iconColor == Colors.green ? DialogType.success
+          : iconColor == Colors.orange ? DialogType.warning
+          : DialogType.error,
+      message: message,
     );
   }
 
@@ -145,82 +127,28 @@ class _AdminInstructorProfileScreenState
   }
 
   void _showDeleteDialog() {
-    _passwordController.clear();
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Confirm Deletion',
-            style: TextStyle(
-                color: Color(0xFF800000), fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Delete ${_currentInstructor.name}? This cannot be undone.'),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                hintText: 'Admin Password',
-                prefixIcon: Icon(Icons.lock_outline),
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
-          ElevatedButton(
-            onPressed: () async {
-              if (_passwordController.text == 'admin123') {
-                Navigator.of(ctx).pop(); // Close password dialog
-                
-                // Show specialized success pop-up for deletion
-                await showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (successCtx) => AlertDialog(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Icon(Icons.delete_forever, color: Color(0xFF800000), size: 60),
-                        SizedBox(height: 16),
-                        Text('Instructor deleted successfully', 
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontWeight: FontWeight.bold)
-                        ),
-                      ],
-                    ),
-                    actions: [
-                      Center(
-                        child: TextButton(
-                          onPressed: () {
-                            Navigator.pop(successCtx);
-                            context.pop(); // Return to list screen
-                          }, 
-                          child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold))
-                        ),
-                      )
-                    ],
-                  )
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Incorrect Password')));
-              }
-            },
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF800000)),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+    AppDialog.password(
+      context,
+      title: 'Confirm Deletion',
+      message: 'Delete ${_currentInstructor.name}? This cannot be undone.',
+      type: DialogType.error,
+      confirmLabel: 'Delete',
+      onConfirm: (pw) async {
+        if (pw == 'admin123') {
+          await AppDialog.result(
+            context,
+            type: DialogType.error,
+            message: 'Instructor deleted successfully.',
+            onDismiss: () => context.pop(),
+          );
+        } else {
+          AppDialog.alert(
+            context,
+            title: 'Incorrect Password',
+            message: 'The admin password you entered is incorrect.',
+          );
+        }
+      },
     );
   }
 
@@ -242,6 +170,29 @@ class _AdminInstructorProfileScreenState
   }
 
   void _commitAssignment() {
+    // ── Validation ─────────────────────────────────────────────────────────
+    final bool anyEmpty = _courseCodeCtrl.text.trim().isEmpty ||
+        _subjectNameCtrl.text.trim().isEmpty ||
+        _academicYearCtrl.text.trim().isEmpty ||
+        _selectedCourse == null ||
+        _selectedSemester == null ||
+        _selectedYearLevel == null ||
+        _selectedSection == null ||
+        _selectedDay == null ||
+        _selectedTime == null ||
+        _selectedRoom == null;
+
+    if (anyEmpty) {
+      AppDialog.alert(
+        context,
+        title: 'Incomplete Form',
+        message: 'All fields must be filled before saving the class assignment.',
+        type: DialogType.warning,
+      );
+      return;
+    }
+
+    // ── Commit ─────────────────────────────────────────────────────────────
     final courseSection =
         '${_selectedCourse ?? ''} ${_selectedYearLevel ?? ''}-${_selectedSection ?? ''}';
     final timeRoom =
@@ -258,48 +209,27 @@ class _AdminInstructorProfileScreenState
     _showSuccessDialog('Class assigned successfully');
   }
 
+
   void _showDeleteSubjectDialog(int index) {
-    _passwordController.clear();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Confirm Removal',
-            style: TextStyle(
-                color: Color(0xFF800000), fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Remove "${_handledSubjects[index].subjectName}"?'),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                  hintText: 'Admin Password', border: OutlineInputBorder()),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-              if (_passwordController.text == 'admin123') {
-                setState(() => _handledSubjects.removeAt(index));
-                Navigator.pop(ctx);
-                _showSuccessDialog('Subject removed successfully', icon: Icons.delete_sweep, iconColor: Colors.orange);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Incorrect Password')));
-              }
-            },
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF800000)),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+    AppDialog.password(
+      context,
+      title: 'Confirm Removal',
+      message: 'Remove "${_handledSubjects[index].subjectName}"?',
+      type: DialogType.warning,
+      confirmLabel: 'Remove',
+      onConfirm: (pw) async {
+        if (pw == 'admin123') {
+          setState(() => _handledSubjects.removeAt(index));
+          _showSuccessDialog('Subject removed successfully',
+              icon: Icons.delete_sweep, iconColor: Colors.orange);
+        } else {
+          AppDialog.alert(
+            context,
+            title: 'Incorrect Password',
+            message: 'The admin password you entered is incorrect.',
+          );
+        }
+      },
     );
   }
 

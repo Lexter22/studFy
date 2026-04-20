@@ -443,7 +443,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
           } else if (index == 2) {
             context.goNamed(AppRoutes.adminDashboard);
           } else if (index == 3) {
-            // Already on subjects
+            context.goNamed(AppRoutes.adminSubjects);
           }
         },
         child: AnimatedContainer(

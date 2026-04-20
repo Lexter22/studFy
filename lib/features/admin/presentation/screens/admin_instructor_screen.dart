@@ -6,6 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
 import '../../domain/models/instructor.dart';
+import '../../../../core/widgets/app_dialog.dart';
 
 class AdminInstructorScreen extends StatefulWidget {
   const AdminInstructorScreen({super.key});
@@ -93,31 +94,17 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
   }
 
   void _showActionDialog(String action, String name, String request) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('$action Request?'),
-        content: Text('Are you sure you want to $action the "$request" from $name?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Request $action-ed successfully')),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: action == 'Approve' ? Colors.green : Colors.red,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: Text(action, style: const TextStyle(color: Colors.white)),
-          ),
-        ],
+    final isApprove = action == 'Approve';
+    AppDialog.confirm(
+      context,
+      title: '$action Request?',
+      message: 'Are you sure you want to $action the "$request" from $name?',
+      type: isApprove ? DialogType.success : DialogType.error,
+      confirmLabel: action,
+      onConfirm: () => AppDialog.result(
+        context,
+        type: isApprove ? DialogType.success : DialogType.error,
+        message: 'Request ${action.toLowerCase()}d successfully.',
       ),
     );
   }
@@ -500,7 +487,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
           } else if (index == 0) {
             context.goNamed(AppRoutes.adminInstructors);
           } else if (index == 1) {
-            // Already on students
+            context.goNamed(AppRoutes.adminStudents);
           } else if (index == 2) {
             context.goNamed(AppRoutes.adminDashboard);
           } else if (index == 3) {

@@ -7,6 +7,7 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
 import '../../../auth/domain/services/auth_service.dart';
 import '../../domain/models/student.dart';
+import '../../../../core/widgets/app_dialog.dart';
 
 class AdminStudentsProfileScreen extends StatefulWidget {
   final StudentData student;
@@ -25,37 +26,75 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
   final AuthService _authService = const AuthService();
   int? _hoveredIndex;
 
-  final Size unifiedButtonSize = const Size(85, 32);
+  // Edit state
+  bool _isEditing = false;
+  late StudentData _currentStudent;
+  late TextEditingController _nameController;
+  late TextEditingController _courseController;
 
-  void _confirmAction(String action, VoidCallback onConfirm) {
-    showDialog<void>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Confirm $action'),
-          content: Text('Are you sure you want to $action?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                onConfirm();
-              },
-              child: Text(
-                action,
-                style: TextStyle(
-                  color: action == 'Delete' ? Colors.red : Colors.blue,
-                ),
-              ),
-            ),
-          ],
-        );
+  @override
+  void initState() {
+    super.initState();
+    _currentStudent = widget.student;
+    _nameController = TextEditingController(text: _currentStudent.name);
+    _courseController = TextEditingController(
+        text: '${_currentStudent.course} ${_currentStudent.yearSection}');
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _courseController.dispose();
+    super.dispose();
+  }
+
+  // ── Actions ───────────────────────────────────────────────────────────────
+
+  void _saveEdits() {
+    setState(() {
+      _currentStudent = StudentData(
+        name: _nameController.text,
+        // For simplicity, we keep the original course/section structure if they didn't change format
+        course: _currentStudent.course,
+        yearSection: _currentStudent.yearSection,
+        subjects: _currentStudent.subjects,
+      );
+      _isEditing = false;
+    });
+    AppDialog.result(
+      context,
+      type: DialogType.success,
+      message: 'Student profile updated successfully.',
+    );
+  }
+
+  void _showDeleteDialog() {
+    AppDialog.password(
+      context,
+      title: 'Confirm Deletion',
+      message: 'Delete ${_currentStudent.name}? This cannot be undone.',
+      type: DialogType.error,
+      confirmLabel: 'Delete',
+      onConfirm: (pw) async {
+        if (pw == 'admin123') {
+          await AppDialog.result(
+            context,
+            type: DialogType.error,
+            message: 'Student record deleted successfully.',
+            onDismiss: () => context.pop(),
+          );
+        } else {
+          AppDialog.alert(
+            context,
+            title: 'Incorrect Password',
+            message: 'The admin password you entered is incorrect.',
+          );
+        }
       },
     );
   }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +103,7 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
       backgroundColor: AppColors.adminPageBackground,
       body: Column(
         children: [
-          _buildDashboardHeader(),
+          _buildHeader(),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 90.0),
@@ -72,164 +111,45 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildSectionTitle('Student Profile'),
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: AppColors.adminItemBackground,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        const CircleAvatar(
-                          radius: 40,
-                          backgroundColor: Colors.white,
-                          child: Icon(
-                            Icons.person,
-                            size: 50,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                widget.student.name,
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                'Course & Section: ${widget.student.course} - ${widget.student.yearSection}',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                              Text(
-                                'Other Info: Enrollment Status',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Column(
-                          children: [
-                            _buildSmallActionButton(
-                              'Edit',
-                              Colors.blue.shade600,
-                              Icons.edit_note,
-                            ),
-                            const SizedBox(height: 8),
-                            _buildSmallActionButton(
-                              'Delete',
-                              AppColors.adminPrimary,
-                              Icons.delete,
-                              onTap: () => _confirmAction('Delete', () {}),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  
+                  _buildProfileCard(),
+                  const SizedBox(height: 24),
                   _buildSectionTitle('Schedule for A.Y. 2025-2026 (1st sem)'),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.adminItemBackground,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Column(
-                      children: [
-                        _buildScheduleHeader(),
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxHeight: 250),
-                          child: ListView.builder(
-                            shrinkWrap: true,
-                            physics: const BouncingScrollPhysics(),
-                            itemCount: 8,
-                            itemBuilder: (context, index) =>
-                                _buildScheduleDataRow(),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildSectionTitle('Assign Subject'),
-                  _buildAssignSubjectForm(),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      _buildSmallActionButton(
-                        'Discard',
-                        Colors.red.shade700,
-                        Icons.block,
-                      ),
-                      const SizedBox(width: 10),
-                      _buildSmallActionButton(
-                        'Save',
-                        Colors.blue.shade600,
-                        Icons.save,
-                        onTap: () => _confirmAction('Save', () {}),
-                      ),
-                    ],
-                  ),
+                  _buildScheduleTable(),
                 ],
               ),
             ),
           ),
-          _buildDashboardFooter(),
+          _buildNavBar(),
         ],
       ),
     );
   }
 
-  Widget _buildDashboardHeader() {
+  Widget _buildHeader() {
     return Container(
-      height: 75,
+      height: 70,
       width: double.infinity,
       color: AppColors.adminPrimary,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: const Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.school, color: Colors.white, size: 28),
-                Text(
-                  'STUDFY',
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.school, color: Colors.white, size: 28),
+              Text('STUDFY',
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
-            ),
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900)),
+            ],
           ),
-          Text(
-            'Admin 1',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          Text('Admin 1',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -237,11 +157,11 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Text(
         title,
         style: const TextStyle(
-          fontSize: 18,
+          fontSize: 20,
           fontWeight: FontWeight.bold,
           color: AppColors.adminPrimary,
         ),
@@ -249,172 +169,239 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
     );
   }
 
-  Widget _buildInputField(String hint) {
+  Widget _buildProfileCard() {
     return Container(
-      height: 40,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.black87, width: 2),
+              color: Colors.white,
+            ),
+            child: const Icon(Icons.person_outline, size: 50, color: Colors.black87),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (_isEditing)
+                  _buildEditField('Name', _nameController)
+                else
+                  Hero(
+                    tag: 'student-name-${_currentStudent.name}',
+                    child: Material(
+                      color: Colors.transparent,
+                      child: Text(
+                        _currentStudent.name,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 4),
+                if (_isEditing)
+                  _buildEditField('Course & Section', _courseController)
+                else ...[
+                  Text(
+                    'Course & Section: ${_currentStudent.course} ${_currentStudent.yearSection}',
+                    style: const TextStyle(fontSize: 16, color: Colors.black87),
+                  ),
+                  const Text(
+                    'Other Info: Enrolled',
+                    style: TextStyle(fontSize: 16, color: Colors.black87),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            children: [
+              if (_isEditing)
+                _buildActionButton(
+                  'Save',
+                  Colors.green.shade600,
+                  Icons.save,
+                  _saveEdits,
+                )
+              else
+                _buildActionButton(
+                  'Edit',
+                  const Color(0xFF2B67E1),
+                  Icons.edit_document,
+                  () => setState(() => _isEditing = true),
+                ),
+              const SizedBox(height: 12),
+              _buildActionButton(
+                'Delete',
+                const Color(0xFF8B0000),
+                Icons.warning,
+                _showDeleteDialog,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEditField(String hint, TextEditingController controller) {
+    return Container(
+      height: 35,
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: Colors.black12),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
       child: TextField(
+        controller: controller,
+        style: const TextStyle(fontSize: 13),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
           border: InputBorder.none,
           isDense: true,
-          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+          contentPadding: const EdgeInsets.symmetric(vertical: 8),
         ),
-        style: const TextStyle(fontSize: 13),
       ),
     );
   }
 
-  Widget _buildAssignSubjectForm() {
-    return Column(
-      children: [
-        _buildInputField('Subject Code'),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(child: _buildInputField('Subject Name')),
-            const SizedBox(width: 8),
-            Expanded(child: _buildInputField('Academic Year')),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(child: _buildInputField('Course')),
-            const SizedBox(width: 8),
-            Expanded(child: _buildInputField('Semester')),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(child: _buildInputField('Year Level')),
-            const SizedBox(width: 8),
-            Expanded(child: _buildInputField('Section')),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(child: _buildInputField('Time Slot (Day & Time)')),
-            const SizedBox(width: 8),
-            Expanded(child: _buildInputField('Room #')),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildScheduleHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      color: Colors.black12,
-      child: const Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: Text(
-              'Subject',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Text(
-              'Professor',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              'Time & Room',
-              textAlign: TextAlign.right,
-              style: TextStyle(fontSize: 13),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildScheduleDataRow() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.black12)),
-      ),
-      child: const Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: Text('Subject', style: TextStyle(fontSize: 14)),
-          ),
-          Expanded(
-            flex: 3,
-            child: Text(
-              'Professor',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              'Time & Room',
-              textAlign: TextAlign.right,
-              style: TextStyle(fontSize: 12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSmallActionButton(
-    String label,
-    Color color,
-    IconData icon, {
-    VoidCallback? onTap,
-  }) {
+  Widget _buildActionButton(
+      String label, Color color, IconData icon, VoidCallback onTap) {
     return SizedBox(
-      width: unifiedButtonSize.width,
-      height: unifiedButtonSize.height,
+      width: 90,
+      height: 32,
       child: ElevatedButton(
+        onPressed: onTap,
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
-          padding: EdgeInsets.zero,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          elevation: 0,
         ),
-        onPressed: onTap ?? () {},
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: Colors.white, size: 14),
+            Icon(icon, size: 14),
             const SizedBox(width: 4),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            Text(label,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDashboardFooter() {
+  Widget _buildScheduleTable() {
+    final subjects = _currentStudent.subjects;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.black12),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            color: const Color(0xFFF4F4F4),
+            child: const Row(
+              children: [
+                Expanded(
+                    flex: 3,
+                    child: Text('Subject',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+                Expanded(
+                    flex: 3,
+                    child: Text('Professor',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+                Expanded(
+                    flex: 2,
+                    child: Text('Time & Room',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+              ],
+            ),
+          ),
+          if (subjects.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(20),
+              child: Text('No subjects assigned.',
+                  style: TextStyle(color: Colors.grey)),
+            )
+          else
+            ...subjects.asMap().entries.map((entry) => _buildScheduleRow(
+                  entry.key,
+                  entry.value,
+                )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScheduleRow(int index, String subjectName) {
+    final isEven = index % 2 == 0;
+    // Mock data for professor and time
+    final professors = [
+      'Dr. Smith',
+      'Prof. Johnson',
+      'Ms. Davis',
+      'Mr. Wilson',
+      'Dr. Brown'
+    ];
+    final times = [
+      'MWF 8:00 / MC-101',
+      'TTH 10:30 / C-202',
+      'SAT 1:00 / MC-305',
+      'MWF 2:30 / C-110'
+    ];
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      color: isEven ? Colors.white : const Color(0xFFF9F9F9),
+      child: Row(
+        children: [
+          Expanded(
+              flex: 3,
+              child: Text(subjectName, style: const TextStyle(fontSize: 13))),
+          Expanded(
+              flex: 3,
+              child: Text(professors[index % professors.length],
+                  style: const TextStyle(fontSize: 13))),
+          Expanded(
+              flex: 2,
+              child: Text(times[index % times.length],
+                  style: const TextStyle(fontSize: 13))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavBar() {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Padding(
@@ -478,7 +465,8 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: isHovered ? Colors.white.withOpacity(0.1) : Colors.transparent,
+            color:
+                isHovered ? Colors.white.withOpacity(0.1) : Colors.transparent,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Column(
@@ -491,7 +479,8 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 9,
-                  fontWeight: isHovered ? FontWeight.bold : FontWeight.normal,
+                  fontWeight:
+                      isHovered ? FontWeight.bold : FontWeight.normal,
                   letterSpacing: 0.5,
                 ),
               ),

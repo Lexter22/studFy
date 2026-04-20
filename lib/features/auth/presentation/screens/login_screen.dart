@@ -11,6 +11,7 @@ import '../../../../core/state/app_state.dart';
 import '../../domain/enums/user_role.dart';
 import '../../domain/services/auth_service.dart';
 import '../widgets/social_login_button.dart';
+import '../../../../core/widgets/app_dialog.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -53,22 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _showErrorDialog(String title, String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK', style: TextStyle(color: AppColors.authPrimary, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
@@ -85,7 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await _authService.signOut();
         if (!mounted) return;
         context.read<AppState>().logout();
-        _showErrorDialog('Access Denied', 'No role assigned. Please contact the administrator.');
+        AppDialog.alert(context, title: 'Access Denied', message: 'No role assigned. Please contact the administrator.');
         return;
       }
 
@@ -105,10 +91,10 @@ class _LoginScreenState extends State<LoginScreen> {
       if (error.code == 'user-not-found') errorMessage = 'Account does not exist.';
       if (error.code == 'wrong-password') errorMessage = 'Incorrect password.';
       if (error.code == 'invalid-email') errorMessage = 'The email format is invalid.';
-      _showErrorDialog('Login Error', errorMessage);
+      AppDialog.alert(context, title: 'Login Error', message: errorMessage);
     } catch (error, stackTrace) {
       await ErrorTelemetry.captureException(error, stackTrace, operation: 'auth.login.unexpected');
-      _showErrorDialog('Error', 'An unexpected error occurred.');
+      AppDialog.alert(context, title: 'Error', message: 'An unexpected error occurred.');
     }
   }
 

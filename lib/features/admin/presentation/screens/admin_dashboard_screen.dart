@@ -6,6 +6,8 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
 import '../../../auth/domain/services/auth_service.dart';
+import '../../domain/models/instructor.dart';
+import '../../../../core/widgets/app_dialog.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -17,6 +19,38 @@ class AdminDashboardScreen extends StatefulWidget {
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   final AuthService _authService = const AuthService();
   int? _hoveredIndex;
+
+  // ── Pop-up Helpers ──────────────────────────────────────────────────────
+
+  void _showApproveDialog(String name) {
+    AppDialog.confirm(
+      context,
+      title: 'Approve Request',
+      message: 'Are you sure you want to approve the request from "$name"?',
+      type: DialogType.success,
+      confirmLabel: 'Approve',
+      onConfirm: () => AppDialog.result(
+        context,
+        type: DialogType.success,
+        message: 'Request from "$name" has been approved.',
+      ),
+    );
+  }
+
+  void _showRejectDialog(String name) {
+    AppDialog.confirm(
+      context,
+      title: 'Reject Request',
+      message: 'Are you sure you want to reject the request from "$name"?',
+      type: DialogType.error,
+      confirmLabel: 'Reject',
+      onConfirm: () => AppDialog.result(
+        context,
+        type: DialogType.error,
+        message: 'Request from "$name" has been rejected.',
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -298,11 +332,23 @@ Widget _buildActionListItem(String name, String status) {
         const SizedBox(height: 16),
         Row(
           children: [
-            Expanded(child: _buildActionBtn('Approve', Icons.check, const Color(0xFFD4EDDA), const Color(0xFF28A745), () {})),
+            Expanded(child: _buildActionBtn('Approve', Icons.check, const Color(0xFFD4EDDA), const Color(0xFF28A745), () => _showApproveDialog(name))),
             const SizedBox(width: 8),
-            Expanded(child: _buildActionBtn('Reject', Icons.close, const Color(0xFFF8D7DA), const Color(0xFFDC3545), () {})),
+            Expanded(child: _buildActionBtn('Reject', Icons.close, const Color(0xFFF8D7DA), const Color(0xFFDC3545), () => _showRejectDialog(name))),
             const SizedBox(width: 8),
-            Expanded(child: _buildViewDetailsBtn(() {})),
+            Expanded(child: _buildViewDetailsBtn(() {
+              context.goNamed(
+                AppRoutes.adminInstructorProfile,
+                extra: <String, dynamic>{
+                  'instructor': Instructor(
+                    name: name,
+                    course: 'Pending',
+                    subject: status,
+                  ),
+                  'request': status,
+                },
+              );
+            })),
           ],
         ),
       ],
@@ -416,6 +462,7 @@ Widget _buildActionListItem(String name, String status) {
           if (index == 4) _handleLogout();
           else if (index == 0) context.goNamed(AppRoutes.adminInstructors);
           else if (index == 1) context.goNamed(AppRoutes.adminStudents);
+          else if (index == 2) context.goNamed(AppRoutes.adminDashboard);
           else if (index == 3) context.goNamed(AppRoutes.adminSubjects);
         },
         child: AnimatedContainer(

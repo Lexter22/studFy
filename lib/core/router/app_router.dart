@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/admin/domain/models/instructor.dart';
@@ -166,24 +167,34 @@ GoRouter createAppRouter(AppState appState) {
         path: '/admin/students',
         name: AppRoutes.adminStudents,
         builder: (context, state) => const AdminStudentsScreen(),
-      ),
-      GoRoute(
-        path: '/admin/students/profile',
-        name: AppRoutes.adminStudentsProfile,
-        builder: (context, state) {
-          final extraData = state.extra as Map<String, dynamic>;
-          final studentMap = extraData['student'] as Map<String, dynamic>;
-          
-          final studentData = StudentData(
-            name: studentMap['name'] as String,
-            course: studentMap['course'] as String,
-            yearSection: studentMap['yearSection'] as String,
-          );
-          
-          return AdminStudentsProfileScreen(
-            student: studentData,
-          );
-        },
+        routes: [
+          GoRoute(
+            name: AppRoutes.adminStudentsProfile,
+            path: 'profile',
+            pageBuilder: (context, state) {
+              final extraData = state.extra as Map<String, dynamic>;
+              final studentMap = extraData['student'] as Map<String, dynamic>;
+              final studentData = StudentData(
+                name: studentMap['name'] as String,
+                course: studentMap['course'] as String,
+                yearSection: studentMap['yearSection'] as String,
+                subjects: (studentMap['subjects'] as List?)?.cast<String>() ?? [],
+              );
+
+              return CustomTransitionPage(
+                key: state.pageKey,
+                child: AdminStudentsProfileScreen(student: studentData),
+                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(
+                    opacity: CurveTween(curve: Curves.easeInOut).animate(animation),
+                    child: child,
+                  );
+                },
+                transitionDuration: const Duration(milliseconds: 200),
+              );
+            },
+          ),
+        ],
       ),
       GoRoute(
         path: '/admin/subjects',
