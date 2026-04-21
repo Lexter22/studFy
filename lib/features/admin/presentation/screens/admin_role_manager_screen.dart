@@ -84,110 +84,226 @@ class _AdminRoleManagerScreenState extends State<AdminRoleManagerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.adminPageBackground,
-      appBar: AppBar(
-        title: const Text('Role Manager'),
-        backgroundColor: AppColors.adminPrimary,
-        foregroundColor: Colors.white,
-        actions: [
-          TextButton(
-            onPressed: _isSaving ? null : _logout,
-            child: const Text('Logout', style: TextStyle(color: Colors.white)),
+      body: Column(
+        children: [
+          _buildHeader(),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Assign Role to Existing User',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.adminPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    _buildInputField('Firebase UID', _uidController),
+                    const SizedBox(height: 12),
+                    _buildInputField('Email', _emailController),
+                    const SizedBox(height: 12),
+                    _buildInputField('Display Name', _displayNameController),
+                    const SizedBox(height: 12),
+                    _buildRoleDropdown(),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: _isSaving ? null : _saveRole,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.adminPrimary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: _isSaving
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2),
+                              )
+                            : const Text(
+                                'Save Role',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Use this only for accounts that already exist in Firebase Authentication. The UID must match the Auth user.',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      height: 70,
+      width: double.infinity,
+      color: AppColors.adminPrimary,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
-                'Assign Role to Existing User',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _uidController,
-                decoration: const InputDecoration(
-                  labelText: 'Firebase UID',
-                  border: OutlineInputBorder(),
+              Icon(Icons.school, color: Colors.white, size: 28),
+              Text(
+                'STUDFY',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _displayNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Display Name',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<UserRole>(
-                initialValue: _selectedRole,
-                decoration: const InputDecoration(
-                  labelText: 'Role',
-                  border: OutlineInputBorder(),
-                ),
-                items: const [
-                  DropdownMenuItem(value: UserRole.admin, child: Text('Admin')),
-                  DropdownMenuItem(
-                    value: UserRole.professor,
-                    child: Text('Professor'),
-                  ),
-                  DropdownMenuItem(
-                    value: UserRole.student,
-                    child: Text('Student'),
-                  ),
-                ],
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() => _selectedRole = value);
-                  }
-                },
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _isSaving ? null : _saveRole,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.adminPrimary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  child: _isSaving
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'Save Role',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Use this only for accounts that already exist in Firebase Authentication. The UID must match the Auth user.',
-                style: TextStyle(color: Colors.black54),
               ),
             ],
           ),
-        ),
+          Row(
+            children: [
+              const Text(
+                'Admin 1',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 12),
+              IconButton(
+                onPressed: _logout,
+                icon: const Icon(Icons.logout, color: Colors.white),
+                tooltip: 'Logout',
+              ),
+            ],
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildInputField(String label, TextEditingController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            hintText: 'Enter $label',
+            hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+            filled: true,
+            fillColor: const Color(0xFFF9F9F9),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Colors.black12),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Colors.black12),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: AppColors.adminPrimary),
+            ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRoleDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Role',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 6),
+        DropdownButtonFormField<UserRole>(
+          value: _selectedRole,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: const Color(0xFFF9F9F9),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Colors.black12),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Colors.black12),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+          ),
+          items: const [
+            DropdownMenuItem(value: UserRole.admin, child: Text('Admin')),
+            DropdownMenuItem(
+              value: UserRole.professor,
+              child: Text('Professor'),
+            ),
+            DropdownMenuItem(
+              value: UserRole.student,
+              child: Text('Student'),
+            ),
+          ],
+          onChanged: (value) {
+            if (value != null) {
+              setState(() => _selectedRole = value);
+            }
+          },
+        ),
+      ],
     );
   }
 }

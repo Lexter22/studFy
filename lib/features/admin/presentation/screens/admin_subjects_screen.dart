@@ -21,15 +21,8 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
   final TextEditingController _courseController = TextEditingController();
   final TextEditingController _professorController = TextEditingController();
 
-  // Pending subject items (top section)
-  final List<Map<String, String>> _pendingSubjects = const [
-    {'name': 'Ethics', 'status': 'Pending Prof. Designation'},
-    {'name': 'Ethics', 'status': 'Pending Student Enrollment'},
-    {'name': 'Ethics', 'status': 'Edit Subject'},
-  ];
-
   // Subject list (bottom section)
-  final List<Map<String, String>> _allSubjects = const [
+  final List<Map<String, String>> _allSubjects = [
     {'name': 'Computer Programming', 'course': 'BSIT', 'section': '3-1', 'professor': 'Juan Dela Cruz'},
     {'name': 'Data Structures',       'course': 'BSIT', 'section': '3-2', 'professor': 'Juan Dela Cruz'},
     {'name': 'Web Development',       'course': 'BSIT', 'section': '2-1', 'professor': 'Ricardo Dalisay'},
@@ -113,17 +106,45 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildSectionTitle('Pending Requests', null),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxHeight: 350),
-                        child: SingleChildScrollView(
-                          physics: const BouncingScrollPhysics(),
-                          child: Column(
-                            children: _pendingSubjects
-                                .map((s) => _buildSubjectItem(s['name']!, s['status']!))
-                                .toList(),
-                          ),
-                        ),
+                      
+                      // DYNAMIC PENDING REQUESTS
+                      ValueListenableBuilder<List<Map<String, String>>>(
+                        valueListenable: context.read<AppState>().pendingSubjectRequestsNotifier,
+                        builder: (context, pendingRequests, child) {
+                          if (pendingRequests.isEmpty) {
+                            return Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(vertical: 24),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.black12),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                'No pending request',
+                                style: TextStyle(
+                                  color: Colors.grey.shade500,
+                                  fontSize: 14,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            );
+                          }
+                          return ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 350),
+                            child: SingleChildScrollView(
+                              physics: const BouncingScrollPhysics(),
+                              child: Column(
+                                children: pendingRequests
+                                    .map((s) => _buildSubjectItem(s['name']!, s['status']!))
+                                    .toList(),
+                              ),
+                            ),
+                          );
+                        },
                       ),
+
                       const SizedBox(height: 20),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4.0),
@@ -291,7 +312,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
             child: const Row(children: [
               Icon(Icons.search, color: Colors.white, size: 18),
               SizedBox(width: 4),
-              Text('Search', style: TextStyle(color: Colors.white))
+              Text('Search', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))
             ])),
       ),
     );
@@ -364,7 +385,16 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
         height: 100,
         decoration: BoxDecoration(
             color: Colors.white, borderRadius: BorderRadius.circular(12)),
-        child: const Center(child: Text('No subjects found.')),
+        child: const Center(
+          child: Text(
+            'No subjects in the list',
+            style: TextStyle(
+              color: Colors.grey,
+              fontSize: 14,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ),
       );
     }
 
@@ -386,14 +416,24 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () => context.pushNamed(
-                  AppRoutes.adminSubjectsProfile,
-                  extra: {
-                    'subjectName': subject['name']!,
-                    'courseSection': '${subject['course']!} ${subject['section']!}',
-                    'professor': subject['professor']!,
-                  },
-                ),
+                onTap: () async {
+                  final result = await context.pushNamed(
+                    AppRoutes.adminSubjectsProfile,
+                    extra: {
+                      'subjectName': subject['name']!,
+                      'courseSection': '${subject['course']!} ${subject['section']!}',
+                      'professor': subject['professor']!,
+                    },
+                  );
+
+                  if (result == true) {
+                    setState(() {
+                      // Remove from the master list
+                      _allSubjects.removeWhere((s) => s['name'] == subject['name']);
+                      _filterList();
+                    });
+                  }
+                },
                 borderRadius: BorderRadius.circular(8),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -602,7 +642,7 @@ class _PendingSubjectCardState extends State<_PendingSubjectCard> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Color(0xFFFFF3E0),
+                    color: const Color(0xFFFFF3E0),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.bookmark_outline,
@@ -639,8 +679,9 @@ class _PendingSubjectCardState extends State<_PendingSubjectCard> {
                     AppRoutes.adminSubjectsProfile,
                     extra: {
                       'subjectName': widget.name,
-                      'courseSection': 'BSIT 3-1',
-                      'professor': 'Juan Dela Cruz',
+                      'courseSection': 'Pending',
+                      'professor': 'Admin',
+                      'pendingRequest': widget.status,
                     },
                   );
                 }),

@@ -81,7 +81,7 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
             context,
             type: DialogType.error,
             message: 'Student record deleted successfully.',
-            onDismiss: () => context.pop(),
+            onDismiss: () => context.pop(true),
           );
         } else {
           AppDialog.alert(
@@ -223,11 +223,11 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
                   _buildEditField('Course & Section', _courseController)
                 else ...[
                   Text(
-                    'Course & Section: ${_currentStudent.course} ${_currentStudent.yearSection}',
+                    '${_currentStudent.course} ${_currentStudent.yearSection}',
                     style: const TextStyle(fontSize: 16, color: Colors.black87),
                   ),
                   const Text(
-                    'Other Info: Enrolled',
+                    'Enrolled',
                     style: TextStyle(fontSize: 16, color: Colors.black87),
                   ),
                 ],
@@ -308,7 +308,7 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
             Icon(icon, size: 14),
             const SizedBox(width: 4),
             Text(label,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -350,8 +350,8 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
           if (subjects.isEmpty)
             const Padding(
               padding: EdgeInsets.all(20),
-              child: Text('No subjects assigned.',
-                  style: TextStyle(color: Colors.grey)),
+              child: Text('No subjects in the list',
+                  style: TextStyle(color: Colors.grey, fontSize: 14, fontStyle: FontStyle.italic)),
             )
           else
             ...subjects.asMap().entries.map((entry) => _buildScheduleRow(

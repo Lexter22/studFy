@@ -13,12 +13,14 @@ class AdminSubjectsProfileScreen extends StatefulWidget {
   final String subjectName;
   final String courseSection;
   final String professor;
+  final String? pendingRequest;
 
   const AdminSubjectsProfileScreen({
     super.key,
     required this.subjectName,
     required this.courseSection,
     required this.professor,
+    this.pendingRequest,
   });
 
   @override
@@ -52,6 +54,7 @@ class _AdminSubjectsProfileScreenState
 
   bool _isSubjectEditing = false;
   bool _isEnrollEditing = false;
+  bool _isRequestHandled = false;
 
   late List<String> _filteredStudents;
 
@@ -146,6 +149,7 @@ class _AdminSubjectsProfileScreenState
               context,
               type: DialogType.error,
               message: 'Record deleted successfully.',
+              onDismiss: () => context.pop(true),
             );
           } else {
             AppDialog.alert(
@@ -189,6 +193,9 @@ class _AdminSubjectsProfileScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (widget.pendingRequest != null && !_isRequestHandled)
+                    _buildPendingRequestBanner(),
+                  const SizedBox(height: 16),
                   // ── Subject Offered section ──────────────────────────────
                   _buildSectionTitle('Subject Offered'),
                   Container(
@@ -291,7 +298,8 @@ class _AdminSubjectsProfileScreenState
                                   _confirmAction('Enroll', () {
                                     setState(() {
                                       _allStudents.add(_studentNumberController.text);
-                                      _filteredStudents = List.from(_allStudents);
+                                      _allStudents.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+                                      _filterStudents();
                                       _studentNumberController.clear();
                                     });
                                   });
@@ -370,8 +378,8 @@ class _AdminSubjectsProfileScreenState
                           ? const Padding(
                               padding: EdgeInsets.all(20),
                               child: Center(
-                                  child: Text('No students match your search.',
-                                      style: TextStyle(color: Colors.grey))),
+                                  child: Text('No students in the list',
+                                      style: TextStyle(color: Colors.grey, fontSize: 14, fontStyle: FontStyle.italic))),
                             )
                           : ListView.builder(
                               shrinkWrap: true,
@@ -521,7 +529,7 @@ class _AdminSubjectsProfileScreenState
                 label,
                 style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold),
               ),
             ],
@@ -572,7 +580,12 @@ class _AdminSubjectsProfileScreenState
               ),
               const SizedBox(width: 14),
               IconButton(
-                onPressed: () => _confirmAction('Delete', () {}),
+                onPressed: () => _confirmAction('Delete', () {
+                  setState(() {
+                    _allStudents.remove(name);
+                    _filterStudents();
+                  });
+                }),
                 icon: const Icon(Icons.delete,
                     color: Color(0xFFE74C3C), size: 22),
                 padding: EdgeInsets.zero,
@@ -679,5 +692,82 @@ class _AdminSubjectsProfileScreenState
     if (!mounted) return;
     context.read<AppState>().logout();
     context.goNamed(AppRoutes.login);
+  }
+
+  Widget _buildPendingRequestBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF3E0),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, color: Colors.orange),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Pending Request',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange,
+                  ),
+                ),
+                Text(
+                  widget.pendingRequest!,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.orange.shade900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              AppDialog.confirm(
+                context,
+                title: 'Complete Request',
+                message: 'Mark this request as done?',
+                type: DialogType.success,
+                confirmLabel: 'Done',
+                onConfirm: () {
+                  context.read<AppState>().removeSubjectRequest(
+                        widget.subjectName,
+                        widget.pendingRequest!,
+                      );
+                  setState(() => _isRequestHandled = true);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Request marked as completed.'),
+                      backgroundColor: Colors.green.shade600,
+                      behavior: SnackBarBehavior.floating,
+                      margin: const EdgeInsets.fromLTRB(16, 0, 16, 110),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+            ),
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -52,6 +52,20 @@ abstract class AppRoutes {
   }
 }
 
+Page<dynamic> _seamlessPage(LocalKey key, Widget child) {
+  return CustomTransitionPage(
+    key: key,
+    child: child,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return FadeTransition(
+        opacity: CurveTween(curve: Curves.easeInOut).animate(animation),
+        child: child,
+      );
+    },
+    transitionDuration: const Duration(milliseconds: 200),
+  );
+}
+
 GoRouter createAppRouter(AppState appState) {
   return GoRouter(
     initialLocation: '/login',
@@ -111,62 +125,64 @@ GoRouter createAppRouter(AppState appState) {
       GoRoute(
         path: '/login',
         name: AppRoutes.login,
-        builder: (context, state) => const LoginScreen(),
+        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const LoginScreen()),
       ),
       GoRoute(
         path: '/forgot-password',
         name: AppRoutes.forgotPassword,
-        builder: (context, state) => const ForgotPasswordScreen(),
+        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const ForgotPasswordScreen()),
       ),
       GoRoute(
         path: '/change-password',
         name: AppRoutes.changePassword,
-        builder: (context, state) => const ChangePasswordScreen(),
+        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const ChangePasswordScreen()),
       ),
       GoRoute(
         path: '/verify-email',
         name: AppRoutes.verifyEmail,
-        builder: (context, state) => const VerifyEmailScreen(),
+        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const VerifyEmailScreen()),
       ),
       GoRoute(
         path: '/account-creation',
         name: AppRoutes.accountCreation,
-        builder: (context, state) => const AccountCreationScreen(),
+        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const AccountCreationScreen()),
       ),
       GoRoute(
         path: '/admin/dashboard',
         name: AppRoutes.adminDashboard,
-        builder: (context, state) => const AdminDashboardScreen(),
+        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const AdminDashboardScreen()),
       ),
       GoRoute(
         path: '/admin/instructors',
         name: AppRoutes.adminInstructors,
-        builder: (context, state) => const AdminInstructorScreen(),
+        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const AdminInstructorScreen()),
       ),
       GoRoute(
         path: '/admin/instructors/profile',
         name: AppRoutes.adminInstructorProfile,
-        builder: (context, state) {
-          // FIX: Handle the Map passed via state.extra
+        pageBuilder: (context, state) {
           final extraData = state.extra as Map<String, dynamic>;
           final Instructor instructor = extraData['instructor'] as Instructor;
           final String? request = extraData['request'] as String?;
           
-          return AdminInstructorProfileScreen(
-            instructor: instructor,
-            initialRequest: request, // Pass the request to the profile screen
+          return _seamlessPage(
+            state.pageKey,
+            AdminInstructorProfileScreen(
+              instructor: instructor,
+              initialRequest: request,
+            ),
           );
         },
       ),
       GoRoute(
         path: '/admin/roles',
         name: AppRoutes.adminRoleManager,
-        builder: (context, state) => const AdminRoleManagerScreen(),
+        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const AdminRoleManagerScreen()),
       ),
       GoRoute(
         path: '/admin/students',
         name: AppRoutes.adminStudents,
-        builder: (context, state) => const AdminStudentsScreen(),
+        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const AdminStudentsScreen()),
         routes: [
           GoRoute(
             name: AppRoutes.adminStudentsProfile,
@@ -181,17 +197,7 @@ GoRouter createAppRouter(AppState appState) {
                 subjects: (studentMap['subjects'] as List?)?.cast<String>() ?? [],
               );
 
-              return CustomTransitionPage(
-                key: state.pageKey,
-                child: AdminStudentsProfileScreen(student: studentData),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                  return FadeTransition(
-                    opacity: CurveTween(curve: Curves.easeInOut).animate(animation),
-                    child: child,
-                  );
-                },
-                transitionDuration: const Duration(milliseconds: 200),
-              );
+              return _seamlessPage(state.pageKey, AdminStudentsProfileScreen(student: studentData));
             },
           ),
         ],
@@ -199,30 +205,34 @@ GoRouter createAppRouter(AppState appState) {
       GoRoute(
         path: '/admin/subjects',
         name: AppRoutes.adminSubjects,
-        builder: (context, state) => const AdminSubjectsScreen(),
+        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const AdminSubjectsScreen()),
       ),
       GoRoute(
         path: '/admin/subjects/profile',
         name: AppRoutes.adminSubjectsProfile,
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final extra = state.extra as Map<String, dynamic>;
-          return AdminSubjectsProfileScreen(
-            subjectName: extra['subjectName'] as String,
-            courseSection: extra['courseSection'] as String,
-            professor: extra['professor'] as String,
+          return _seamlessPage(
+            state.pageKey,
+            AdminSubjectsProfileScreen(
+              subjectName: extra['subjectName'] as String,
+              courseSection: extra['courseSection'] as String,
+              professor: extra['professor'] as String,
+              pendingRequest: extra['pendingRequest'] as String?,
+            ),
           );
         },
       ),
       GoRoute(
         path: '/professor/dashboard',
         name: AppRoutes.professorDashboard,
-        builder: (context, state) => const ProfessorDashboardScreen(),
+        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const ProfessorDashboardScreen()),
       ),
       GoRoute(
         path: '/student/dashboard',
         name: AppRoutes.studentDashboard,
-        builder: (context, state) => const StudentDashboardScreen(),
+        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const StudentDashboardScreen()),
       ),
     ],
   );
-}
+}

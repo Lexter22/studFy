@@ -40,7 +40,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
 
   // Each student keeps its own selected course & subject for the row dropdowns.
   // We store them as parallel lists of the same index as _allStudents.
-  late final List<StudentData> _allStudents;
+  late List<StudentData> _allStudents;
 
   late List<StudentData> _filteredStudents;
 
@@ -54,11 +54,15 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
     super.initState();
     _allStudents = [
       const StudentData(name: 'Abad, Jose',        course: 'BSCS', yearSection: '1-1'),
+      const StudentData(name: 'Alvarez, Maria',     course: 'BSIT', yearSection: '2-1'),
       const StudentData(name: 'Bautista, Arnel',   course: 'BSIT', yearSection: '2-2'),
+      const StudentData(name: 'Bernardo, Carlos',  course: 'BSCS', yearSection: '1-2'),
       const StudentData(name: 'Castillo, Elena',   course: 'BSIE', yearSection: '3-3'),
       const StudentData(name: 'Cruz, Miguel',      course: 'DIT',  yearSection: '2-1'),
       const StudentData(name: 'De Guzman, Anna',   course: 'BSCS', yearSection: '3-2'),
       const StudentData(name: 'Dela Cruz, Maria',  course: 'BSIT', yearSection: '1-1'),
+      const StudentData(name: 'Domingo, Roberto',  course: 'BSHM', yearSection: '4-1'),
+      const StudentData(name: 'Estacio, Felicia',  course: 'BSIT', yearSection: '3-1'),
       const StudentData(name: 'Evangelista, Mark', course: 'BSIT', yearSection: '4-1'),
       const StudentData(name: 'Ferrer, Grace',     course: 'BSHM', yearSection: '2-3'),
       const StudentData(name: 'Flores, Diane',     course: 'BSCS', yearSection: '1-1'),
@@ -66,24 +70,35 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
       const StudentData(name: 'Gomez, Paolo',      course: 'DIT',  yearSection: '1-2'),
       const StudentData(name: 'Gonzales, Kevin',   course: 'BSIT', yearSection: '2-2'),
       const StudentData(name: 'Hernandez, Rico',   course: 'BSCS', yearSection: '4-2'),
+      const StudentData(name: 'Hizon, Angela',     course: 'BSIE', yearSection: '1-1'),
       const StudentData(name: 'Ignacio, Jerome',   course: 'DIT',  yearSection: '3-1'),
+      const StudentData(name: 'Isidro, Rafael',    course: 'BSCS', yearSection: '2-3'),
       const StudentData(name: 'Javier, Lita',      course: 'BSIE', yearSection: '2-1'),
+      const StudentData(name: 'Lacsamana, Joey',   course: 'BSIT', yearSection: '1-3'),
       const StudentData(name: 'Lopez, Rosa',       course: 'BSIE', yearSection: '1-3'),
       const StudentData(name: 'Luna, Antonio',     course: 'BSCS', yearSection: '3-1'),
       const StudentData(name: 'Mendoza, Sofia',    course: 'BSHM', yearSection: '1-4'),
       const StudentData(name: 'Mercado, Pilar',    course: 'BSIT', yearSection: '3-3'),
+      const StudentData(name: 'Navarro, Luis',     course: 'DIT',  yearSection: '2-2'),
       const StudentData(name: 'Noble, Rey',        course: 'DIT',  yearSection: '4-1'),
+      const StudentData(name: 'Ocampo, Teresa',    course: 'BSCS', yearSection: '3-2'),
       const StudentData(name: 'Ortega, Susan',     course: 'BSHM', yearSection: '1-1'),
       const StudentData(name: 'Pascual, Ben',      course: 'BSCS', yearSection: '2-2'),
+      const StudentData(name: 'Peralta, Simon',    course: 'BSIE', yearSection: '4-2'),
       const StudentData(name: 'Quezon, Manuel',    course: 'BSIE', yearSection: '4-3'),
+      const StudentData(name: 'Quinto, Elena',     course: 'BSHM', yearSection: '2-1'),
       const StudentData(name: 'Reyes, Pedro',      course: 'BSCS', yearSection: '2-1'),
       const StudentData(name: 'Rivera, Rosa',      course: 'BSIT', yearSection: '1-2'),
       const StudentData(name: 'Salazar, Jose',     course: 'DIT',  yearSection: '2-2'),
       const StudentData(name: 'Santos, Juan',      course: 'BSIT', yearSection: '3-1'),
+      const StudentData(name: 'Solis, Maricel',    course: 'BSIT', yearSection: '2-3'),
       const StudentData(name: 'Tan, Carlos',       course: 'BSIT', yearSection: '4-1'),
       const StudentData(name: 'Tolentino, Linda',  course: 'BSHM', yearSection: '3-2'),
+      const StudentData(name: 'Torres, Victor',    course: 'BSIE', yearSection: '1-2'),
       const StudentData(name: 'Umali, Victor',     course: 'BSIE', yearSection: '1-2'),
       const StudentData(name: 'Valenzuela, Gina',  course: 'BSCS', yearSection: '4-1'),
+      const StudentData(name: 'Velasco, Ricardo',  course: 'DIT',  yearSection: '3-2'),
+      const StudentData(name: 'Zamora, Felicity',  course: 'BSCS', yearSection: '1-1'),
     ]..sort((a, b) => a.name.compareTo(b.name));
 
     _filteredStudents = List.from(_allStudents);
@@ -238,7 +253,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
             ),
             const SizedBox(width: 8),
             Material(
-              color: AppColors.adminPrimary,
+              color: const Color(0xFF1A46A0),
               borderRadius: BorderRadius.circular(8),
               child: InkWell(
                 onTap: _applyFilter,
@@ -340,7 +355,16 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
 
   Widget _buildStudentList() {
     if (_filteredStudents.isEmpty) {
-      return const Center(child: Text('No students found.'));
+      return const Center(
+        child: Text(
+          'No students in the list',
+          style: TextStyle(
+            color: Colors.grey,
+            fontSize: 14,
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+      );
     }
 
     return Container(
@@ -372,8 +396,8 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
       onExit: (_) => setState(() => _hoveredStudentIndex = null),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: () {
-          context.pushNamed(
+        onTap: () async {
+          final result = await context.pushNamed(
             AppRoutes.adminStudentsProfile,
             extra: {
               'student': {
@@ -384,6 +408,15 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
               },
             },
           );
+
+          if (result == true) {
+            setState(() {
+              _allStudents.removeAt(originalIndex);
+              _studentSubjects.removeAt(originalIndex);
+              _rowSubject.removeAt(originalIndex);
+              _applyFilter();
+            });
+          }
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),

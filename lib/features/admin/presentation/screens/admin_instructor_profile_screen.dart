@@ -60,6 +60,8 @@ class _AdminInstructorProfileScreenState
   String? _selectedDay;
   String? _selectedTime;
   String? _selectedRoom;
+  // ── Requests list ────────────────────────────────────────────────────────
+  late List<Map<String, dynamic>> _requests;
 
   // ── Subjects handled list ────────────────────────────────────────────────
   final List<_HandledSubject> _handledSubjects = [
@@ -87,6 +89,10 @@ class _AdminInstructorProfileScreenState
     _currentInstructor = widget.instructor;
     _nameController = TextEditingController(text: _currentInstructor.name);
     _courseController = TextEditingController(text: _currentInstructor.course);
+    _requests = [
+      {'icon': Icons.person_add, 'title': widget.initialRequest ?? 'Class Creation'},
+      {'icon': Icons.access_time_filled, 'title': 'Schedule Conflict Request'},
+    ];
   }
 
   @override
@@ -152,7 +158,41 @@ class _AdminInstructorProfileScreenState
     );
   }
 
-  // ── Assign Class helpers ──────────────────────────────────────────────────
+  void _showApproveRequestDialog(String title) {
+    AppDialog.confirm(
+      context,
+      title: 'Approve Request',
+      message: 'Are you sure you want to approve the request "$title"?',
+      type: DialogType.success,
+      confirmLabel: 'Approve',
+      onConfirm: () {
+        setState(() {
+          _requests.removeWhere((r) => r['title'] == title);
+        });
+        _showSuccessDialog('Request "$title" has been approved.');
+      },
+    );
+  }
+
+  void _showRejectRequestDialog(String title) {
+    AppDialog.confirm(
+      context,
+      title: 'Reject Request',
+      message: 'Are you sure you want to reject the request "$title"?',
+      type: DialogType.error,
+      confirmLabel: 'Reject',
+      onConfirm: () {
+        setState(() {
+          _requests.removeWhere((r) => r['title'] == title);
+        });
+        AppDialog.result(
+          context,
+          type: DialogType.error,
+          message: 'Request "$title" has been rejected.',
+        );
+      },
+    );
+  }
 
   void _clearAssignForm() {
     setState(() {
@@ -255,11 +295,25 @@ class _AdminInstructorProfileScreenState
                       _buildProfileCard(),
                       const SizedBox(height: 20),
                       _buildSectionLabel('Requests'),
-                      _buildRequestItem(Icons.person_add,
-                          widget.initialRequest ?? 'Class Creation'),
-                      const SizedBox(height: 8),
-                      _buildRequestItem(
-                          Icons.access_time_filled, 'Schedule Conflict Request'),
+                      if (_requests.isEmpty)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(12)),
+                          child: const Center(
+                              child: Text('No pending requests in the list',
+                                  style: TextStyle(color: Colors.grey, fontSize: 14, fontStyle: FontStyle.italic))),
+                        )
+                      else
+                        ..._requests.map((r) => Column(
+                              children: [
+                                _buildRequestItem(r['icon'] as IconData,
+                                    r['title'] as String),
+                                const SizedBox(height: 8),
+                              ],
+                            )),
                       const SizedBox(height: 24),
                       _buildSectionLabel('Subjects Handled'),
                       _buildSubjectsTable(),
@@ -383,21 +437,21 @@ class _AdminInstructorProfileScreenState
             Expanded(
                 child: _buildDropdown(
                     'Day',
-                    ['MWF', 'TTH', 'SAT'],
+                    ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
                     _selectedDay,
                     (v) => setState(() => _selectedDay = v))),
             const SizedBox(width: 8),
             Expanded(
                 child: _buildDropdown(
                     'Time',
-                    ['7:00-9:00', '9:00-11:00', '1:00-3:00'],
+                    ['7:00 AM - 9:00 AM', '9:00 AM - 11:00 AM', '11:00 AM - 1:00 PM', '1:00 PM - 3:00 PM', '3:00 PM - 5:00 PM', '5:00 PM - 7:00 PM'],
                     _selectedTime,
                     (v) => setState(() => _selectedTime = v))),
             const SizedBox(width: 8),
             Expanded(
                 child: _buildDropdown(
                     'Room #',
-                    ['MC-101', 'MC-305', 'C-110'],
+                    ['MC-101', 'MC-102', 'MC-201', 'MC-202', 'MC-301', 'MC-305', 'C-101', 'C-110', 'C-201', 'C-202'],
                     _selectedRoom,
                     (v) => setState(() => _selectedRoom = v))),
           ]),
@@ -667,16 +721,98 @@ class _AdminInstructorProfileScreenState
 
   Widget _buildRequestItem(IconData icon, String title) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.black12)),
-      child: Row(children: [
-        Icon(icon, color: const Color(0xFF800000), size: 24),
-        const SizedBox(width: 16),
-        Text(title)
-      ]),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.black12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            )
+          ]),
+      child: Column(
+        children: [
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F9FA),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: const Color(0xFF800000), size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+          ]),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildRequestActionBtn(
+                  'Approve',
+                  Icons.check,
+                  const Color(0xFFD4EDDA),
+                  const Color(0xFF28A745),
+                  () => _showApproveRequestDialog(title),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildRequestActionBtn(
+                  'Reject',
+                  Icons.close,
+                  const Color(0xFFF8D7DA),
+                  const Color(0xFFDC3545),
+                  () => _showRejectRequestDialog(title),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRequestActionBtn(
+      String label, IconData icon, Color bg, Color text, VoidCallback onTap) {
+    return Material(
+      color: bg,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          height: 36,
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 14, color: text),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: text,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -711,7 +847,7 @@ class _AdminInstructorProfileScreenState
                       Text(label,
                           style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 11,
+                              fontSize: 13,
                               fontWeight: FontWeight.bold))
                     ]))));
   }
@@ -730,7 +866,7 @@ class _AdminInstructorProfileScreenState
                   const SizedBox(width: 8),
                   Text(label,
                       style: const TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.bold))
+                          color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))
                 ]))));
   }
 }

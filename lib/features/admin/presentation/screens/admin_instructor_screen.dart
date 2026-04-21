@@ -23,6 +23,11 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
   String? _selectedCourse;
   String? _selectedSubject;
 
+  final List<Map<String, String>> _pendingRequests = [
+    {'name': 'Pedro', 'request': 'Account Edit Request'},
+    {'name': 'Juan Dela Cruz', 'request': 'Class Creation Request'},
+  ];
+
   final List<Instructor> _allInstructors = const [
     Instructor(name: 'Juan Dela Cruz', course: 'BSIT', subject: 'Programming'),
     Instructor(name: 'Pedro', course: 'BSIE', subject: 'Mathematics'),
@@ -101,11 +106,16 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
       message: 'Are you sure you want to $action the "$request" from $name?',
       type: isApprove ? DialogType.success : DialogType.error,
       confirmLabel: action,
-      onConfirm: () => AppDialog.result(
-        context,
-        type: isApprove ? DialogType.success : DialogType.error,
-        message: 'Request ${action.toLowerCase()}d successfully.',
-      ),
+      onConfirm: () {
+        setState(() {
+          _pendingRequests.removeWhere((r) => r['name'] == name && r['request'] == request);
+        });
+        AppDialog.result(
+          context,
+          type: isApprove ? DialogType.success : DialogType.error,
+          message: 'Request ${action.toLowerCase()}d successfully.',
+        );
+      },
     );
   }
 
@@ -193,14 +203,19 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
   }
 
   Widget _buildRequestsArea() {
+    if (_pendingRequests.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
+        child: const Center(child: Text('No pending requests in the list', style: TextStyle(color: Colors.grey, fontSize: 14, fontStyle: FontStyle.italic))),
+      );
+    }
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
       child: Column(
-        children: [
-          _buildPendingCard('Pedro', 'Account Edit Request'),
-          _buildPendingCard('Juan Dela Cruz', 'Class Creation Request'),
-        ],
+        children: _pendingRequests.map((r) => _buildPendingCard(r['name']!, r['request']!)).toList(),
       ),
     );
   }
@@ -392,7 +407,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
       child: InkWell(
         onTap: _filterList,
         borderRadius: BorderRadius.circular(8),
-        child: Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), child: Row(children: const [Icon(Icons.search, color: Colors.white, size: 18), SizedBox(width: 4), Text('Search', style: TextStyle(color: Colors.white))])),
+        child: Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), child: Row(children: const [Icon(Icons.search, color: Colors.white, size: 18), SizedBox(width: 4), Text('Search', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))])),
       ),
     );
   }

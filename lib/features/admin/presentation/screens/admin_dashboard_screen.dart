@@ -134,12 +134,44 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
                       const SizedBox(height: 24),
                       _buildSectionTitle('Subjects'),
-
-                      // SUBJECTS LIST (Simple)
-                      _buildFixedList([
-                        _buildSimpleListItem('Prof Name', 'Pending Request'),
-                        _buildSimpleListItem('Prof Name', 'Pending Request'),
-                      ]),
+                      // SUBJECTS LIST (Pending Requests)
+                      ValueListenableBuilder<List<Map<String, String>>>(
+                        valueListenable: context.read<AppState>().pendingSubjectRequestsNotifier,
+                        builder: (context, pendingRequests, child) {
+                          if (pendingRequests.isEmpty) {
+                            return Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(vertical: 24),
+                              alignment: Alignment.center,
+                              child: Text(
+                                'No pending request',
+                                style: TextStyle(
+                                  color: Colors.grey.shade500,
+                                  fontSize: 14,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            );
+                          }
+                          return _buildFixedList(
+                            pendingRequests.map((request) {
+                              final name = request['name']!;
+                              final status = request['status']!;
+                              return _buildSimpleListItem(name, status, onTap: () {
+                                context.pushNamed(
+                                  AppRoutes.adminSubjectsProfile,
+                                  extra: {
+                                    'subjectName': name,
+                                    'courseSection': 'Pending',
+                                    'professor': 'Admin',
+                                    'pendingRequest': status,
+                                  },
+                                );
+                              });
+                            }).toList(),
+                          );
+                        },
+                      ),
 
                       const SizedBox(height: 24),
                       SizedBox(
@@ -151,8 +183,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             backgroundColor: AppColors.adminPrimary,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          icon: const Icon(Icons.manage_accounts, color: Colors.white),
-                          label: const Text('Assign User Roles', style: TextStyle(color: Colors.white)),
+                          icon: const Icon(Icons.manage_accounts, color: Colors.white, size: 18),
+                          label: const Text('Assign User Roles', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                         ),
                       ),
                     ],
@@ -321,7 +353,7 @@ Widget _buildActionListItem(String name, String status) {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                  Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
                   Text(status, style: const TextStyle(color: Colors.grey, fontSize: 13)),
                 ],
               ),
@@ -356,30 +388,39 @@ Widget _buildActionListItem(String name, String status) {
   );
 }
 
-  Widget _buildSimpleListItem(String name, String status) {
+  Widget _buildSimpleListItem(String name, String status, {required VoidCallback onTap}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFF8F9FA),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.black12),
       ),
-      child: Row(
-        children: [
-          const Icon(Icons.account_circle, size: 40),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
               children: [
-                Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                Text(status, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                const Icon(Icons.account_circle, size: 40),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text(status, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                _buildStatusBadge(),
               ],
             ),
           ),
-          _buildStatusBadge(),
-        ],
+        ),
       ),
     );
   }
@@ -419,7 +460,7 @@ Widget _buildActionListItem(String name, String status) {
             children: [
               Icon(icon, size: 14, color: text), 
               const SizedBox(width: 4), 
-              Text(label, style: TextStyle(color: text, fontSize: 12, fontWeight: FontWeight.bold))
+              Text(label, style: TextStyle(color: text, fontSize: 13, fontWeight: FontWeight.bold))
             ]
           )
         ),
