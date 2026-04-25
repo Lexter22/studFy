@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
 import '../../../../core/widgets/studfy_header.dart';
+import '../../domain/models/auth_exception.dart';
 import '../../domain/services/auth_service.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
@@ -29,7 +29,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Verification email sent.')));
-    } on FirebaseAuthException catch (error) {
+    } on AuthException catch (error) {
       if (!mounted) {
         return;
       }
@@ -61,7 +61,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Email is not verified yet.')),
       );
-    } on FirebaseAuthException catch (error) {
+    } on AuthException catch (error) {
       if (!mounted) {
         return;
       }

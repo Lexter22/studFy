@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/admin/domain/models/instructor.dart';
 import '../../features/admin/domain/models/student.dart';
+import '../../features/admin/presentation/screens/admin_enrollment_codes_screen.dart';
 import '../../features/admin/presentation/screens/admin_dashboard_screen.dart';
 import '../../features/admin/presentation/screens/admin_instructor_profile_screen.dart';
 import '../../features/admin/presentation/screens/admin_instructor_screen.dart';
@@ -27,6 +28,7 @@ abstract class AppRoutes {
   static const changePassword = 'change-password';
   static const verifyEmail = 'verify-email';
   static const accountCreation = 'account-creation';
+  static const adminEnrollmentCodes = 'admin-enrollment-codes';
   static const adminDashboard = 'admin-dashboard';
   static const adminInstructors = 'admin-instructors';
   static const adminInstructorProfile = 'admin-instructor-profile';
@@ -148,6 +150,11 @@ GoRouter createAppRouter(AppState appState) {
         pageBuilder: (context, state) => _seamlessPage(state.pageKey, const AccountCreationScreen()),
       ),
       GoRoute(
+        path: '/admin/enrollment-codes',
+        name: AppRoutes.adminEnrollmentCodes,
+        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const AdminEnrollmentCodesScreen()),
+      ),
+      GoRoute(
         path: '/admin/dashboard',
         name: AppRoutes.adminDashboard,
         pageBuilder: (context, state) => _seamlessPage(state.pageKey, const AdminDashboardScreen()),
@@ -186,18 +193,15 @@ GoRouter createAppRouter(AppState appState) {
         routes: [
           GoRoute(
             name: AppRoutes.adminStudentsProfile,
-            path: 'profile',
+            path: 'profile/:profileId',
             pageBuilder: (context, state) {
-              final extraData = state.extra as Map<String, dynamic>;
-              final studentMap = extraData['student'] as Map<String, dynamic>;
-              final studentData = StudentData(
-                name: studentMap['name'] as String,
-                course: studentMap['course'] as String,
-                yearSection: studentMap['yearSection'] as String,
-                subjects: (studentMap['subjects'] as List?)?.cast<String>() ?? [],
-              );
-
-              return _seamlessPage(state.pageKey, AdminStudentsProfileScreen(student: studentData));
+              final profileId = state.pathParameters['profileId']!;
+              final extra = state.extra;
+              StudentData? student;
+              if (extra is Map<String, dynamic>) {
+                student = extra['student'] as StudentData?;
+              }
+              return _seamlessPage(state.pageKey, AdminStudentsProfileScreen(profileId: profileId, student: student));
             },
           ),
         ],
@@ -215,6 +219,7 @@ GoRouter createAppRouter(AppState appState) {
           return _seamlessPage(
             state.pageKey,
             AdminSubjectsProfileScreen(
+              subjectId: extra['subjectId'] as String?,
               subjectName: extra['subjectName'] as String,
               courseSection: extra['courseSection'] as String,
               professor: extra['professor'] as String,

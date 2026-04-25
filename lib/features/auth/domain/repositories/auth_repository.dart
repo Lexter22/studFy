@@ -8,7 +8,7 @@ abstract class AuthRepository {
 
   Future<void> sendEmailVerification();
 
-  Future<void> sendPasswordResetEmail({required String email});
+  Future<void> sendPasswordResetEmail({required String email, String? redirectTo});
 
   Future<AppUser?> reloadCurrentUser();
 

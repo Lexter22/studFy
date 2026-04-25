@@ -3,154 +3,256 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
-import '../../../auth/domain/services/auth_service.dart';
-import '../../domain/models/student.dart';
 import '../../../../core/widgets/app_dialog.dart';
+import '../widgets/admin_drawer.dart';
+import '../../domain/models/student.dart';
 
 class AdminStudentsProfileScreen extends StatefulWidget {
-  final StudentData student;
+  final String profileId;
+  final StudentData? student;
 
-  const AdminStudentsProfileScreen({
-    super.key,
-    required this.student,
-  });
+  const AdminStudentsProfileScreen({super.key, required this.profileId, this.student});
 
   @override
-  State<AdminStudentsProfileScreen> createState() =>
-      _AdminStudentsProfileScreenState();
+  State<AdminStudentsProfileScreen> createState() => _AdminStudentsProfileScreenState();
 }
 
 class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen> {
-  final AuthService _authService = const AuthService();
-  int? _hoveredIndex;
-
-  // Edit state
   bool _isEditing = false;
-  late StudentData _currentStudent;
+  bool _isLoadingSubjects = true;
+  StudentData? _currentStudent;
   late TextEditingController _nameController;
   late TextEditingController _courseController;
+  late TextEditingController _yearSectionController;
+  List<Map<String, String>> _enrolledSubjects = [];
+  List<String> _enrolledSubjectIds = [];
 
   @override
   void initState() {
     super.initState();
     _currentStudent = widget.student;
-    _nameController = TextEditingController(text: _currentStudent.name);
-    _courseController = TextEditingController(
-        text: '${_currentStudent.course} ${_currentStudent.yearSection}');
+    // If student passed via extra, use it; otherwise find from AppState
+    if (_currentStudent == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final found = context.read<AppState>().students.where((s) => s.profileId == widget.profileId).firstOrNull;
+        if (found != null && mounted) {
+          setState(() => _currentStudent = found);
+          _nameController.text = found.name;
+          _courseController.text = found.course;
+          _yearSectionController.text = found.yearSection;
+          _loadEnrolledSubjects();
+        }
+      });
+    }
+    _nameController = TextEditingController(text: _currentStudent?.name ?? '');
+    _courseController = TextEditingController(text: _currentStudent?.course ?? '');
+    _yearSectionController = TextEditingController(text: _currentStudent?.yearSection ?? '');
+    if (_currentStudent != null) _loadEnrolledSubjects();
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _courseController.dispose();
+    _yearSectionController.dispose();
     super.dispose();
   }
 
-  // ── Actions ───────────────────────────────────────────────────────────────
+  Future<void> _loadEnrolledSubjects() async {
+    if (_currentStudent == null) return;
+    setState(() => _isLoadingSubjects = true);
+    try {
+      final ids = await context.read<AppState>().fetchEnrolledSubjectIds(_currentStudent!.profileId);
+      final allSubjects = context.read<AppState>().subjectOfferings;
+      setState(() {
+        _enrolledSubjectIds = ids;
+        _enrolledSubjects = allSubjects
+            .where((s) => ids.contains(s['id']))
+            .map((s) => Map<String, String>.from(s))
+            .toList();
+        _isLoadingSubjects = false;
+      });
+    } catch (_) {
+      setState(() => _isLoadingSubjects = false);
+    }
+  }
 
-  void _saveEdits() {
-    setState(() {
-      _currentStudent = StudentData(
-        name: _nameController.text,
-        // For simplicity, we keep the original course/section structure if they didn't change format
-        course: _currentStudent.course,
-        yearSection: _currentStudent.yearSection,
-        subjects: _currentStudent.subjects,
-      );
-      _isEditing = false;
-    });
-    AppDialog.result(
-      context,
-      type: DialogType.success,
-      message: 'Student profile updated successfully.',
+  void _showEnrollDialog() {
+    if (_currentStudent == null) return;
+    final allSubjects = context.read<AppState>().subjectOfferings;
+    if (allSubjects.isEmpty) {
+      AppDialog.alert(context, title: 'Notice', message: 'No subjects available.');
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: Text('Manage Subjects for ${_currentStudent!.name}'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: allSubjects.length,
+              itemBuilder: (ctx, index) {
+                final subject = allSubjects[index];
+                final isEnrolled = _enrolledSubjectIds.contains(subject['id']);
+                return ListTile(
+                  title: Text(subject['name'] ?? ''),
+                  subtitle: Text('${subject['course']} ${subject['section']} · ${subject['professor']}'),
+                  trailing: isEnrolled
+                      ? const Icon(Icons.check_circle, color: Colors.green)
+                      : const Icon(Icons.add_circle_outline, color: Colors.grey),
+                  onTap: () async {
+                    if (isEnrolled) {
+                      await context.read<AppState>().unenrollStudentFromSubject(
+                        studentProfileId: _currentStudent!.profileId,
+                        subjectOfferingId: subject['id']!,
+                      );
+                      setDialogState(() => _enrolledSubjectIds.remove(subject['id']));
+                    } else {
+                      await context.read<AppState>().enrollStudentInSubject(
+                        studentProfileId: _currentStudent!.profileId,
+                        subjectOfferingId: subject['id']!,
+                      );
+                      setDialogState(() => _enrolledSubjectIds.add(subject['id']!));
+                    }
+                    if (!mounted) return;
+                    await _loadEnrolledSubjects();
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      ),
     );
+  }
+
+  Future<void> _saveEdits() async {
+    if (_currentStudent == null) return;
+    try {
+      await context.read<AppState>().updateStudent(
+        profileId: _currentStudent!.profileId,
+        name: _nameController.text,
+        course: _courseController.text,
+        yearSection: _yearSectionController.text,
+      );
+      if (!mounted) return;
+      setState(() {
+        _currentStudent = StudentData(
+          profileId: _currentStudent!.profileId,
+          name: _nameController.text,
+          course: _courseController.text,
+          yearSection: _yearSectionController.text,
+          subjects: _currentStudent!.subjects,
+        );
+        _isEditing = false;
+      });
+      await AppDialog.result(context, type: DialogType.success, message: 'Student updated successfully.');
+    } catch (e) {
+      if (!mounted) return;
+      await AppDialog.alert(context, title: 'Error', message: e.toString());
+    }
   }
 
   void _showDeleteDialog() {
-    AppDialog.password(
-      context,
-      title: 'Confirm Deletion',
-      message: 'Delete ${_currentStudent.name}? This cannot be undone.',
-      type: DialogType.error,
-      confirmLabel: 'Delete',
-      onConfirm: (pw) async {
-        if (pw == 'admin123') {
-          await AppDialog.result(
-            context,
-            type: DialogType.error,
-            message: 'Student record deleted successfully.',
-            onDismiss: () => context.pop(true),
-          );
-        } else {
-          AppDialog.alert(
-            context,
-            title: 'Incorrect Password',
-            message: 'The admin password you entered is incorrect.',
-          );
-        }
-      },
-    );
-  }
-
-  // ── Build ─────────────────────────────────────────────────────────────────
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      extendBody: true,
-      backgroundColor: AppColors.adminPageBackground,
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 90.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle('Student Profile'),
-                  _buildProfileCard(),
-                  const SizedBox(height: 24),
-                  _buildSectionTitle('Schedule for A.Y. 2025-2026 (1st sem)'),
-                  _buildScheduleTable(),
-                ],
-              ),
-            ),
+    if (_currentStudent == null) return;
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete Student'),
+        content: Text('Delete ${_currentStudent!.name}? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
           ),
-          _buildNavBar(),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              try {
+                await context.read<AppState>().deleteProfile(_currentStudent!.profileId);
+                if (!mounted) return;
+                context.pop();
+              } catch (e) {
+                if (!mounted) return;
+                AppDialog.alert(context, title: 'Error', message: e.toString());
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      height: 70,
-      width: double.infinity,
-      color: AppColors.adminPrimary,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.school, color: Colors.white, size: 28),
-              Text('STUDFY',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900)),
-            ],
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.adminPageBackground,
+      appBar: AppBar(
+        backgroundColor: AppColors.adminPrimary,
+        elevation: 0,
+        toolbarHeight: 70,
+        title: const Row(
+          children: [
+            Icon(Icons.school, color: Colors.white, size: 28),
+            SizedBox(width: 8),
+            Text('STUDFY', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+          ],
+        ),
+        actions: const [
+          Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text('Admin 1', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+            ),
           ),
-          Text('Admin 1',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold)),
         ],
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      drawer: const AdminDrawer(),
+      body: _currentStudent == null
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionTitle('Student Profile'),
+            _buildProfileCard(),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildSectionTitle('Enrolled Subjects'),
+                ElevatedButton.icon(
+                  onPressed: _showEnrollDialog,
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Enroll / Manage'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.adminPrimary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    elevation: 0,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _buildEnrolledSubjectsTable(),
+          ],
+        ),
       ),
     );
   }
@@ -160,11 +262,7 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
       padding: const EdgeInsets.only(bottom: 12),
       child: Text(
         title,
-        style: const TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: AppColors.adminPrimary,
-        ),
+        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.adminPrimary),
       ),
     );
   }
@@ -173,15 +271,9 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FA),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: Colors.black12),
       ),
       padding: const EdgeInsets.all(20),
       child: Row(
@@ -192,7 +284,7 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(color: Colors.black87, width: 2),
-              color: Colors.white,
+              color: Colors.grey.shade100,
             ),
             child: const Icon(Icons.person_outline, size: 50, color: Colors.black87),
           ),
@@ -201,35 +293,15 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (_isEditing)
-                  _buildEditField('Name', _nameController)
-                else
-                  Hero(
-                    tag: 'student-name-${_currentStudent.name}',
-                    child: Material(
-                      color: Colors.transparent,
-                      child: Text(
-                        _currentStudent.name,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 4),
-                if (_isEditing)
-                  _buildEditField('Course & Section', _courseController)
-                else ...[
-                  Text(
-                    '${_currentStudent.course} ${_currentStudent.yearSection}',
-                    style: const TextStyle(fontSize: 16, color: Colors.black87),
-                  ),
-                  const Text(
-                    'Enrolled',
-                    style: TextStyle(fontSize: 16, color: Colors.black87),
-                  ),
+                if (_isEditing) ...[
+                  _buildEditField('Name', _nameController),
+                  _buildEditField('Course', _courseController),
+                  _buildEditField('Year & Section', _yearSectionController),
+                ] else ...[
+                  Text(_currentStudent!.name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text('${_currentStudent!.course} ${_currentStudent!.yearSection}',
+                      style: const TextStyle(fontSize: 14, color: Colors.black54)),
                 ],
               ],
             ),
@@ -238,26 +310,14 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
           Column(
             children: [
               if (_isEditing)
-                _buildActionButton(
-                  'Save',
-                  Colors.green.shade600,
-                  Icons.save,
-                  _saveEdits,
-                )
+                _buildActionButton('Save', Colors.green.shade600, Icons.save, () => _saveEdits())
               else
-                _buildActionButton(
-                  'Edit',
-                  const Color(0xFF2B67E1),
-                  Icons.edit_document,
-                  () => setState(() => _isEditing = true),
-                ),
-              const SizedBox(height: 12),
-              _buildActionButton(
-                'Delete',
-                const Color(0xFF8B0000),
-                Icons.warning,
-                _showDeleteDialog,
-              ),
+                _buildActionButton('Edit', const Color(0xFF2B67E1), Icons.edit, () => setState(() => _isEditing = true)),
+              const SizedBox(height: 8),
+              if (_isEditing)
+                _buildActionButton('Cancel', Colors.grey, Icons.close, () => setState(() => _isEditing = false))
+              else
+                _buildActionButton('Delete', const Color(0xFF8B0000), Icons.delete, _showDeleteDialog),
             ],
           ),
         ],
@@ -271,7 +331,7 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: Colors.black12),
       ),
@@ -288,8 +348,7 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
     );
   }
 
-  Widget _buildActionButton(
-      String label, Color color, IconData icon, VoidCallback onTap) {
+  Widget _buildActionButton(String label, Color color, IconData icon, VoidCallback onTap) {
     return SizedBox(
       width: 90,
       height: 32,
@@ -307,16 +366,17 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
           children: [
             Icon(icon, size: 14),
             const SizedBox(width: 4),
-            Text(label,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+            Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildScheduleTable() {
-    final subjects = _currentStudent.subjects;
+  Widget _buildEnrolledSubjectsTable() {
+    if (_isLoadingSubjects) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -332,173 +392,36 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
             color: const Color(0xFFF4F4F4),
             child: const Row(
               children: [
-                Expanded(
-                    flex: 3,
-                    child: Text('Subject',
-                        style: TextStyle(fontWeight: FontWeight.bold))),
-                Expanded(
-                    flex: 3,
-                    child: Text('Professor',
-                        style: TextStyle(fontWeight: FontWeight.bold))),
-                Expanded(
-                    flex: 2,
-                    child: Text('Time & Room',
-                        style: TextStyle(fontWeight: FontWeight.bold))),
+                Expanded(flex: 3, child: Text('Subject', style: TextStyle(fontWeight: FontWeight.bold))),
+                Expanded(flex: 3, child: Text('Professor', style: TextStyle(fontWeight: FontWeight.bold))),
+                Expanded(flex: 2, child: Text('Course & Section', style: TextStyle(fontWeight: FontWeight.bold))),
               ],
             ),
           ),
-          if (subjects.isEmpty)
+          if (_enrolledSubjects.isEmpty)
             const Padding(
               padding: EdgeInsets.all(20),
-              child: Text('No subjects in the list',
+              child: Text('No subjects enrolled yet.',
                   style: TextStyle(color: Colors.grey, fontSize: 14, fontStyle: FontStyle.italic)),
             )
           else
-            ...subjects.asMap().entries.map((entry) => _buildScheduleRow(
-                  entry.key,
-                  entry.value,
-                )),
+            ..._enrolledSubjects.asMap().entries.map((entry) {
+              final isEven = entry.key % 2 == 0;
+              final s = entry.value;
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                color: isEven ? Colors.white : const Color(0xFFF9F9F9),
+                child: Row(
+                  children: [
+                    Expanded(flex: 3, child: Text(s['name'] ?? '', style: const TextStyle(fontSize: 13))),
+                    Expanded(flex: 3, child: Text(s['professor'] ?? 'Unassigned', style: const TextStyle(fontSize: 13))),
+                    Expanded(flex: 2, child: Text('${s['course']} ${s['section']}', style: const TextStyle(fontSize: 13))),
+                  ],
+                ),
+              );
+            }),
         ],
       ),
     );
-  }
-
-  Widget _buildScheduleRow(int index, String subjectName) {
-    final isEven = index % 2 == 0;
-    // Mock data for professor and time
-    final professors = [
-      'Dr. Smith',
-      'Prof. Johnson',
-      'Ms. Davis',
-      'Mr. Wilson',
-      'Dr. Brown'
-    ];
-    final times = [
-      'MWF 8:00 / MC-101',
-      'TTH 10:30 / C-202',
-      'SAT 1:00 / MC-305',
-      'MWF 2:30 / C-110'
-    ];
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      color: isEven ? Colors.white : const Color(0xFFF9F9F9),
-      child: Row(
-        children: [
-          Expanded(
-              flex: 3,
-              child: Text(subjectName, style: const TextStyle(fontSize: 13))),
-          Expanded(
-              flex: 3,
-              child: Text(professors[index % professors.length],
-                  style: const TextStyle(fontSize: 13))),
-          Expanded(
-              flex: 2,
-              child: Text(times[index % times.length],
-                  style: const TextStyle(fontSize: 13))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavBar() {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width > 800
-                ? 650
-                : MediaQuery.of(context).size.width - 20,
-          ),
-          child: Container(
-            height: 70,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: AppColors.adminPrimary,
-              borderRadius: BorderRadius.circular(35),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildNavItem(Icons.layers, 'INSTRUCTOR', 0),
-                _buildNavItem(Icons.group, 'STUDENTS', 1),
-                _buildNavItem(Icons.home, 'DASHBOARD', 2),
-                _buildNavItem(Icons.book, 'SUBJECTS', 3),
-                _buildNavItem(Icons.logout, 'LOGOUT', 4),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, int index) {
-    final bool isHovered = _hoveredIndex == index;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hoveredIndex = index),
-      onExit: (_) => setState(() => _hoveredIndex = null),
-      child: GestureDetector(
-        onTap: () {
-          if (index == 4) {
-            _handleLogout();
-          } else if (index == 0) {
-            context.goNamed(AppRoutes.adminInstructors);
-          } else if (index == 1) {
-            context.goNamed(AppRoutes.adminStudents);
-          } else if (index == 2) {
-            context.goNamed(AppRoutes.adminDashboard);
-          } else if (index == 3) {
-            context.goNamed(AppRoutes.adminSubjects);
-          }
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color:
-                isHovered ? Colors.white.withOpacity(0.1) : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: Colors.white, size: 24),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 9,
-                  fontWeight:
-                      isHovered ? FontWeight.bold : FontWeight.normal,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _handleLogout() async {
-    await _authService.signOut();
-
-    if (!mounted) {
-      return;
-    }
-
-    context.read<AppState>().logout();
-    context.goNamed(AppRoutes.login);
   }
 }

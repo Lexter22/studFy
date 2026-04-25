@@ -1,12 +1,15 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'dart:math' as math;
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
+import '../../../../core/widgets/app_dialog.dart';
+import '../../../auth/domain/models/auth_exception.dart';
 import '../../domain/models/student.dart';
+import '../widgets/admin_drawer.dart';
 
 class AdminStudentsScreen extends StatefulWidget {
   const AdminStudentsScreen({super.key});
@@ -16,115 +19,12 @@ class AdminStudentsScreen extends StatefulWidget {
 }
 
 class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
-  int? _hoveredIndex;
   int? _hoveredStudentIndex;
-
   final TextEditingController _searchController = TextEditingController();
-
   String? _selectedCourse;
   String? _selectedSubject;
-
-  late final List<String> _courseSectionList;
-  final List<String> _subjectList = [
-    'Programming',
-    'Mathematics',
-    'Communication',
-    'Data Structures',
-    'Networking',
-    'Web Development',
-    'Database Management',
-    'Operating Systems',
-    'Software Engineering',
-    'Discrete Math',
-  ];
-
-  // Each student keeps its own selected course & subject for the row dropdowns.
-  // We store them as parallel lists of the same index as _allStudents.
-  late List<StudentData> _allStudents;
-
-  late List<StudentData> _filteredStudents;
-
-  // Per-row selected subject (index-aligned with _allStudents)
-  late List<String> _rowSubject;
-  // Per-row randomized subjects (2-4 items)
-  late List<List<String>> _studentSubjects;
-
-  @override
-  void initState() {
-    super.initState();
-    _allStudents = [
-      const StudentData(name: 'Abad, Jose',        course: 'BSCS', yearSection: '1-1'),
-      const StudentData(name: 'Alvarez, Maria',     course: 'BSIT', yearSection: '2-1'),
-      const StudentData(name: 'Bautista, Arnel',   course: 'BSIT', yearSection: '2-2'),
-      const StudentData(name: 'Bernardo, Carlos',  course: 'BSCS', yearSection: '1-2'),
-      const StudentData(name: 'Castillo, Elena',   course: 'BSIE', yearSection: '3-3'),
-      const StudentData(name: 'Cruz, Miguel',      course: 'DIT',  yearSection: '2-1'),
-      const StudentData(name: 'De Guzman, Anna',   course: 'BSCS', yearSection: '3-2'),
-      const StudentData(name: 'Dela Cruz, Maria',  course: 'BSIT', yearSection: '1-1'),
-      const StudentData(name: 'Domingo, Roberto',  course: 'BSHM', yearSection: '4-1'),
-      const StudentData(name: 'Estacio, Felicia',  course: 'BSIT', yearSection: '3-1'),
-      const StudentData(name: 'Evangelista, Mark', course: 'BSIT', yearSection: '4-1'),
-      const StudentData(name: 'Ferrer, Grace',     course: 'BSHM', yearSection: '2-3'),
-      const StudentData(name: 'Flores, Diane',     course: 'BSCS', yearSection: '1-1'),
-      const StudentData(name: 'Garcia, Maria',     course: 'BSIT', yearSection: '3-2'),
-      const StudentData(name: 'Gomez, Paolo',      course: 'DIT',  yearSection: '1-2'),
-      const StudentData(name: 'Gonzales, Kevin',   course: 'BSIT', yearSection: '2-2'),
-      const StudentData(name: 'Hernandez, Rico',   course: 'BSCS', yearSection: '4-2'),
-      const StudentData(name: 'Hizon, Angela',     course: 'BSIE', yearSection: '1-1'),
-      const StudentData(name: 'Ignacio, Jerome',   course: 'DIT',  yearSection: '3-1'),
-      const StudentData(name: 'Isidro, Rafael',    course: 'BSCS', yearSection: '2-3'),
-      const StudentData(name: 'Javier, Lita',      course: 'BSIE', yearSection: '2-1'),
-      const StudentData(name: 'Lacsamana, Joey',   course: 'BSIT', yearSection: '1-3'),
-      const StudentData(name: 'Lopez, Rosa',       course: 'BSIE', yearSection: '1-3'),
-      const StudentData(name: 'Luna, Antonio',     course: 'BSCS', yearSection: '3-1'),
-      const StudentData(name: 'Mendoza, Sofia',    course: 'BSHM', yearSection: '1-4'),
-      const StudentData(name: 'Mercado, Pilar',    course: 'BSIT', yearSection: '3-3'),
-      const StudentData(name: 'Navarro, Luis',     course: 'DIT',  yearSection: '2-2'),
-      const StudentData(name: 'Noble, Rey',        course: 'DIT',  yearSection: '4-1'),
-      const StudentData(name: 'Ocampo, Teresa',    course: 'BSCS', yearSection: '3-2'),
-      const StudentData(name: 'Ortega, Susan',     course: 'BSHM', yearSection: '1-1'),
-      const StudentData(name: 'Pascual, Ben',      course: 'BSCS', yearSection: '2-2'),
-      const StudentData(name: 'Peralta, Simon',    course: 'BSIE', yearSection: '4-2'),
-      const StudentData(name: 'Quezon, Manuel',    course: 'BSIE', yearSection: '4-3'),
-      const StudentData(name: 'Quinto, Elena',     course: 'BSHM', yearSection: '2-1'),
-      const StudentData(name: 'Reyes, Pedro',      course: 'BSCS', yearSection: '2-1'),
-      const StudentData(name: 'Rivera, Rosa',      course: 'BSIT', yearSection: '1-2'),
-      const StudentData(name: 'Salazar, Jose',     course: 'DIT',  yearSection: '2-2'),
-      const StudentData(name: 'Santos, Juan',      course: 'BSIT', yearSection: '3-1'),
-      const StudentData(name: 'Solis, Maricel',    course: 'BSIT', yearSection: '2-3'),
-      const StudentData(name: 'Tan, Carlos',       course: 'BSIT', yearSection: '4-1'),
-      const StudentData(name: 'Tolentino, Linda',  course: 'BSHM', yearSection: '3-2'),
-      const StudentData(name: 'Torres, Victor',    course: 'BSIE', yearSection: '1-2'),
-      const StudentData(name: 'Umali, Victor',     course: 'BSIE', yearSection: '1-2'),
-      const StudentData(name: 'Valenzuela, Gina',  course: 'BSCS', yearSection: '4-1'),
-      const StudentData(name: 'Velasco, Ricardo',  course: 'DIT',  yearSection: '3-2'),
-      const StudentData(name: 'Zamora, Felicity',  course: 'BSCS', yearSection: '1-1'),
-    ]..sort((a, b) => a.name.compareTo(b.name));
-
-    _filteredStudents = List.from(_allStudents);
-
-    // Randomize 2-4 subjects per student
-    final random = Random();
-    _studentSubjects = _allStudents.map((_) {
-      final count = random.nextInt(3) + 2; // 2, 3, or 4
-      final shuffled = List<String>.from(_subjectList)..shuffle(random);
-      return shuffled.take(count).toList();
-    }).toList();
-
-    // Set default selected subject
-    _rowSubject = _studentSubjects.map((list) => list.first).toList();
-
-    // Generate Course & Section list for dropdown
-    final List<String> baseCourses = ['BSIT', 'BSIE', 'DIT', 'BSCS', 'BSHM'];
-    _courseSectionList = [];
-    for (var c in baseCourses) {
-      for (var y = 1; y <= 4; y++) {
-        for (var s = 1; s <= 3; s++) {
-          _courseSectionList.add("$c $y-$s");
-        }
-      }
-    }
-  }
+  static const int _pageSize = 20;
+  int _currentPage = 0;
 
   @override
   void dispose() {
@@ -132,100 +32,124 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
     super.dispose();
   }
 
-  // ── Filtering ─────────────────────────────────────────────────────────────
-
-  void _applyFilter() {
-    setState(() {
-      _filteredStudents = _allStudents.where((s) {
-        final nameMatch = s.name
-            .toLowerCase()
-            .contains(_searchController.text.toLowerCase());
-        final courseMatch =
-            _selectedCourse == null || "${s.course} ${s.yearSection}" == _selectedCourse;
-        return nameMatch && courseMatch;
-      }).toList();
-    });
-  }
+  void _applyFilter() => setState(() {});
 
   void _clearFilter() {
     _searchController.clear();
     setState(() {
       _selectedCourse = null;
       _selectedSubject = null;
-      _filteredStudents = List.from(_allStudents);
+      _currentPage = 0;
     });
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
+  List<String> _courseSectionList(List<StudentData> students) {
+    return students
+        .map((s) => '${s.course} ${s.yearSection}')
+        .toSet()
+        .toList()
+      ..sort();
+  }
+
+  List<String> _subjectOptions(List<Map<String, String>> subjects) {
+    final options = subjects
+        .map((s) => s['name'] ?? '')
+        .where((v) => v.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+    return options.isEmpty ? ['No subjects available'] : options;
+  }
+
+  List<StudentData> _filterStudents(List<StudentData> students) {
+    return students.where((student) {
+      final courseSection = '${student.course} ${student.yearSection}';
+      final nameMatch = student.name.toLowerCase().contains(_searchController.text.toLowerCase());
+      final courseMatch = _selectedCourse == null || courseSection == _selectedCourse;
+      return nameMatch && courseMatch;
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+
     return Scaffold(
-      extendBody: true,
       backgroundColor: AppColors.adminPageBackground,
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
+      appBar: AppBar(
+        backgroundColor: AppColors.adminPrimary,
+        elevation: 0,
+        toolbarHeight: 70,
+        title: const Row(
+          children: [
+            Icon(Icons.school, color: Colors.white, size: 28),
+            SizedBox(width: 8),
+            Text('STUDFY', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person_add, color: Colors.white),
+            tooltip: 'Add Student',
+            onPressed: _showCreateStudentDialog,
+          ),
+          const Center(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        const Text(
-                          'Student List',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.adminPrimary,
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            const Text(
-                              'Total: ',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            Text(
-                              '${_filteredStudents.length}',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.adminPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildSearchArea(),
-                  const SizedBox(height: 12),
-                  Expanded(child: _buildStudentList()),
-                ],
-              ),
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text('Admin 1', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
             ),
           ),
-          _buildNavBar(),
         ],
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      drawer: const AdminDrawer(),
+      body: ValueListenableBuilder<List<StudentData>>(
+        valueListenable: appState.studentsNotifier,
+        builder: (context, students, _) {
+          final subjectOptions = _subjectOptions(appState.subjectOfferings);
+          final filteredStudents = _filterStudents(students);
+          final courseSectionList = _courseSectionList(students);
+          final pageCount = math.max(1, (filteredStudents.length / _pageSize).ceil());
+          final safePage = _currentPage.clamp(0, pageCount - 1);
+          if (safePage != _currentPage) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) setState(() => _currentPage = safePage);
+            });
+          }
+          final pagedStudents = filteredStudents.skip(safePage * _pageSize).take(_pageSize).toList();
+
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    const Text('Student List', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.adminPrimary)),
+                    Row(
+                      children: [
+                        const Text('Total: ', style: TextStyle(fontSize: 14, color: Colors.grey)),
+                        Text('${filteredStudents.length}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.adminPrimary)),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _buildSearchArea(courseSectionList, subjectOptions),
+                const SizedBox(height: 12),
+                Expanded(child: _buildStudentList(pagedStudents)),
+                _buildPagination(totalItems: filteredStudents.length, pageCount: pageCount, currentPage: safePage),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
-  // ── Search area ───────────────────────────────────────────────────────────
-
-  Widget _buildSearchArea() {
+  Widget _buildSearchArea(List<String> courseSectionList, List<String> subjectOptions) {
     return Column(
       children: [
         Row(
@@ -233,19 +157,14 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
             Expanded(
               child: Container(
                 height: 42,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.black12),
-                ),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.black12)),
                 child: TextField(
                   controller: _searchController,
                   onChanged: (_) => _applyFilter(),
                   decoration: const InputDecoration(
-                    hintText: 'Student Name/Student Number',
+                    hintText: 'Student Name / Student Number',
                     hintStyle: TextStyle(color: Colors.grey, fontSize: 13),
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                     border: InputBorder.none,
                   ),
                 ),
@@ -265,55 +184,23 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                     children: [
                       Icon(Icons.search, color: Colors.white, size: 18),
                       SizedBox(width: 4),
-                      Text('Search',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold)),
+                      Text('Search', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
               ),
             ),
             const SizedBox(width: 8),
-            IconButton(
-              onPressed: _clearFilter,
-              icon: const Icon(Icons.filter_alt_off, color: Colors.black54),
-              tooltip: 'Clear filters',
-            ),
+            IconButton(onPressed: _clearFilter, icon: const Icon(Icons.filter_alt_off, color: Colors.black54)),
           ],
         ),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(child: _buildFilterDropdown(
-              hint: 'Course & Section',
-              value: _selectedCourse,
-              items: _courseSectionList,
-              onChanged: (val) {
-                setState(() => _selectedCourse = val);
-                _applyFilter();
-              },
-            )),
-            const SizedBox(width: 8),
-            Expanded(child: _buildFilterDropdown(
-              hint: 'Subject',
-              value: _selectedSubject,
-              items: _subjectList,
-              onChanged: (val) => setState(() => _selectedSubject = val),
-            )),
-          ],
-        ),
+        _buildFilterDropdown(hint: 'Course & Section', value: _selectedCourse, items: courseSectionList, onChanged: (val) => setState(() { _selectedCourse = val; _applyFilter(); })),
       ],
     );
   }
 
-  Widget _buildFilterDropdown({
-    required String hint,
-    required String? value,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-  }) {
+  Widget _buildFilterDropdown({required String hint, required String? value, required List<String> items, required ValueChanged<String?> onChanged}) {
     return DropdownMenu<String>(
       expandedInsets: EdgeInsets.zero,
       initialSelection: value,
@@ -323,169 +210,94 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
       requestFocusOnTap: true,
       menuHeight: 300,
       onSelected: onChanged,
-      dropdownMenuEntries: items.map((e) => DropdownMenuEntry(
-        value: e,
-        label: e,
-        style: MenuItemButton.styleFrom(
-          visualDensity: VisualDensity.compact,
-        ),
-      )).toList(),
+      dropdownMenuEntries: items.map((e) => DropdownMenuEntry(value: e, label: e, style: MenuItemButton.styleFrom(visualDensity: VisualDensity.compact))).toList(),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(horizontal: 12),
         constraints: const BoxConstraints(maxHeight: 42),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.black12),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.black12),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.adminPrimary, width: 1),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.black12)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.black12)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.adminPrimary, width: 1)),
       ),
     );
   }
 
-  // ── Student list ──────────────────────────────────────────────────────────
-
-  Widget _buildStudentList() {
-    if (_filteredStudents.isEmpty) {
-      return const Center(
-        child: Text(
-          'No students in the list',
-          style: TextStyle(
-            color: Colors.grey,
-            fontSize: 14,
-            fontStyle: FontStyle.italic,
+  Widget _buildPagination({required int totalItems, required int pageCount, required int currentPage}) {
+    if (totalItems == 0) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 8, 0, 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text('Page ${currentPage + 1} of $pageCount', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+          Row(
+            children: [
+              IconButton(onPressed: currentPage > 0 ? () => setState(() => _currentPage = currentPage - 1) : null, icon: const Icon(Icons.chevron_left)),
+              IconButton(onPressed: currentPage < pageCount - 1 ? () => setState(() => _currentPage = currentPage + 1) : null, icon: const Icon(Icons.chevron_right)),
+            ],
           ),
-        ),
-      );
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(0, 4, 0, 98),
-        itemCount: _filteredStudents.length,
-        separatorBuilder: (_, unused) =>
-            const Divider(height: 1, color: Colors.black12, indent: 12, endIndent: 12),
-        itemBuilder: (context, index) {
-          final student = _filteredStudents[index];
-          final originalIndex = _allStudents.indexOf(student);
-          return _buildStudentRow(student, originalIndex);
-        },
+        ],
       ),
     );
   }
 
-  Widget _buildStudentRow(StudentData student, int originalIndex) {
-    final hasMeta = originalIndex >= 0;
-    final isHovered = _hoveredStudentIndex == originalIndex;
+  Widget _buildStudentList(List<StudentData> students) {
+    if (students.isEmpty) {
+      return const Center(child: Text('No students in the list', style: TextStyle(color: Colors.grey, fontSize: 14, fontStyle: FontStyle.italic)));
+    }
+    return Container(
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(0, 4, 0, 16),
+        itemCount: students.length,
+        separatorBuilder: (_, __) => const Divider(height: 1, color: Colors.black12, indent: 12, endIndent: 12),
+        itemBuilder: (context, index) => _buildStudentRow(students[index]),
+      ),
+    );
+  }
+
+  Widget _buildStudentRow(StudentData student) {
+    final rowKey = student.profileId.hashCode;
+    final isHovered = _hoveredStudentIndex == rowKey;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hoveredStudentIndex = originalIndex),
+      onEnter: (_) => setState(() => _hoveredStudentIndex = rowKey),
       onExit: (_) => setState(() => _hoveredStudentIndex = null),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: () async {
-          final result = await context.pushNamed(
-            AppRoutes.adminStudentsProfile,
-            extra: {
-              'student': {
-                'name': student.name,
-                'course': student.course,
-                'yearSection': student.yearSection,
-                'subjects': hasMeta ? _studentSubjects[originalIndex] : <String>[],
-              },
-            },
-          );
-
-          if (result == true) {
-            setState(() {
-              _allStudents.removeAt(originalIndex);
-              _studentSubjects.removeAt(originalIndex);
-              _rowSubject.removeAt(originalIndex);
-              _applyFilter();
-            });
-          }
-        },
+        onTap: () => context.pushNamed(AppRoutes.adminStudentsProfile, pathParameters: {'profileId': student.profileId}, extra: {'student': student}),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: isHovered
-                ? Colors.black.withOpacity(0.05)
-                : Colors.transparent,
-            border: Border(
-              bottom: BorderSide(
-                color: isHovered ? Colors.black12 : Colors.transparent,
-                width: 0.5,
-              ),
-            ),
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          color: isHovered ? Colors.grey.shade50 : Colors.transparent,
           child: Row(
             children: [
               Expanded(
                 flex: 3,
-                child: Hero(
-                  tag: 'student-name-${student.name}',
-                  child: Material(
-                    color: Colors.transparent,
-                    child: Text(
-                      student.name,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: isHovered ? FontWeight.bold : FontWeight.w500,
-                        color: isHovered ? AppColors.adminPrimary : Colors.black87,
-                      ),
-                    ),
-                  ),
+                child: Text(
+                  student.name,
+                  style: TextStyle(fontSize: 13, fontWeight: isHovered ? FontWeight.bold : FontWeight.w500, color: isHovered ? AppColors.adminPrimary : Colors.black87),
                 ),
               ),
               const SizedBox(width: 6),
               Expanded(
                 flex: 2,
                 child: Container(
-                  height: 32,
+                  height: 30,
                   alignment: Alignment.centerLeft,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.black12),
-                  ),
-                  child: Text(
-                    "${student.course} ${student.yearSection}",
-                    style: const TextStyle(fontSize: 11, color: Colors.black87),
-                  ),
+                  decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.black12)),
+                  child: Text('${student.course} ${student.yearSection}', style: const TextStyle(fontSize: 11, color: Colors.black87)),
                 ),
               ),
-              const SizedBox(width: 6),
-              Expanded(
-                flex: 2,
-                child: _buildRowDropdown(
-                  value: hasMeta ? _rowSubject[originalIndex] : _subjectList.first,
-                  items: hasMeta
-                      ? _studentSubjects[originalIndex]
-                      : [_subjectList.first],
-                  onChanged: hasMeta
-                      ? (val) {
-                          if (val != null) {
-                            setState(() => _rowSubject[originalIndex] = val);
-                          }
-                        }
-                      : null,
-                ),
-              ),
+              if (isHovered) ...[
+                const SizedBox(width: 8),
+                IconButton(icon: const Icon(Icons.edit, size: 18, color: Colors.blue), onPressed: () => _showEditStudentDialog(student), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
+                const SizedBox(width: 8),
+                IconButton(icon: const Icon(Icons.delete, size: 18, color: Colors.red), onPressed: () => _showDeleteStudentDialog(student), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
+              ],
             ],
           ),
         ),
@@ -493,162 +305,140 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
     );
   }
 
-  Widget _buildRowDropdown({
-    required String value,
-    required List<String> items,
-    required ValueChanged<String?>? onChanged,
-  }) {
-    return DropdownMenu<String>(
-      expandedInsets: EdgeInsets.zero,
-      initialSelection: items.contains(value) ? value : items.first,
-      enableSearch: true,
-      enableFilter: true,
-      requestFocusOnTap: true,
-      menuHeight: 200,
-      onSelected: onChanged,
-      dropdownMenuEntries: items.map((e) => DropdownMenuEntry(
-        value: e,
-        label: e,
-        style: MenuItemButton.styleFrom(
-          visualDensity: VisualDensity.compact,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-        ),
-      )).toList(),
-      textStyle: const TextStyle(fontSize: 11, color: Colors.black87),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: Colors.grey.shade100,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-        constraints: const BoxConstraints(maxHeight: 32),
-        isDense: true,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6),
-          borderSide: const BorderSide(color: Colors.black12),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6),
-          borderSide: const BorderSide(color: Colors.black12),
-        ),
-      ),
-    );
-  }
+  void _showEditStudentDialog(StudentData student) {
+    final nameCtrl = TextEditingController(text: student.name);
+    final courseCtrl = TextEditingController(text: student.course);
+    final yearSecCtrl = TextEditingController(text: student.yearSection);
+    bool isLoading = false;
 
-  Widget _buildHeader() {
-    return Container(
-      height: 70,
-      width: double.infinity,
-      color: AppColors.adminPrimary,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) => AlertDialog(
+          title: const Text('Edit Student'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.school, color: Colors.white, size: 28),
-              Text('STUDFY',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900)),
+              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name')),
+              TextField(controller: courseCtrl, decoration: const InputDecoration(labelText: 'Course')),
+              TextField(controller: yearSecCtrl, decoration: const InputDecoration(labelText: 'Year & Section')),
             ],
           ),
-          Text('Admin 1',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold)),
+          actions: [
+            TextButton(onPressed: isLoading ? null : () => Navigator.pop(dialogCtx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: isLoading ? null : () async {
+                setDialogState(() => isLoading = true);
+                Navigator.pop(dialogCtx);
+                try {
+                  await context.read<AppState>().updateStudent(
+                    profileId: student.profileId,
+                    name: nameCtrl.text,
+                    course: courseCtrl.text,
+                    yearSection: yearSecCtrl.text,
+                  );
+                  if (!mounted) return;
+                  await AppDialog.result(context, type: DialogType.success, message: 'Student updated successfully.');
+                } catch (e) {
+                  if (!mounted) return;
+                  await AppDialog.alert(context, title: 'Error', message: e.toString());
+                }
+              },
+              child: isLoading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteStudentDialog(StudentData student) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Delete Student'),
+        content: Text('Are you sure you want to delete ${student.name}? This will revoke their access.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(dialogCtx);
+              try {
+                await context.read<AppState>().deleteProfile(student.profileId);
+                if (!mounted) return;
+                await AppDialog.result(context, type: DialogType.success, message: 'Student deleted successfully.');
+              } catch (e) {
+                if (!mounted) return;
+                await AppDialog.alert(context, title: 'Error', message: e.toString());
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildNavBar() {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width > 800
-                ? 650
-                : MediaQuery.of(context).size.width - 20,
-          ),
-          child: Container(
-            height: 70,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: AppColors.adminPrimary,
-              borderRadius: BorderRadius.circular(35),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildNavItem(Icons.layers, 'INSTRUCTOR', 0),
-                _buildNavItem(Icons.group, 'STUDENTS', 1),
-                _buildNavItem(Icons.home, 'DASHBOARD', 2),
-                _buildNavItem(Icons.book, 'SUBJECTS', 3),
-                _buildNavItem(Icons.logout, 'LOGOUT', 4),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  void _showCreateStudentDialog() {
+    final emailCtrl = TextEditingController();
+    final firstNameCtrl = TextEditingController();
+    final lastNameCtrl = TextEditingController();
+    final courseCtrl = TextEditingController();
+    final yearSecCtrl = TextEditingController();
+    final studentNumCtrl = TextEditingController();
+    bool isLoading = false;
 
-  Widget _buildNavItem(IconData icon, String label, int index) {
-    final bool isHovered = _hoveredIndex == index;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hoveredIndex = index),
-      onExit: (_) => setState(() => _hoveredIndex = null),
-      child: GestureDetector(
-        onTap: () {
-          if (index == 4) {
-            context.read<AppState>().logout();
-            context.goNamed(AppRoutes.login);
-          } else if (index == 0) {
-            context.goNamed(AppRoutes.adminInstructors);
-          } else if (index == 1) {
-            context.goNamed(AppRoutes.adminStudents);
-          } else if (index == 2) {
-            context.goNamed(AppRoutes.adminDashboard);
-          } else if (index == 3) {
-            context.goNamed(AppRoutes.adminSubjects);
-          }
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color:
-                isHovered ? Colors.white.withOpacity(0.1) : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) => AlertDialog(
+          title: const Text('Add Student'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: emailCtrl, decoration: const InputDecoration(labelText: 'Email Address'), keyboardType: TextInputType.emailAddress),
+                TextField(controller: firstNameCtrl, decoration: const InputDecoration(labelText: 'First Name')),
+                TextField(controller: lastNameCtrl, decoration: const InputDecoration(labelText: 'Last Name')),
+                TextField(controller: studentNumCtrl, decoration: const InputDecoration(labelText: 'Student Number (Optional)')),
+                TextField(controller: courseCtrl, decoration: const InputDecoration(labelText: 'Course (e.g. BSIT)')),
+                TextField(controller: yearSecCtrl, decoration: const InputDecoration(labelText: 'Year & Section (e.g. 2-A)')),
+              ],
+            ),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: Colors.white, size: 24),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 9,
-                  fontWeight:
-                      isHovered ? FontWeight.bold : FontWeight.normal,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
-          ),
+          actions: [
+            TextButton(onPressed: isLoading ? null : () => Navigator.pop(dialogCtx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: isLoading ? null : () async {
+                setDialogState(() => isLoading = true);
+                Navigator.pop(dialogCtx);
+                try {
+                  final defaultPassword = await context.read<AppState>().createStudent(
+                    firstName: firstNameCtrl.text,
+                    lastName: lastNameCtrl.text,
+                    email: emailCtrl.text,
+                    courseCode: courseCtrl.text,
+                    yearSection: yearSecCtrl.text,
+                    studentNumber: studentNumCtrl.text,
+                  );
+                  if (!mounted) return;
+                  await AppDialog.result(
+                    context,
+                    type: DialogType.success,
+                    message: 'Account created successfully.\n\nEmail: ${emailCtrl.text.trim()}\nDefault Password: $defaultPassword\n\nShare these credentials with the student.',
+                  );
+                } on AuthException catch (e) {
+                  if (!mounted) return;
+                  await AppDialog.alert(context, title: 'Error', message: e.message ?? 'Failed to create student.');
+                } catch (e) {
+                  if (!mounted) return;
+                  await AppDialog.alert(context, title: 'Error', message: e.toString());
+                }
+              },
+              child: isLoading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Create'),
+            ),
+          ],
         ),
       ),
     );

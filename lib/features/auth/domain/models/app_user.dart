@@ -1,5 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
-
 import '../enums/user_role.dart';
 
 class AppUser {
@@ -16,19 +14,6 @@ class AppUser {
     required this.isEmailVerified,
     this.role = UserRole.unknown,
   });
-
-  factory AppUser.fromFirebaseUser(
-    User user, {
-    UserRole role = UserRole.unknown,
-  }) {
-    return AppUser(
-      uid: user.uid,
-      email: user.email,
-      displayName: user.displayName,
-      isEmailVerified: user.emailVerified,
-      role: role,
-    );
-  }
 
   AppUser copyWith({
     String? uid,

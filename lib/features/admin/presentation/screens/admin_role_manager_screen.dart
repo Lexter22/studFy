@@ -116,7 +116,7 @@ class _AdminRoleManagerScreenState extends State<AdminRoleManagerScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    _buildInputField('Firebase UID', _uidController),
+                    _buildInputField('Account UID', _uidController),
                     const SizedBox(height: 12),
                     _buildInputField('Email', _emailController),
                     const SizedBox(height: 12),
@@ -141,7 +141,9 @@ class _AdminRoleManagerScreenState extends State<AdminRoleManagerScreen> {
                                 height: 20,
                                 width: 20,
                                 child: CircularProgressIndicator(
-                                    color: Colors.white, strokeWidth: 2),
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Text(
                                 'Save Role',
@@ -155,7 +157,7 @@ class _AdminRoleManagerScreenState extends State<AdminRoleManagerScreen> {
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      'Use this only for accounts that already exist in Firebase Authentication. The UID must match the Auth user.',
+                      'Use this only for accounts that already exist in the authentication provider. The UID must match the account user.',
                       style: TextStyle(
                         color: Colors.grey,
                         fontSize: 12,
@@ -250,8 +252,10 @@ class _AdminRoleManagerScreenState extends State<AdminRoleManagerScreen> {
               borderRadius: BorderRadius.circular(10),
               borderSide: const BorderSide(color: AppColors.adminPrimary),
             ),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 12,
+            ),
           ),
         ),
       ],
@@ -292,10 +296,7 @@ class _AdminRoleManagerScreenState extends State<AdminRoleManagerScreen> {
               value: UserRole.professor,
               child: Text('Professor'),
             ),
-            DropdownMenuItem(
-              value: UserRole.student,
-              child: Text('Student'),
-            ),
+            DropdownMenuItem(value: UserRole.student, child: Text('Student')),
           ],
           onChanged: (value) {
             if (value != null) {
