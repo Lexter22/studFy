@@ -9,19 +9,17 @@ class SupabaseAdminRepository {
 
   SupabaseClient get _client => Supabase.instance.client;
 
-  // Safely extract error message from Edge Function response data
+  bool _functionFailed(int? status, dynamic data) {
+    if (status == null || status == 200 || status == 201) return false;
+    if (status < 400) return false;
+    return true;
+  }
+
   String _functionError(dynamic data, String fallback) {
+    if (data == null) return fallback;
     if (data is Map) return data['error']?.toString() ?? fallback;
     if (data is String && data.isNotEmpty) return data;
     return fallback;
-  }
-
-  bool _functionFailed(int? status, dynamic data) {
-    // Treat null, 200, 201 as success
-    if (status == null || status == 200 || status == 201) return false;
-    // If data has no error key and status < 400, treat as success
-    if (status < 400) return false;
-    return true;
   }
 
   Future<List<Map<String, String>>> fetchRequests() async {
@@ -79,12 +77,15 @@ class SupabaseAdminRepository {
 
   Future<List<Instructor>> fetchInstructors() async {
     try {
-      final rawRows = await _client
-          .from('instructor_profiles')
-          .select('profile_id,instructor_id,department,profiles(display_name,first_name,last_name)')
-          .order('created_at');
+      final rows = await _selectRows(
+        'instructor_profiles',
+        columns: 'profile_id,instructor_id,department',
+        orderBy: 'created_at',
+      );
 
-      final rows = (rawRows as List).map((row) => Map<String, dynamic>.from(row as Map)).toList();
+      final profileNames = await _fetchProfileDisplayNames(
+        rows.map((row) => row['profile_id']?.toString()).whereType<String>().toList(),
+      );
 
       final subjectRows = await _selectRows(
         'subject_offerings',
@@ -102,16 +103,13 @@ class SupabaseAdminRepository {
 
       return rows.map((row) {
         final profileId = row['profile_id']?.toString() ?? '';
-        final profile = Map<String, dynamic>.from(row['profiles'] as Map? ?? {});
-        final resolvedName = _profileDisplayName(profile);
-        final displayName = resolvedName == 'Unknown'
-            ? row['instructor_id']?.toString() ?? 'Instructor'
-            : resolvedName;
+        final displayName = profileNames[profileId]
+            ?? row['instructor_id']?.toString()
+            ?? 'Instructor';
         final department = row['department']?.toString() ?? 'Unassigned';
         final subject = subjectsByInstructor[profileId]?.isNotEmpty == true
             ? subjectsByInstructor[profileId]!.first
             : 'Unassigned';
-
         return Instructor(profileId: profileId, name: displayName, course: department, subject: subject);
       }).toList();
     } on PostgrestException catch (error) {
@@ -460,19 +458,22 @@ class SupabaseAdminRepository {
   Future<Map<String, String>> _fetchProfileDisplayNames(List<String> profileIds) async {
     if (profileIds.isEmpty) return <String, String>{};
 
-    final rows = await _selectRows(
-      'profiles',
-      columns: 'id,display_name,first_name,last_name',
-      orderBy: 'created_at',
-    );
+    try {
+      final response = await _client
+          .from('profiles')
+          .select('id,display_name,first_name,last_name')
+          .inFilter('id', profileIds);
 
-    final Map<String, String> names = {};
-    for (final row in rows) {
-      final id = row['id']?.toString();
-      if (id == null || !profileIds.contains(id)) continue;
-      names[id] = _profileDisplayName(row);
+      final Map<String, String> names = {};
+      for (final row in (response as List).map((r) => Map<String, dynamic>.from(r as Map))) {
+        final id = row['id']?.toString();
+        if (id == null) continue;
+        names[id] = _profileDisplayName(row);
+      }
+      return names;
+    } on PostgrestException catch (error) {
+      throw app_auth.AuthException(code: error.code ?? 'db-error', message: error.message);
     }
-    return names;
   }
 
   String _profileDisplayName(Map<String, dynamic> row) {

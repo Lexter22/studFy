@@ -1,122 +1,61 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'jsr:@supabase/supabase-js@2'
 
-const corsHeaders = {
+const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
+const json = (data: unknown, status = 200) =>
+  new Response(JSON.stringify(data), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
-
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   try {
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
+    if (!authHeader) return json({ error: 'Missing authorization header' }, 401)
 
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    )
+    const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
 
-    const callerClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } },
-    )
+    const { data: { user }, error: userError } = await admin.auth.getUser(authHeader.replace('Bearer ', ''))
+    if (userError || !user) return json({ error: 'Unauthorized' }, 401)
 
-    const { data: { user: caller }, error: callerError } = await callerClient.auth.getUser()
-    if (callerError || !caller) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    const { data: callerProfile, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('role')
-      .eq('id', caller.id)
-      .single()
-
-    if (profileError || callerProfile?.role !== 'admin') {
-      return new Response(JSON.stringify({ error: 'Forbidden: admin only' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
+    const { data: profile } = await admin.from('profiles').select('role').eq('id', user.id).single()
+    if (profile?.role !== 'admin') return json({ error: 'Forbidden: admin only' }, 403)
 
     const { firstName, lastName, email, courseCode, yearSection, studentNumber } = await req.json()
-
-    if (!firstName || !lastName || !email || !courseCode || !yearSection) {
-      return new Response(JSON.stringify({ error: 'Missing required fields' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
+    if (!firstName || !lastName || !email || !courseCode || !yearSection) return json({ error: 'Missing required fields' }, 400)
 
     const defaultPassword = 'Studfy@123'
     const displayName = `${firstName.trim()} ${lastName.trim()}`.trim()
 
-    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+    const { data: newUser, error: createError } = await admin.auth.admin.createUser({
       email: email.trim().toLowerCase(),
       email_confirm: true,
       password: defaultPassword,
-      user_metadata: {
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        display_name: displayName,
-        role: 'student',
-      },
+      user_metadata: { first_name: firstName.trim(), last_name: lastName.trim(), display_name: displayName, role: 'student' },
     })
+    if (createError) return json({ error: createError.message }, 400)
 
-    if (createError) {
-      return new Response(JSON.stringify({ error: createError.message }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    const newUserId = newUser.user.id
+    const uid = newUser.user.id
     const year = new Date().getFullYear()
     const randomNum = String(Math.floor(Math.random() * 99999) + 1).padStart(5, '0')
     const resolvedStudentNumber = (studentNumber ?? '').trim() || `${year}-${randomNum}-BN-0`
 
-    const { error: studentError } = await supabaseAdmin
-      .from('student_profiles')
-      .insert({
-        profile_id: newUserId,
-        student_number: resolvedStudentNumber,
-        course_code: courseCode.trim(),
-        year_section: yearSection.trim(),
-      })
+    const { error: studentError } = await admin.from('student_profiles').insert({
+      profile_id: uid,
+      student_number: resolvedStudentNumber,
+      course_code: courseCode.trim(),
+      year_section: yearSection.trim(),
+    })
 
     if (studentError) {
-      await supabaseAdmin.auth.admin.deleteUser(newUserId)
-      return new Response(JSON.stringify({ error: studentError.message }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      await admin.auth.admin.deleteUser(uid)
+      return json({ error: studentError.message }, 400)
     }
 
-    await supabaseAdmin
-      .from('profiles')
-      .update({ role: 'student' })
-      .eq('id', newUserId)
+    await admin.from('profiles').update({ role: 'student' }).eq('id', uid)
 
-    return new Response(JSON.stringify({ id: newUserId, defaultPassword }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return json({ id: uid, defaultPassword })
   } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return json({ error: String(err) }, 500)
   }
 })
