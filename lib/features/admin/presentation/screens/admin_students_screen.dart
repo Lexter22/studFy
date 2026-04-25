@@ -88,11 +88,6 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.person_add, color: Colors.white),
-            tooltip: 'Add Student',
-            onPressed: _showCreateStudentDialog,
-          ),
           const Center(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
@@ -103,6 +98,11 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       drawer: const AdminDrawer(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showCreateStudentDialog,
+        backgroundColor: AppColors.adminPrimary,
+        child: const Icon(Icons.person_add, color: Colors.white),
+      ),
       body: ValueListenableBuilder<List<StudentData>>(
         valueListenable: appState.studentsNotifier,
         builder: (context, students, _) {

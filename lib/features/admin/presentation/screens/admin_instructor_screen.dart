@@ -179,11 +179,6 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.person_add, color: Colors.white),
-            tooltip: 'Add Instructor',
-            onPressed: _showCreateInstructorDialog,
-          ),
           const Center(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
@@ -201,6 +196,11 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       drawer: const AdminDrawer(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showCreateInstructorDialog,
+        backgroundColor: AppColors.adminPrimary,
+        child: const Icon(Icons.person_add, color: Colors.white),
+      ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),

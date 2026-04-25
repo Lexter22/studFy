@@ -114,11 +114,6 @@ class AdminEnrollmentCodesScreen extends StatelessWidget {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add, color: Colors.white),
-            tooltip: 'Create Code',
-            onPressed: () => _showCreateDialog(context),
-          ),
           const Center(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
@@ -129,6 +124,11 @@ class AdminEnrollmentCodesScreen extends StatelessWidget {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       drawer: const AdminDrawer(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showCreateDialog(context),
+        backgroundColor: AppColors.adminPrimary,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
       body: ValueListenableBuilder<List<Map<String, dynamic>>>(
         valueListenable: appState.enrollmentCodesNotifier,
         builder: (context, codes, _) {

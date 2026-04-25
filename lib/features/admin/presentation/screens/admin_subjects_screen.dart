@@ -72,11 +72,6 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add, color: Colors.white),
-            tooltip: 'Add Subject',
-            onPressed: _showCreateSubjectDialog,
-          ),
           const Center(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
@@ -94,6 +89,11 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       drawer: const AdminDrawer(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showCreateSubjectDialog,
+        backgroundColor: AppColors.adminPrimary,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
