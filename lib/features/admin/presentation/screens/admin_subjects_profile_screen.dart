@@ -141,47 +141,91 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
   }
 
   void _showAssignProfessorDialog() {
-    final instructors = context.read<AppState>().instructors;
-    if (instructors.isEmpty) {
-      AppDialog.alert(context, title: 'Notice', message: 'No instructors available.');
+    if (widget.subjectId == null) {
+      AppDialog.alert(context, title: 'Notice', message: 'Cannot assign a professor to a pending subject. Please create the subject first.');
       return;
     }
+    final instructors = context.read<AppState>().instructors;
+    if (instructors.isEmpty) {
+      AppDialog.alert(context, title: 'Notice', message: 'No instructors available. Please add an instructor first.');
+      return;
+    }
+
+    String _searchQuery = '';
+
     showDialog(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        title: const Text('Assign Professor'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: instructors.length,
-            itemBuilder: (ctx, index) {
-              final instructor = instructors[index];
-              return ListTile(
-                title: Text(instructor.name),
-                subtitle: Text(instructor.course),
-                onTap: () async {
-                  Navigator.pop(dialogCtx);
-                  try {
-                    await context.read<AppState>().assignProfessorToSubject(
-                      subjectId: widget.subjectId!,
-                      profileId: instructor.profileId,
-                    );
-                    if (!mounted) return;
-                    setState(() => _professorNameCtrl.text = instructor.name);
-                    await AppDialog.result(context, type: DialogType.success, message: 'Professor assigned successfully.');
-                  } catch (e) {
-                    if (!mounted) return;
-                    await AppDialog.alert(context, title: 'Error', message: e.toString());
-                  }
-                },
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Cancel')),
-        ],
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) {
+          final filtered = instructors
+              .where((i) => i.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                  i.course.toLowerCase().contains(_searchQuery.toLowerCase()))
+              .toList();
+
+          return AlertDialog(
+            title: const Text('Assign Professor'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Search by name or department...',
+                      prefixIcon: const Icon(Icons.search, size: 18),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      isDense: true,
+                    ),
+                    onChanged: (val) => setDialogState(() => _searchQuery = val),
+                  ),
+                  const SizedBox(height: 8),
+                  if (filtered.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text('No instructors found.', style: TextStyle(color: Colors.grey)),
+                    )
+                  else
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: filtered.length,
+                        itemBuilder: (ctx, index) {
+                          final instructor = filtered[index];
+                          return ListTile(
+                            leading: const CircleAvatar(
+                              backgroundColor: Color(0xFFE8EEF9),
+                              child: Icon(Icons.person, color: AppColors.adminPrimary, size: 20),
+                            ),
+                            title: Text(instructor.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                            subtitle: Text(instructor.course, style: const TextStyle(fontSize: 12)),
+                            onTap: () async {
+                              Navigator.pop(dialogCtx);
+                              try {
+                                await context.read<AppState>().assignProfessorToSubject(
+                                  subjectId: widget.subjectId!,
+                                  profileId: instructor.profileId,
+                                );
+                                if (!mounted) return;
+                                setState(() => _professorNameCtrl.text = instructor.name);
+                                await AppDialog.result(context, type: DialogType.success, message: '${instructor.name} has been assigned as professor.');
+                              } catch (e) {
+                                if (!mounted) return;
+                                await AppDialog.alert(context, title: 'Error', message: e.toString());
+                              }
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Cancel')),
+            ],
+          );
+        },
       ),
     );
   }

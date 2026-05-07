@@ -1,4 +1,5 @@
 import '../../../../core/services/error_telemetry.dart';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/app_user.dart';
@@ -23,9 +24,15 @@ class AuthService {
   SupabaseClient get _client => Supabase.instance.client;
 
   Future<bool> signInWithGoogle() {
+    // On web, redirect back to the current app origin so the OAuth callback
+    // lands on the running Flutter app regardless of which port it's on.
+    final redirectTo = kIsWeb
+        ? Uri.base.origin
+        : 'http://localhost:${const String.fromEnvironment('PORT', defaultValue: '8080')}';
+
     return _client.auth.signInWithOAuth(
       OAuthProvider.google,
-      redirectTo: 'http://localhost:8080',
+      redirectTo: redirectTo,
     );
   }
 
@@ -194,13 +201,38 @@ class AuthService {
 
   Future<AppUser> _withRole(AppUser user) async {
     try {
-      final role = await _userProfileRepository.getRoleByUid(user.uid);
+      UserRole role = await _userProfileRepository.getRoleByUid(user.uid);
 
-      // If student role but no student_profiles row = not pre-registered
-      // If professor role but no instructor_profiles row = not pre-registered  
-      // Only admin, or users with matching role profiles, are allowed
+      // The UID used for approval checks — may differ from the OAuth UID if
+      // this is the user's first Google sign-in against a pre-created profile.
+      String approvalUid = user.uid;
+
+      // OAuth sign-in (e.g. Google) creates a new UID that won't match a
+      // pre-created profile. Fall back to email lookup.
+      if (role == UserRole.unknown && user.email != null) {
+        role = await _userProfileRepository.getRoleByEmail(user.email!);
+
+        if (role != UserRole.unknown) {
+          // Use the original profile UID for the approval check so that
+          // student_profiles / instructor_profiles rows are found correctly.
+          // We do NOT update the PK to avoid FK cascade issues.
+          final originalUid =
+              await _userProfileRepository.getUidByEmail(user.email!);
+          if (originalUid != null) {
+            approvalUid = originalUid;
+          }
+        }
+      }
+
+      // If still unknown after email fallback, the user has no profile.
+      if (role == UserRole.unknown) {
+        await _client.auth.signOut();
+        return user.copyWith(role: UserRole.unknown);
+      }
+
+      // Check that the profile is fully approved (has student/instructor row).
       final approved = await _userProfileRepository.isLoginApproved(
-        uid: user.uid,
+        uid: approvalUid,
         role: role,
       );
 

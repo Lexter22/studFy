@@ -28,6 +28,42 @@ class SupabaseUserProfileRepository implements UserProfileRepository {
   }
 
   @override
+  Future<UserRole> getRoleByEmail(String email) async {
+    try {
+      final Map<String, dynamic>? row = await _client
+          .from('profiles')
+          .select('role')
+          .eq('email', email.trim().toLowerCase())
+          .maybeSingle();
+
+      return UserRoleX.fromString(row?['role'] as String?);
+    } on PostgrestException catch (error) {
+      throw app_auth.AuthException(
+        code: error.code ?? 'db-error',
+        message: error.message,
+      );
+    }
+  }
+
+  @override
+  Future<String?> getUidByEmail(String email) async {
+    try {
+      final Map<String, dynamic>? row = await _client
+          .from('profiles')
+          .select('id')
+          .eq('email', email.trim().toLowerCase())
+          .maybeSingle();
+
+      return row?['id'] as String?;
+    } on PostgrestException catch (error) {
+      throw app_auth.AuthException(
+        code: error.code ?? 'db-error',
+        message: error.message,
+      );
+    }
+  }
+
+  @override
   Future<bool> isLoginApproved({
     required String uid,
     required UserRole role,
@@ -78,7 +114,9 @@ class SupabaseUserProfileRepository implements UserProfileRepository {
         'email': email.trim().toLowerCase(),
         'display_name': displayName.trim(),
         'first_name': displayName.trim().split(' ').first,
-        'last_name': displayName.trim().split(' ').length > 1 ? displayName.trim().split(' ').last : '',
+        'last_name': displayName.trim().split(' ').length > 1
+            ? displayName.trim().split(' ').last
+            : '',
         'role': UserRole.unknown == role ? 'student' : role.value,
       }, onConflict: 'id', ignoreDuplicates: true);
     } on PostgrestException catch (error) {

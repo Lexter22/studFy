@@ -17,8 +17,6 @@ class AdminSubjectsScreen extends StatefulWidget {
 }
 
 class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
-  int? _hoveredSubjectIndex;
-
   final TextEditingController _subjectNameController = TextEditingController();
   final TextEditingController _courseController = TextEditingController();
   final TextEditingController _professorController = TextEditingController();
@@ -234,13 +232,13 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
     List<Map<String, String>> subjects,
   ) {
     return subjects.where((subject) {
-      final nameMatch = subject['name']!.toLowerCase().contains(
+      final nameMatch = (subject['name'] ?? '').toLowerCase().contains(
         _subjectNameController.text.toLowerCase(),
       );
-      final courseMatch = subject['course']!.toLowerCase().contains(
+      final courseMatch = (subject['course'] ?? '').toLowerCase().contains(
         _courseController.text.toLowerCase(),
       );
-      final professorMatch = subject['professor']!.toLowerCase().contains(
+      final professorMatch = (subject['professor'] ?? '').toLowerCase().contains(
         _professorController.text.toLowerCase(),
       );
       return nameMatch && courseMatch && professorMatch;
@@ -418,11 +416,13 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
     String subjectName,
     List<Map<String, String>> subjects,
   ) {
-    return subjects
+    final courses = subjects
         .where((s) => s['name'] == subjectName)
-        .map((s) => '${s['course']!} ${s['section']!}')
+        .map((s) => '${s['course'] ?? ''} ${s['section'] ?? ''}'.trim())
+        .where((v) => v.isNotEmpty)
         .toSet()
         .toList();
+    return courses.isEmpty ? ['—'] : courses;
   }
 
   Widget _buildSubjectListArea(
@@ -452,86 +452,72 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
     return Column(
       children: List.generate(filteredSubjects.length, (index) {
         final subject = filteredSubjects[index];
-        final isHovered = _hoveredSubjectIndex == index;
-        final courses = _getCoursesForSubject(subject['name']!, subjects);
+        final courses = _getCoursesForSubject(subject['name'] ?? '', subjects);
 
-        return MouseRegion(
-          onEnter: (_) => setState(() => _hoveredSubjectIndex = index),
-          onExit: (_) => setState(() => _hoveredSubjectIndex = null),
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            decoration: BoxDecoration(
-              color: isHovered ? Colors.grey.shade100 : Colors.grey.shade50,
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () async {
+                await context.pushNamed(
+                  AppRoutes.adminSubjectsProfile,
+                  extra: {
+                    'subjectId': subject['id'],
+                    'subjectName': subject['name'] ?? '',
+                    'courseSection': '${subject['course'] ?? ''} ${subject['section'] ?? ''}'.trim(),
+                    'professor': subject['professor'] ?? '',
+                  },
+                );
+              },
               borderRadius: BorderRadius.circular(8),
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () async {
-                  await context.pushNamed(
-                    AppRoutes.adminSubjectsProfile,
-                    extra: {
-                      'subjectId': subject['id'],
-                      'subjectName': subject['name']!,
-                      'courseSection':
-                          '${subject['course']!} ${subject['section']!}',
-                      'professor': subject['professor']!,
-                    },
-                  );
-                },
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        subject['name'] ?? '',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: _buildTableDropdown(
+                        '${subject['course'] ?? ''} ${subject['section'] ?? ''}'.trim(),
+                        courses,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 3,
+                      child: Container(
+                        height: 32,
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.black12),
+                        ),
                         child: Text(
-                          subject['name']!,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: isHovered
-                                ? AppColors.adminPrimary
-                                : Colors.black87,
-                          ),
+                          subject['professor'] ?? '',
+                          style: const TextStyle(fontSize: 12, color: Colors.black54),
+                          overflow: TextOverflow.visible,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        flex: 2,
-                        child: _buildTableDropdown(
-                          '${subject['course']!} ${subject['section']!}',
-                          courses,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        flex: 3,
-                        child: Container(
-                          height: 32,
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: Colors.black12),
-                          ),
-                          child: Text(
-                            subject['professor']!,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.black54,
-                            ),
-                            overflow: TextOverflow.visible,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -542,7 +528,20 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
   }
 
   Widget _buildTableDropdown(String value, List<String> items) {
-    String currentValue = items.contains(value) ? value : items.first;
+    if (items.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        height: 32,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: Colors.black12),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        alignment: Alignment.centerLeft,
+        child: const Text('—', style: TextStyle(fontSize: 12, color: Colors.black54)),
+      );
+    }
+    final currentValue = items.contains(value) ? value : items.first;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       height: 32,
@@ -555,16 +554,10 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
         child: DropdownButton<String>(
           value: currentValue,
           isExpanded: true,
-          icon: const Icon(
-            Icons.arrow_drop_down,
-            size: 18,
-            color: Colors.black54,
-          ),
+          icon: const Icon(Icons.arrow_drop_down, size: 18, color: Colors.black54),
           style: const TextStyle(fontSize: 12, color: Colors.black87),
           onChanged: (val) {},
-          items: items
-              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-              .toList(),
+          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
         ),
       ),
     );
@@ -663,93 +656,84 @@ class _PendingSubjectCard extends StatefulWidget {
 }
 
 class _PendingSubjectCardState extends State<_PendingSubjectCard> {
-  bool _isHovered = false;
-
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: _isHovered
-                  ? Colors.black.withOpacity(0.08)
-                  : Colors.black.withOpacity(0.04),
-              blurRadius: _isHovered ? 15 : 10,
-              offset: _isHovered ? const Offset(0, 6) : const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF3E0),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.bookmark_outline,
-                    color: Colors.orange,
-                    size: 24,
-                  ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFF3E0),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 19,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        widget.status,
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
+                child: const Icon(
+                  Icons.bookmark_outline,
+                  color: Colors.orange,
+                  size: 24,
                 ),
-                _buildStatusBadge(),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                _buildViewDetailsBtn(() {
-                  context.pushNamed(
-                    AppRoutes.adminSubjectsProfile,
-                    extra: {
-                      'subjectName': widget.name,
-                      'courseSection': 'Pending',
-                      'professor': 'Admin',
-                      'pendingRequest': widget.status,
-                    },
-                  );
-                }),
-              ],
-            ),
-          ],
-        ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 19,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      widget.status,
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _buildStatusBadge(),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              _buildViewDetailsBtn(() {
+                context.pushNamed(
+                  AppRoutes.adminSubjectsProfile,
+                  extra: {
+                    'subjectName': widget.name,
+                    'courseSection': 'Pending',
+                    'professor': 'Admin',
+                    'pendingRequest': widget.status,
+                  },
+                );
+              }),
+            ],
+          ),
+        ],
       ),
     );
   }

@@ -15,6 +15,7 @@ class AppState extends ChangeNotifier {
   bool get isAuthenticated => _isAuthenticated;
   AppUser? get currentUser => _currentUser;
 
+  final ValueNotifier<String?> accessDeniedNotifier = ValueNotifier<String?>(null);
   final ValueNotifier<List<Map<String, String>>> pendingSubjectRequestsNotifier =
       ValueNotifier<List<Map<String, String>>>(const []);
   final ValueNotifier<List<Map<String, String>>> pendingInstructorRequestsNotifier =

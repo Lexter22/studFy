@@ -33,7 +33,9 @@ class SupabaseAdminRepository {
       );
 
       return rows.map((row) {
-        final metadata = Map<String, dynamic>.from(row['metadata'] as Map? ?? {});
+        final metadata = Map<String, dynamic>.from(
+          (row['metadata'] is Map ? row['metadata'] as Map : <String, dynamic>{})
+        );
         return <String, String>{
           'id': row['id']?.toString() ?? '',
           'kind': row['kind']?.toString() ?? '',
@@ -158,10 +160,15 @@ class SupabaseAdminRepository {
       }
     }
 
-    final response = orderBy == null
+    final dynamic response = orderBy == null
         ? await query
         : await query.order(orderBy, ascending: ascending);
-    return (response as List).map((row) => Map<String, dynamic>.from(row as Map)).toList();
+
+    if (response is! List) return [];
+    return response
+        .whereType<Map>()
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList();
   }
 
   Future<void> resolveRoleRequest({
@@ -317,7 +324,10 @@ class SupabaseAdminRepository {
         columns: 'student_profile_id',
         equals: {'subject_offering_id': subjectOfferingId},
       );
-      return rows.map((r) => r['student_profile_id'].toString()).toList();
+      return rows
+          .map((r) => r['student_profile_id']?.toString() ?? '')
+          .where((id) => id.isNotEmpty)
+          .toList();
     } on PostgrestException catch (error) {
       throw app_auth.AuthException(code: error.code ?? 'db-error', message: error.message);
     }
@@ -330,7 +340,10 @@ class SupabaseAdminRepository {
         columns: 'subject_offering_id',
         equals: {'student_profile_id': studentProfileId},
       );
-      return rows.map((r) => r['subject_offering_id'].toString()).toList();
+      return rows
+          .map((r) => r['subject_offering_id']?.toString() ?? '')
+          .where((id) => id.isNotEmpty)
+          .toList();
     } on PostgrestException catch (error) {
       throw app_auth.AuthException(code: error.code ?? 'db-error', message: error.message);
     }
@@ -338,11 +351,15 @@ class SupabaseAdminRepository {
 
   Future<List<Map<String, dynamic>>> fetchEnrollmentCodes() async {
     try {
-      final response = await _client
+      final dynamic response = await _client
           .from('enrollment_codes')
           .select('id,code,course_code,year_section,max_uses,current_uses,is_active,expires_at')
           .order('created_at', ascending: false);
-      return (response as List).map((row) => Map<String, dynamic>.from(row as Map)).toList();
+      if (response is! List) return [];
+      return response
+          .whereType<Map>()
+          .map((row) => Map<String, dynamic>.from(row))
+          .toList();
     } on PostgrestException catch (error) {
       throw app_auth.AuthException(code: error.code ?? 'db-error', message: error.message);
     }
@@ -459,15 +476,17 @@ class SupabaseAdminRepository {
     if (profileIds.isEmpty) return <String, String>{};
 
     try {
-      final response = await _client
+      final dynamic response = await _client
           .from('profiles')
           .select('id,display_name,first_name,last_name')
           .inFilter('id', profileIds);
 
+      if (response is! List) return {};
+
       final Map<String, String> names = {};
-      for (final row in (response as List).map((r) => Map<String, dynamic>.from(r as Map))) {
+      for (final row in response.whereType<Map>().map((r) => Map<String, dynamic>.from(r))) {
         final id = row['id']?.toString();
-        if (id == null) continue;
+        if (id == null || id.isEmpty) continue;
         names[id] = _profileDisplayName(row);
       }
       return names;

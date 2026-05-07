@@ -168,10 +168,16 @@ GoRouter createAppRouter(AppState appState) {
         path: '/admin/instructors/profile',
         name: AppRoutes.adminInstructorProfile,
         pageBuilder: (context, state) {
-          final extraData = state.extra as Map<String, dynamic>;
-          final Instructor instructor = extraData['instructor'] as Instructor;
-          final String? request = extraData['request'] as String?;
-          
+          final extra = state.extra;
+          final extraData = extra is Map<String, dynamic> ? extra : <String, dynamic>{};
+          final instructor = extraData['instructor'];
+          final String? request = extraData['request']?.toString();
+
+          // Guard: if extra is missing or malformed, bounce back to instructors list
+          if (instructor is! Instructor) {
+            return _seamlessPage(state.pageKey, const AdminInstructorScreen());
+          }
+
           return _seamlessPage(
             state.pageKey,
             AdminInstructorProfileScreen(
@@ -215,15 +221,26 @@ GoRouter createAppRouter(AppState appState) {
         path: '/admin/subjects/profile',
         name: AppRoutes.adminSubjectsProfile,
         pageBuilder: (context, state) {
-          final extra = state.extra as Map<String, dynamic>;
+          final extra = state.extra;
+          final extraData = extra is Map<String, dynamic> ? extra : <String, dynamic>{};
+
+          final subjectName = extraData['subjectName']?.toString() ?? '';
+          final courseSection = extraData['courseSection']?.toString() ?? '';
+          final professor = extraData['professor']?.toString() ?? '';
+
+          // Guard: if required fields are missing, bounce back to subjects list
+          if (subjectName.isEmpty) {
+            return _seamlessPage(state.pageKey, const AdminSubjectsScreen());
+          }
+
           return _seamlessPage(
             state.pageKey,
             AdminSubjectsProfileScreen(
-              subjectId: extra['subjectId'] as String?,
-              subjectName: extra['subjectName'] as String,
-              courseSection: extra['courseSection'] as String,
-              professor: extra['professor'] as String,
-              pendingRequest: extra['pendingRequest'] as String?,
+              subjectId: extraData['subjectId']?.toString(),
+              subjectName: subjectName,
+              courseSection: courseSection,
+              professor: professor,
+              pendingRequest: extraData['pendingRequest']?.toString(),
             ),
           );
         },
@@ -240,4 +257,4 @@ GoRouter createAppRouter(AppState appState) {
       ),
     ],
   );
-}
+}

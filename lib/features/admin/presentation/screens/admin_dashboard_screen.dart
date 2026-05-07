@@ -174,8 +174,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           return _buildFixedList(
                             pendingRequests.map((request) {
                               final requestId = request['id'] ?? '';
-                              final name = request['name']!;
-                              final status = request['status']!;
+                              final name = request['name'] ?? '';
+                              final status = request['status'] ?? '';
                               return _buildActionListItem(
                                 requestId,
                                 name,
@@ -211,8 +211,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           }
                           return _buildFixedList(
                             pendingRequests.map((request) {
-                              final name = request['name']!;
-                              final status = request['status']!;
+                              final name = request['name'] ?? '';
+                              final status = request['status'] ?? '';
                               return _buildSimpleListItem(
                                 name,
                                 status,

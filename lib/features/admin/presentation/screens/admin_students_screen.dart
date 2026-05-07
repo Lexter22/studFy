@@ -19,7 +19,6 @@ class AdminStudentsScreen extends StatefulWidget {
 }
 
 class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
-  int? _hoveredStudentIndex;
   final TextEditingController _searchController = TextEditingController();
   String? _selectedCourse;
   String? _selectedSubject;
@@ -258,48 +257,57 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
   }
 
   Widget _buildStudentRow(StudentData student) {
-    final rowKey = student.profileId.hashCode;
-    final isHovered = _hoveredStudentIndex == rowKey;
-
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hoveredStudentIndex = rowKey),
-      onExit: (_) => setState(() => _hoveredStudentIndex = null),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => context.pushNamed(AppRoutes.adminStudentsProfile, pathParameters: {'profileId': student.profileId}, extra: {'student': student}),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          color: isHovered ? Colors.grey.shade50 : Colors.transparent,
-          child: Row(
-            children: [
-              Expanded(
-                flex: 3,
+    return InkWell(
+      onTap: () => context.pushNamed(
+        AppRoutes.adminStudentsProfile,
+        pathParameters: {'profileId': student.profileId},
+        extra: {'student': student},
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            Expanded(
+              flex: 3,
+              child: Text(
+                student.name,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              flex: 2,
+              child: Container(
+                height: 30,
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.black12),
+                ),
                 child: Text(
-                  student.name,
-                  style: TextStyle(fontSize: 13, fontWeight: isHovered ? FontWeight.bold : FontWeight.w500, color: isHovered ? AppColors.adminPrimary : Colors.black87),
+                  '${student.course} ${student.yearSection}',
+                  style: const TextStyle(fontSize: 11, color: Colors.black87),
                 ),
               ),
-              const SizedBox(width: 6),
-              Expanded(
-                flex: 2,
-                child: Container(
-                  height: 30,
-                  alignment: Alignment.centerLeft,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.black12)),
-                  child: Text('${student.course} ${student.yearSection}', style: const TextStyle(fontSize: 11, color: Colors.black87)),
-                ),
-              ),
-              if (isHovered) ...[
-                const SizedBox(width: 8),
-                IconButton(icon: const Icon(Icons.edit, size: 18, color: Colors.blue), onPressed: () => _showEditStudentDialog(student), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
-                const SizedBox(width: 8),
-                IconButton(icon: const Icon(Icons.delete, size: 18, color: Colors.red), onPressed: () => _showDeleteStudentDialog(student), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
+            ),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, size: 18, color: Colors.black54),
+              onSelected: (value) {
+                if (value == 'edit') _showEditStudentDialog(student);
+                if (value == 'delete') _showDeleteStudentDialog(student);
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 16, color: Colors.blue), SizedBox(width: 8), Text('Edit')])),
+                PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, size: 16, color: Colors.red), SizedBox(width: 8), Text('Delete', style: TextStyle(color: Colors.red))])),
               ],
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

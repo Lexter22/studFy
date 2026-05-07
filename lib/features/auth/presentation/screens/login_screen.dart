@@ -36,6 +36,22 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     _emailController.addListener(_validateInputs);
     _passwordController.addListener(_validateInputs);
+
+    // Show access denied dialog when a Google/OAuth sign-in is rejected
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final appState = context.read<AppState>();
+      appState.accessDeniedNotifier.addListener(() {
+        final reason = appState.accessDeniedNotifier.value;
+        if (reason != null && mounted) {
+          appState.accessDeniedNotifier.value = null;
+          AppDialog.alert(
+            context,
+            title: 'Access Denied',
+            message: reason,
+          );
+        }
+      });
+    });
   }
 
   void _validateInputs() {
@@ -284,7 +300,23 @@ class _LoginScreenState extends State<LoginScreen> {
                           SocialLoginButton(
                             label: 'Continue with Google',
                             assetPath: 'assets/images/google.png',
-                            onTap: () => _authService.signInWithGoogle(),
+                            onTap: () async {
+                              try {
+                                await _authService.signInWithGoogle();
+                              } catch (error, stackTrace) {
+                                await ErrorTelemetry.captureException(
+                                  error,
+                                  stackTrace,
+                                  operation: 'auth.google_signin',
+                                );
+                                if (!mounted) return;
+                                AppDialog.alert(
+                                  context,
+                                  title: 'Google Sign-In Failed',
+                                  message: 'Unable to sign in with Google. Please try again.',
+                                );
+                              }
+                            },
                           ),
                           const SizedBox(height: 12),
                           SocialLoginButton(
