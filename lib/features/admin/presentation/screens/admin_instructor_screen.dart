@@ -8,7 +8,7 @@ import '../../../../core/state/app_state.dart';
 import '../../domain/models/instructor.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../../../auth/domain/models/auth_exception.dart';
-import '../widgets/admin_drawer.dart';
+import '../widgets/admin_floating_nav_bar.dart';
 
 class AdminInstructorScreen extends StatefulWidget {
   const AdminInstructorScreen({super.key});
@@ -83,17 +83,22 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
         actions: const [
           Center(child: Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('Admin 1', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)))),
         ],
+        automaticallyImplyLeading: false,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      drawer: const AdminDrawer(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddDialog,
-        backgroundColor: AppColors.adminPrimary,
-        child: const Icon(Icons.person_add, color: Colors.white),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 75),
+        child: FloatingActionButton(
+          onPressed: _showAddDialog,
+          backgroundColor: AppColors.adminPrimary,
+          child: const Icon(Icons.person_add, color: Colors.white),
+        ),
       ),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -120,8 +125,10 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
           ],
         ),
       ),
-    );
-  }
+      const AdminFloatingNavBar(currentIndex: 0),
+    ]),
+  );
+}
 
   Widget _sectionLabel(String text) => Padding(
     padding: const EdgeInsets.only(bottom: 8, left: 4),

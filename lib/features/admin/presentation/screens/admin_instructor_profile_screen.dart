@@ -6,7 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/state/app_state.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../../domain/models/instructor.dart';
-import '../widgets/admin_drawer.dart';
+import '../widgets/admin_floating_nav_bar.dart';
 
 class AdminInstructorProfileScreen extends StatefulWidget {
   final Instructor instructor;
@@ -172,11 +172,13 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
         actions: const [
           Center(child: Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('Admin 1', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)))),
         ],
+        automaticallyImplyLeading: false,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      drawer: const AdminDrawer(),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -234,8 +236,10 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
           ],
         ),
       ),
-    );
-  }
+      const AdminFloatingNavBar(currentIndex: 0),
+    ]),
+  );
+}
 
   Widget _buildSubjectsTable() {
     if (_isLoadingSubjects) return const Center(child: CircularProgressIndicator());

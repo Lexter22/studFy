@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/state/app_state.dart';
 import '../../../../core/widgets/app_dialog.dart';
-import '../widgets/admin_drawer.dart';
+import '../widgets/admin_floating_nav_bar.dart';
 import '../../domain/models/student.dart';
 
 class AdminStudentsProfileScreen extends StatefulWidget {
@@ -219,13 +219,15 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
             ),
           ),
         ],
+        automaticallyImplyLeading: false,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      drawer: const AdminDrawer(),
-      body: _currentStudent == null
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: Stack(
+        children: [
+          _currentStudent == null
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -254,8 +256,10 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
           ],
         ),
       ),
-    );
-  }
+      const AdminFloatingNavBar(currentIndex: 1),
+    ]),
+  );
+}
 
   Widget _buildSectionTitle(String title) {
     return Padding(

@@ -1,5 +1,10 @@
-import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:flutter/foundation.dart';
 
+/// Lightweight error reporting stub.
+///
+/// Sentry is temporarily disabled because its transitive dependency
+/// `objective_c` fails to compile on Windows paths that contain spaces.
+/// Re-enable once the upstream Flutter toolchain resolves path quoting.
 class ErrorTelemetry {
   const ErrorTelemetry._();
 
@@ -9,17 +14,14 @@ class ErrorTelemetry {
     String? operation,
     Map<String, Object?> extras = const {},
   }) async {
-    await Sentry.captureException(
-      exception,
-      stackTrace: stackTrace,
-      withScope: (scope) {
-        if (operation != null && operation.isNotEmpty) {
-          scope.transaction = operation;
-        }
-        if (extras.isNotEmpty) {
-          scope.setContexts('auth', extras);
-        }
-      },
-    );
+    // Light stub to print exceptions to debug console instead of Sentry
+    debugPrint('[ErrorTelemetry] Exception captured');
+    if (operation != null) {
+      debugPrint('Operation: $operation');
+    }
+    debugPrint('Exception: $exception');
+    if (extras.isNotEmpty) {
+      debugPrint('Context Extras: $extras');
+    }
   }
 }

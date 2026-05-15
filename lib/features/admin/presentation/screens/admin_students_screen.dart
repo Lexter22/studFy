@@ -9,7 +9,7 @@ import '../../../../core/state/app_state.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../../../auth/domain/models/auth_exception.dart';
 import '../../domain/models/student.dart';
-import '../widgets/admin_drawer.dart';
+import '../widgets/admin_floating_nav_bar.dart';
 
 class AdminStudentsScreen extends StatefulWidget {
   const AdminStudentsScreen({super.key});
@@ -94,31 +94,36 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
             ),
           ),
         ],
+        automaticallyImplyLeading: false,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      drawer: const AdminDrawer(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showCreateStudentDialog,
-        backgroundColor: AppColors.adminPrimary,
-        child: const Icon(Icons.person_add, color: Colors.white),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 75),
+        child: FloatingActionButton(
+          onPressed: _showCreateStudentDialog,
+          backgroundColor: AppColors.adminPrimary,
+          child: const Icon(Icons.person_add, color: Colors.white),
+        ),
       ),
-      body: ValueListenableBuilder<List<StudentData>>(
-        valueListenable: appState.studentsNotifier,
-        builder: (context, students, _) {
-          final subjectOptions = _subjectOptions(appState.subjectOfferings);
-          final filteredStudents = _filterStudents(students);
-          final courseSectionList = _courseSectionList(students);
-          final pageCount = math.max(1, (filteredStudents.length / _pageSize).ceil());
-          final safePage = _currentPage.clamp(0, pageCount - 1);
-          if (safePage != _currentPage) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) setState(() => _currentPage = safePage);
-            });
-          }
-          final pagedStudents = filteredStudents.skip(safePage * _pageSize).take(_pageSize).toList();
+      body: Stack(
+        children: [
+          ValueListenableBuilder<List<StudentData>>(
+            valueListenable: appState.studentsNotifier,
+            builder: (context, students, _) {
+              final subjectOptions = _subjectOptions(appState.subjectOfferings);
+              final filteredStudents = _filterStudents(students);
+              final courseSectionList = _courseSectionList(students);
+              final pageCount = math.max(1, (filteredStudents.length / _pageSize).ceil());
+              final safePage = _currentPage.clamp(0, pageCount - 1);
+              if (safePage != _currentPage) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) setState(() => _currentPage = safePage);
+                });
+              }
+              final pagedStudents = filteredStudents.skip(safePage * _pageSize).take(_pageSize).toList();
 
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -142,11 +147,13 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                 _buildPagination(totalItems: filteredStudents.length, pageCount: pageCount, currentPage: safePage),
               ],
             ),
-          );
-        },
-      ),
-    );
-  }
+              );
+            },
+          ),
+          const AdminFloatingNavBar(currentIndex: 1),
+        ]),
+      );
+    }
 
   Widget _buildSearchArea(List<String> courseSectionList, List<String> subjectOptions) {
     return Column(

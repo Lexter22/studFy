@@ -7,7 +7,7 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../../../auth/domain/models/auth_exception.dart';
-import '../widgets/admin_drawer.dart';
+import '../widgets/admin_floating_nav_bar.dart';
 
 class AdminSubjectsScreen extends StatefulWidget {
   const AdminSubjectsScreen({super.key});
@@ -84,17 +84,22 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
             ),
           ),
         ],
+        automaticallyImplyLeading: false,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      drawer: const AdminDrawer(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showCreateSubjectDialog,
-        backgroundColor: AppColors.adminPrimary,
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 75),
+        child: FloatingActionButton(
+          onPressed: _showCreateSubjectDialog,
+          backgroundColor: AppColors.adminPrimary,
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
       ),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
                   child: ValueListenableBuilder<List<Map<String, String>>>(
                     valueListenable: appState.subjectOfferingsNotifier,
                     builder: (context, subjects, child) {
@@ -192,9 +197,12 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                       );
                     },
                   ),
-        ),
-    );
-  }
+                ),
+                const AdminFloatingNavBar(currentIndex: 3),
+              ],
+            ),
+          );
+        }
 
   Widget _buildSectionTitle(String title, String? trailingText) {
     return Padding(

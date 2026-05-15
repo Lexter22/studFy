@@ -1,5 +1,4 @@
-﻿import 'package:flutter/material.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
@@ -19,18 +18,5 @@ Future<void> main() async {
 
   await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
 
-  const dsn = String.fromEnvironment('SENTRY_DSN');
-  if (dsn.isNotEmpty) {
-    await SentryFlutter.init(
-      (options) {
-        options.dsn = dsn;
-        options.tracesSampleRate = 0.1;
-      },
-      appRunner: () {
-        runApp(const StudfyApp());
-      },
-    );
-  } else {
-    runApp(const StudfyApp());
-  }
+  runApp(const StudfyApp());
 }
