@@ -8,7 +8,7 @@ import '../../../../core/state/app_state.dart';
 import '../../../../features/auth/domain/services/auth_service.dart';
 import '../../data/repositories/professor_repository.dart';
 import '../../domain/models/professor_subject.dart';
-import '../../presentation/widgets/professor_drawer.dart';
+import '../widgets/professor_floating_nav_bar.dart';
 import 'professor_subject_screen.dart';
 
 class ProfessorDashboardScreen extends StatefulWidget {
@@ -63,23 +63,33 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
           SizedBox(width: 8),
           Text('STUDFY', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
         ]),
+        automaticallyImplyLeading: false,
         actions: [
-          Center(child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(user?.displayName ?? user?.email ?? '', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-          )),
-          IconButton(icon: const Icon(Icons.logout, color: Colors.white), onPressed: _logout, tooltip: 'Logout'),
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                user?.displayName ?? user?.email ?? '',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
-      drawer: const ProfessorDrawer(),
-      body: RefreshIndicator(
+      body: Stack(
+        children: [
+          RefreshIndicator(
         onRefresh: _load,
         child: _loading
             ? const Center(child: CircularProgressIndicator())
             : _subjects.isEmpty
                 ? const Center(child: Text('No subjects assigned yet.', style: TextStyle(color: Colors.grey, fontSize: 15)))
                 : ListView(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                     children: [
                       Text('My Subjects', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.authPrimary)),
                       const SizedBox(height: 4),
@@ -89,8 +99,11 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                         await Navigator.push(context, MaterialPageRoute(builder: (_) => ProfessorSubjectScreen(subject: s)));
                         _load();
                       })),
-                    ],
-                  ),
+                     ],
+                   ),
+          ),
+          const ProfessorFloatingNavBar(currentIndex: 2),
+        ],
       ),
     );
   }

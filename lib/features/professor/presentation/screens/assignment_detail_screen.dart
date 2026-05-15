@@ -5,7 +5,6 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../../data/repositories/professor_repository.dart';
 import '../../domain/models/professor_subject.dart';
-import '../widgets/professor_drawer.dart';
 
 class AssignmentDetailScreen extends StatefulWidget {
   final SubjectAssignment assignment;
@@ -81,7 +80,6 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
           Text(widget.subjectName, style: const TextStyle(color: Colors.white70, fontSize: 12)),
         ]),
       ),
-      drawer: const ProfessorDrawer(),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(

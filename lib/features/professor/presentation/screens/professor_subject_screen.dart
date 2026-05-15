@@ -20,6 +20,7 @@ class ProfessorSubjectScreen extends StatefulWidget {
 class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
   final _repo = const ProfessorRepository();
   int _currentIndex = 0;
+  int? _hoveredNavIdx;
 
   List<SubjectModule> _modules = [];
   List<SubjectQuiz> _quizzes = [];
@@ -423,42 +424,39 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
         ]),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      drawer: const ProfessorDrawer(),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
-        selectedItemColor: AppColors.authPrimary,
-        unselectedItemColor: Colors.black45,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.folder_open), label: 'Modules'),
-          BottomNavigationBarItem(icon: Icon(Icons.quiz), label: 'Quizzes'),
-          BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Assignments'),
-          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Students'),
+      body: Stack(
+        children: [
+          _loading
+              ? const Center(child: CircularProgressIndicator())
+              : Padding(
+                  padding: const EdgeInsets.only(bottom: 90),
+                  child: IndexedStack(
+                    index: _currentIndex,
+                    children: [
+                      _buildModulesTab(),
+                      _buildQuizzesTab(),
+                      _buildAssignmentsTab(),
+                      _buildStudentsTab(),
+                    ],
+                  ),
+                ),
+          if (!_loading) _buildFloatingNavBar(),
         ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : IndexedStack(
-              index: _currentIndex,
-              children: [
-                _buildModulesTab(),
-                _buildQuizzesTab(),
-                _buildAssignmentsTab(),
-                _buildStudentsTab(),
-              ],
-            ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.authPrimary,
-        onPressed: () {
-          switch (_currentIndex) {
-            case 0: _showAddModuleDialog(); break;
-            case 1: _showAddQuizDialog(); break;
-            case 2: _showAddAssignmentDialog(); break;
-            case 3: _showEnrollStudentDialog(); break;
-          }
-        },
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 85),
+        child: FloatingActionButton(
+          backgroundColor: AppColors.authPrimary,
+          onPressed: () {
+            switch (_currentIndex) {
+              case 0: _showAddModuleDialog(); break;
+              case 1: _showAddQuizDialog(); break;
+              case 2: _showAddAssignmentDialog(); break;
+              case 3: _showEnrollStudentDialog(); break;
+            }
+          },
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
       ),
     );
   }
@@ -962,6 +960,83 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
   );
 
   Widget _empty(String msg) => Center(child: Text(msg, style: const TextStyle(color: Colors.grey, fontSize: 14)));
+
+  Widget _buildFloatingNavBar() {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width > 800 ? 600 : MediaQuery.of(context).size.width - 20,
+          ),
+          child: Container(
+            height: 70,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: AppColors.authPrimary,
+              borderRadius: BorderRadius.circular(35),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildFloatingNavItem(Icons.folder_open_rounded, 'MODULES', 0),
+                _buildFloatingNavItem(Icons.quiz_rounded, 'QUIZZES', 1),
+                _buildFloatingNavItem(Icons.assignment_rounded, 'ASSIGNMENTS', 2),
+                _buildFloatingNavItem(Icons.people_rounded, 'STUDENTS', 3),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFloatingNavItem(IconData icon, String label, int index) {
+    final bool isHovered = _hoveredNavIdx == index;
+    final bool isActive = _currentIndex == index;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hoveredNavIdx = index),
+      onExit: (_) => setState(() => _hoveredNavIdx = null),
+      child: GestureDetector(
+        onTap: () => setState(() => _currentIndex = index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: isActive 
+                ? Colors.white.withOpacity(0.15) 
+                : (isHovered ? Colors.white.withOpacity(0.08) : Colors.transparent),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: Colors.white, size: 22),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 9,
+                  fontWeight: (isHovered || isActive) ? FontWeight.bold : FontWeight.normal,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // ── Question tile widget ──────────────────────────────────────────────────────
