@@ -2,7 +2,6 @@ import 'dart:html' as html;
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/widgets/app_dialog.dart';
 import '../../data/repositories/professor_repository.dart';
 import '../../domain/models/professor_subject.dart';
 

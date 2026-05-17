@@ -6,7 +6,6 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../../data/repositories/professor_repository.dart';
 import '../../domain/models/professor_subject.dart';
-import '../widgets/professor_drawer.dart';
 import 'assignment_detail_screen.dart';
 
 class ProfessorSubjectScreen extends StatefulWidget {

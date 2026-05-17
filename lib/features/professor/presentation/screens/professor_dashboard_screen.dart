@@ -41,12 +41,7 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
     }
   }
 
-  Future<void> _logout() async {
-    await _auth.signOut();
-    if (!mounted) return;
-    context.read<AppState>().logout();
-    context.goNamed(AppRoutes.login);
-  }
+
 
   @override
   Widget build(BuildContext context) {

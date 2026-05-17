@@ -20,6 +20,8 @@ import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/verify_email_screen.dart';
 import '../../features/professor/presentation/screens/professor_dashboard_screen.dart';
 import '../../features/student/presentation/screens/student_dashboard_screen.dart';
+import '../../features/student/presentation/screens/student_todo_screen.dart';
+import '../../features/student/presentation/screens/student_modules_screen.dart';
 import '../state/app_state.dart';
 
 abstract class AppRoutes {
@@ -39,6 +41,8 @@ abstract class AppRoutes {
   static const adminSubjectsProfile = 'admin-subjects-profile';
   static const professorDashboard = 'professor-dashboard';
   static const studentDashboard = 'student-dashboard';
+  static const studentTodo = 'student-todo';
+  static const studentModules = 'student-modules';
 
   static String pathForRole(UserRole role) {
     switch (role) {
@@ -254,6 +258,16 @@ GoRouter createAppRouter(AppState appState) {
         path: '/student/dashboard',
         name: AppRoutes.studentDashboard,
         pageBuilder: (context, state) => _seamlessPage(state.pageKey, const StudentDashboardScreen()),
+      ),
+      GoRoute(
+        path: '/student/todo',
+        name: AppRoutes.studentTodo,
+        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const StudentTodoScreen()),
+      ),
+      GoRoute(
+        path: '/student/modules',
+        name: AppRoutes.studentModules,
+        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const StudentModulesScreen()),
       ),
     ],
   );
