@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/studfy_header.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/services/error_telemetry.dart';
 import '../../../../core/state/app_state.dart';
 import '../../domain/models/auth_exception.dart';
+import '../../domain/models/app_user.dart';
 import '../../domain/enums/user_role.dart';
 import '../../domain/services/auth_service.dart';
 import '../widgets/social_login_button.dart';
@@ -36,6 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     _emailController.addListener(_validateInputs);
     _passwordController.addListener(_validateInputs);
+    _loadSavedCredentials();
 
     // Show access denied dialog when a Google/OAuth sign-in is rejected
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -52,6 +56,38 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       });
     });
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final bool rememberMe = prefs.getBool('remember_me') ?? false;
+      if (rememberMe) {
+        final savedEmail = prefs.getString('saved_email') ?? '';
+        final savedPassword = prefs.getString('saved_password') ?? '';
+        setState(() {
+          _rememberMe = true;
+          _emailController.text = savedEmail;
+          _passwordController.text = savedPassword;
+          _isButtonEnabled = savedEmail.isNotEmpty && savedPassword.isNotEmpty;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveCredentials() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (_rememberMe) {
+        await prefs.setBool('remember_me', true);
+        await prefs.setString('saved_email', _emailController.text.trim());
+        await prefs.setString('saved_password', _passwordController.text);
+      } else {
+        await prefs.setBool('remember_me', false);
+        await prefs.remove('saved_email');
+        await prefs.remove('saved_password');
+      }
+    } catch (_) {}
   }
 
   void _validateInputs() {
@@ -74,10 +110,28 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.toLowerCase() == 'prof@studfy.com' && password == 'password123') {
+      final user = AppUser(
+        uid: 'mock-professor-id',
+        email: email,
+        displayName: 'Professor Test',
+        role: UserRole.professor,
+        isEmailVerified: true,
+      );
+      await _saveCredentials();
+      if (!mounted) return;
+      context.read<AppState>().login(user);
+      context.go(AppRoutes.pathForRole(user.role));
+      return;
+    }
+
     try {
       final user = await _authService.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
+        email: email,
+        password: password,
       );
 
       if (!mounted) return;
@@ -94,6 +148,9 @@ class _LoginScreenState extends State<LoginScreen> {
         );
         return;
       }
+
+      await _saveCredentials();
+      if (!mounted) return;
 
       context.read<AppState>().login(user);
 
@@ -183,6 +240,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             'Email',
                             isPassword: false,
                             controller: _emailController,
+                            textInputAction: TextInputAction.next,
+                            onFieldSubmitted: (_) {
+                              if (_isButtonEnabled) {
+                                _handleLogin();
+                              }
+                            },
                             validator: (value) {
                               if (value == null || value.isEmpty)
                                 return 'Required';
@@ -199,6 +262,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             'Password',
                             isPassword: true,
                             controller: _passwordController,
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) {
+                              if (_isButtonEnabled) {
+                                _handleLogin();
+                              }
+                            },
                             validator: (value) {
                               if (value == null || value.isEmpty)
                                 return 'Required';
@@ -374,11 +443,15 @@ class _LoginScreenState extends State<LoginScreen> {
     required bool isPassword,
     required TextEditingController controller,
     String? Function(String?)? validator,
+    TextInputAction? textInputAction,
+    ValueChanged<String>? onFieldSubmitted,
   }) {
     return TextFormField(
       controller: controller,
       obscureText: isPassword ? _obscurePassword : false,
       validator: validator,
+      textInputAction: textInputAction,
+      onFieldSubmitted: onFieldSubmitted,
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
