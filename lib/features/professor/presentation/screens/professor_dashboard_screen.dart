@@ -7,6 +7,7 @@ import '../../data/repositories/professor_repository.dart';
 import '../../domain/models/professor_subject.dart';
 import '../widgets/professor_floating_nav_bar.dart';
 import 'professor_subject_screen.dart';
+import 'assignment_detail_screen.dart';
 
 class ProfessorDashboardScreen extends StatefulWidget {
   const ProfessorDashboardScreen({super.key});
@@ -19,11 +20,144 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
   final _repo = const ProfessorRepository();
 
   List<ProfessorSubject> _subjects = [];
+  List<Map<String, dynamic>> _dashboardAssignments = [];
   bool _loading = true;
 
   // Selected date for calendar starting at June 2026
   DateTime _calendarDate = DateTime(2026, 6, 1);
   final List<int> _eventDays = [9, 13];
+  DateTime? _selectedDate = DateTime(2026, 6, 11);
+
+  // Key format: "yyyy-MM-dd" -> List of reminder maps
+  Map<String, List<Map<String, String>>>? __customReminders;
+  Map<String, List<Map<String, String>>> get _customReminders {
+    __customReminders ??= {
+      '2026-06-11': [
+        {
+          'title': 'Submit Ethics Grades',
+          'time': '11:00 AM',
+          'description': 'Submit the final grades for Ethics block 1 to the registrar.',
+        }
+      ]
+    };
+    return __customReminders!;
+  }
+
+  void _showAddReminderDialog(DateTime date) {
+    final titleController = TextEditingController();
+    final descController = TextEditingController();
+    TimeOfDay selectedTime = TimeOfDay.now();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Row(
+                children: [
+                  const Icon(Icons.alarm_add_rounded, color: AppColors.authPrimary),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Add Reminder',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'For: ${_getMonthName(date.month)} ${date.day}, ${date.year}',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: titleController,
+                      decoration: InputDecoration(
+                        labelText: 'Reminder Title',
+                        labelStyle: const TextStyle(fontSize: 14),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: descController,
+                      decoration: InputDecoration(
+                        labelText: 'Description (Optional)',
+                        labelStyle: const TextStyle(fontSize: 14),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Select Time:', style: TextStyle(fontWeight: FontWeight.bold)),
+                        TextButton.icon(
+                          icon: const Icon(Icons.access_time, size: 18),
+                          label: Text(selectedTime.format(context)),
+                          onPressed: () async {
+                            final TimeOfDay? time = await showTimePicker(
+                              context: context,
+                              initialTime: selectedTime,
+                            );
+                            if (time != null) {
+                              setDialogState(() {
+                                selectedTime = time;
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.authPrimary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () {
+                    if (titleController.text.trim().isEmpty) return;
+                    
+                    final dateKey = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+                    
+                    setState(() {
+                      if (!_customReminders.containsKey(dateKey)) {
+                        _customReminders[dateKey] = [];
+                      }
+                      _customReminders[dateKey]!.add({
+                        'title': titleController.text.trim(),
+                        'time': selectedTime.format(context),
+                        'description': descController.text.trim(),
+                      });
+                    });
+                    
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Save', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   void initState() {
@@ -35,7 +169,30 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
     setState(() => _loading = true);
     try {
       final subjects = await _repo.fetchMySubjects();
-      if (mounted) setState(() { _subjects = subjects; _loading = false; });
+      final List<Map<String, dynamic>> loadedAssignments = [];
+      
+      for (final sub in subjects) {
+        final assignments = await _repo.fetchAssignments(sub.id);
+        for (final a in assignments) {
+          // Skip materials
+          if ((a.description ?? '').startsWith('[MATERIAL]')) continue;
+          
+          final submissionCount = await _repo.fetchAssignmentSubmissionCount(a.id);
+          loadedAssignments.add({
+            'subject': sub,
+            'assignment': a,
+            'submissionCount': submissionCount,
+          });
+        }
+      }
+      
+      if (mounted) {
+        setState(() {
+          _subjects = subjects;
+          _dashboardAssignments = loadedAssignments;
+          _loading = false;
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
@@ -67,7 +224,7 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                       Icon(Icons.school, color: Colors.white, size: 28),
                       SizedBox(height: 2),
                       Text(
-                        'STUDYFY',
+                        'STUDFY',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 14,
@@ -141,20 +298,121 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
             children: [
               // Header Row
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
                 child: Row(
                   children: const [
-                    Expanded(flex: 2, child: Text('Class', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1D4E8F)))),
-                    Expanded(flex: 3, child: Text('Assignment', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1D4E8F)))),
-                    Expanded(flex: 3, child: Text('Progress', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1D4E8F)))),
-                    Expanded(flex: 2, child: Text('Due Date', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1D4E8F)))),
+                    Expanded(flex: 3, child: Text('Class', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF1D4E8F)))),
+                    Expanded(flex: 3, child: Text('Assignment', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF1D4E8F)))),
+                    Expanded(flex: 2, child: Text('Progress', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF1D4E8F)))),
+                    Expanded(flex: 2, child: Text('Due Date', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF1D4E8F)))),
                   ],
                 ),
               ),
               const SizedBox(height: 8),
-              _buildAssignmentRow('BSIT 3-1', 'Ethics', 'Lesson 1', '60/60', 1.0, '05/29/2026'),
-              const SizedBox(height: 8),
-              _buildAssignmentRow('BSIT 4-1', 'PATHFIT', 'Lesson 2', '59/59', 1.0, '05/21/2026'),
+              if (_dashboardAssignments.isEmpty) ...[
+                _buildAssignmentRow(
+                  'BSIT 3-1',
+                  'Ethics',
+                  'Lesson 1',
+                  '60/60',
+                  1.0,
+                  '05/29/2026',
+                  onTap: () {
+                    final mockSubject = _subjects.isNotEmpty ? _subjects.first : ProfessorSubject(
+                      id: 'mock_subject_1',
+                      name: 'Ethics',
+                      courseCode: 'BSIT',
+                      section: '1',
+                      yearLevel: 3,
+                      studentCount: 60,
+                    );
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AssignmentDetailScreen(
+                          assignment: SubjectAssignment(
+                            id: 'mock_assignment_1',
+                            title: 'Ethics - Lesson 1',
+                            description: 'Answer the questions in the module.',
+                            deadline: DateTime(2026, 5, 29),
+                          ),
+                          subjectName: mockSubject.name,
+                          totalStudents: mockSubject.studentCount,
+                        ),
+                      ),
+                    ).then((_) => _load());
+                  },
+                ),
+                const SizedBox(height: 8),
+                _buildAssignmentRow(
+                  'BSIT 4-1',
+                  'PATHFIT',
+                  'Lesson 2',
+                  '59/59',
+                  1.0,
+                  '05/21/2026',
+                  onTap: () {
+                    final mockSubject = _subjects.length > 1 ? _subjects[1] : ProfessorSubject(
+                      id: 'mock_subject_2',
+                      name: 'PATHFIT',
+                      courseCode: 'BSIT',
+                      section: '1',
+                      yearLevel: 4,
+                      studentCount: 59,
+                    );
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AssignmentDetailScreen(
+                          assignment: SubjectAssignment(
+                            id: 'mock_assignment_2',
+                            title: 'PATHFIT - Lesson 2',
+                            description: 'Submit your physical fitness video.',
+                            deadline: DateTime(2026, 5, 21),
+                          ),
+                          subjectName: mockSubject.name,
+                          totalStudents: mockSubject.studentCount,
+                        ),
+                      ),
+                    ).then((_) => _load());
+                  },
+                ),
+              ] else
+                ..._dashboardAssignments.map((item) {
+                  final ProfessorSubject sub = item['subject'];
+                  final SubjectAssignment a = item['assignment'];
+                  final int subCount = item['submissionCount'];
+                  final int totalStudents = sub.studentCount > 0 ? sub.studentCount : 1;
+                  final double progressVal = subCount / totalStudents;
+                  
+                  final String dueDateStr = a.deadline != null 
+                      ? '${a.deadline!.month.toString().padLeft(2, '0')}/${a.deadline!.day.toString().padLeft(2, '0')}/${a.deadline!.year}'
+                      : 'No Deadline';
+                      
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _buildAssignmentRow(
+                      '${sub.courseCode} ${sub.yearLevel}-${sub.section}',
+                      sub.name,
+                      a.title,
+                      '$subCount/${sub.studentCount}',
+                      progressVal.clamp(0.0, 1.0),
+                      dueDateStr,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AssignmentDetailScreen(
+                              assignment: a,
+                              subjectName: sub.name,
+                              totalStudents: sub.studentCount,
+                            ),
+                          ),
+                        ).then((_) => _load());
+                      },
+                    ),
+                  );
+                }),
             ],
           ),
         ),
@@ -162,71 +420,109 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
     );
   }
 
-  Widget _buildAssignmentRow(String classCode, String title, String subtitle, String progressText, double progressValue, String dueDate) {
+  Widget _buildAssignmentRow(
+    String classCode,
+    String title,
+    String subtitle,
+    String progressText,
+    double progressValue,
+    String dueDate, {
+    required VoidCallback onTap,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFF3F3F3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              classCode,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
-                ),
-                Text(
-                  subtitle,
-                  style: const TextStyle(color: Colors.grey, fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  progressText,
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87),
-                ),
-                const SizedBox(height: 4),
-                SizedBox(
-                  width: 80,
-                  height: 8,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: progressValue,
-                      backgroundColor: Colors.grey.shade200,
-                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+                Expanded(
+                  flex: 3,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Text(
+                      classCode,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF2C3E50)),
                     ),
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        progressText,
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87),
+                      ),
+                      const SizedBox(height: 4),
+                      SizedBox(
+                        width: 70,
+                        height: 6,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(3),
+                          child: LinearProgressIndicator(
+                            value: progressValue,
+                            backgroundColor: const Color(0xFFE0E0E0),
+                            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF2ECC71)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    dueDate,
+                    style: const TextStyle(color: Colors.black87, fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
             ),
           ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              dueDate,
-              style: const TextStyle(color: Colors.grey, fontSize: 11),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -355,21 +651,55 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
     final int firstWeekday = DateTime(_calendarDate.year, _calendarDate.month, 1).weekday;
     final int offset = firstWeekday == 7 ? 0 : firstWeekday; // Adjust so Sunday is 0
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.black.withOpacity(0.05)),
+    // Get event days dynamically from assignments plus mock event days plus custom reminders
+    final Set<int> dynamicEventDays = {};
+    for (final item in _dashboardAssignments) {
+      final a = item['assignment'] as SubjectAssignment;
+      if (a.deadline != null && a.deadline!.year == _calendarDate.year && a.deadline!.month == _calendarDate.month) {
+        dynamicEventDays.add(a.deadline!.day);
+      }
+    }
+    if (_calendarDate.year == 2026 && _calendarDate.month == 6) {
+      dynamicEventDays.addAll(_eventDays);
+    }
+    _customReminders.forEach((dateKey, reminders) {
+      if (reminders.isNotEmpty) {
+        final parts = dateKey.split('-');
+        if (parts.length == 3) {
+          final yr = int.tryParse(parts[0]);
+          final mo = int.tryParse(parts[1]);
+          final dy = int.tryParse(parts[2]);
+          if (yr == _calendarDate.year && mo == _calendarDate.month && dy != null) {
+            dynamicEventDays.add(dy);
+          }
+        }
+      }
+    });
+
+    final DateTime now = DateTime.now();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        border: Border.all(color: const Color(0xFFF3F3F3)),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.chevron_left, color: Colors.black54),
+                  icon: const Icon(Icons.chevron_left_rounded, color: Colors.black87, size: 24),
                   onPressed: () {
                     setState(() {
                       _calendarDate = DateTime(_calendarDate.year, _calendarDate.month - 1, 1);
@@ -378,43 +708,85 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                 ),
                 Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: const Color(0xFFE0E0E0)),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Text(
-                            monthName,
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                          ),
-                          const Icon(Icons.arrow_drop_down, size: 20),
-                        ],
+                    PopupMenuButton<int>(
+                      tooltip: 'Select Month',
+                      initialValue: _calendarDate.month,
+                      onSelected: (int selectedMonth) {
+                        setState(() {
+                          _calendarDate = DateTime(_calendarDate.year, selectedMonth, 1);
+                        });
+                      },
+                      itemBuilder: (BuildContext context) {
+                        const monthsList = [
+                          'January', 'February', 'March', 'April', 'May', 'June',
+                          'July', 'August', 'September', 'October', 'November', 'December'
+                        ];
+                        return List.generate(12, (index) {
+                          return PopupMenuItem<int>(
+                            value: index + 1,
+                            child: Text(monthsList[index]),
+                          );
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5F5F7),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              monthName,
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Colors.black54),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: const Color(0xFFE0E0E0)),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Text(
-                            yearString,
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                          ),
-                          const Icon(Icons.arrow_drop_down, size: 20),
-                        ],
+                    PopupMenuButton<int>(
+                      tooltip: 'Select Year',
+                      initialValue: _calendarDate.year,
+                      onSelected: (int selectedYear) {
+                        setState(() {
+                          _calendarDate = DateTime(selectedYear, _calendarDate.month, 1);
+                        });
+                      },
+                      itemBuilder: (BuildContext context) {
+                        final currentYear = DateTime.now().year;
+                        return List.generate(11, (index) {
+                          final yr = (currentYear - 5) + index;
+                          return PopupMenuItem<int>(
+                            value: yr,
+                            child: Text(yr.toString()),
+                          );
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5F5F7),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              yearString,
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Colors.black54),
+                          ],
+                        ),
                       ),
                     ),
                   ],
                 ),
                 IconButton(
-                  icon: const Icon(Icons.chevron_right, color: Colors.black54),
+                  icon: const Icon(Icons.chevron_right_rounded, color: Colors.black87, size: 24),
                   onPressed: () {
                     setState(() {
                       _calendarDate = DateTime(_calendarDate.year, _calendarDate.month + 1, 1);
@@ -423,7 +795,7 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             const Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -436,15 +808,15 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                 _DayName('Sa'),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: 42,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 7,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
+                mainAxisSpacing: 6,
+                crossAxisSpacing: 6,
               ),
               itemBuilder: (context, index) {
                 final int dayNumber = index - offset + 1;
@@ -452,7 +824,15 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                   return const SizedBox.shrink();
                 }
 
-                final bool isEvent = _calendarDate.month == 6 && _calendarDate.year == 2026 && _eventDays.contains(dayNumber);
+                final bool isSelected = _selectedDate != null &&
+                    _selectedDate!.year == _calendarDate.year &&
+                    _selectedDate!.month == _calendarDate.month &&
+                    _selectedDate!.day == dayNumber;
+
+                final bool isEvent = dynamicEventDays.contains(dayNumber);
+                final bool isToday = now.year == _calendarDate.year &&
+                    now.month == _calendarDate.month &&
+                    now.day == dayNumber;
 
                 if (dayNumber > daysInMonth) {
                   final nextMonthDay = dayNumber - daysInMonth;
@@ -467,28 +847,309 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                   );
                 }
 
-                return Container(
-                  decoration: BoxDecoration(
-                    color: isEvent ? const Color(0xFF2C2C2C) : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    dayNumber.toString(),
-                    style: TextStyle(
-                      color: isEvent ? Colors.white : Colors.black87,
-                      fontWeight: isEvent ? FontWeight.bold : FontWeight.normal,
-                      fontSize: 13,
-                        ),
-                      ),
-                    );
+                return InkWell(
+                  onTap: () {
+                    setState(() {
+                      if (isSelected) {
+                        _selectedDate = null;
+                      } else {
+                        _selectedDate = DateTime(_calendarDate.year, _calendarDate.month, dayNumber);
+                      }
+                    });
                   },
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.authPrimary
+                          : isEvent
+                              ? AppColors.authPrimary.withOpacity(0.08)
+                              : Colors.transparent,
+                      shape: BoxShape.circle,
+                      border: isToday && !isSelected
+                          ? Border.all(color: AppColors.authPrimary, width: 1.5)
+                          : null,
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: AppColors.authPrimary.withOpacity(0.25),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              )
+                            ]
+                          : null,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          dayNumber.toString(),
+                          style: TextStyle(
+                            color: isSelected
+                                ? Colors.white
+                                : isEvent
+                                    ? AppColors.authPrimary
+                                    : Colors.black87,
+                            fontWeight: (isSelected || isEvent || isToday) ? FontWeight.bold : FontWeight.normal,
+                            fontSize: 13,
+                          ),
+                        ),
+                        if (isEvent) ...[
+                          const SizedBox(height: 2),
+                          Container(
+                            width: 4,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: isSelected ? Colors.white : AppColors.authPrimary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ] else
+                          const SizedBox(height: 6),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+            if (_selectedDate != null) ...[
+              const Divider(height: 40, thickness: 1, color: Color(0xFFF1F1F1)),
+              _buildSelectedDateEvents(),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectedDateEvents() {
+    if (_selectedDate == null) return const SizedBox.shrink();
+
+    final dateStr = '${_getMonthName(_selectedDate!.month)} ${_selectedDate!.day}, ${_selectedDate!.year}';
+    final dateKey = '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
+    
+    // Filter real assignments
+    final List<Map<String, dynamic>> dueAssignments = _dashboardAssignments.where((item) {
+      final a = item['assignment'] as SubjectAssignment;
+      if (a.deadline == null) return false;
+      return a.deadline!.year == _selectedDate!.year &&
+          a.deadline!.month == _selectedDate!.month &&
+          a.deadline!.day == _selectedDate!.day;
+    }).toList();
+
+    // Check mock events
+    final List<Map<String, String>> mockEvents = [];
+    if (_selectedDate!.year == 2026 && _selectedDate!.month == 6) {
+      if (_selectedDate!.day == 9) {
+        mockEvents.add({
+          'title': 'Ethics Midterm Exam Review',
+          'time': '10:00 AM - 12:00 PM',
+          'description': 'Online review session for the upcoming midterm exam.',
+        });
+      } else if (_selectedDate!.day == 13) {
+        mockEvents.add({
+          'title': 'Syllabus Q&A Session',
+          'time': '2:00 PM - 3:30 PM',
+          'description': 'Open consulting hours for syllabus and course requirements.',
+        });
+      }
+    }
+
+    final List<Map<String, String>> reminders = _customReminders[dateKey] ?? [];
+
+    final hasContent = dueAssignments.isNotEmpty || mockEvents.isNotEmpty || reminders.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                'Schedule for $dateStr',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1D4E8F),
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.alarm_add_rounded, color: AppColors.authPrimary, size: 22),
+              tooltip: 'Add Reminder',
+              onPressed: () => _showAddReminderDialog(_selectedDate!),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (!hasContent)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                Icon(Icons.event_note_rounded, color: Colors.black26, size: 20),
+                SizedBox(width: 8),
+                Text(
+                  'No events or reminders scheduled.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.black45,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
               ],
             ),
-          ),
-        );
-      }
+          )
+        else ...[
+          // Render custom reminders
+          ...reminders.asMap().entries.map((entry) {
+            final idx = entry.key;
+            final rem = entry.value;
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              color: const Color(0xFFFFFDE7),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.amber.withOpacity(0.3)),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.alarm_on_rounded, color: Colors.amber, size: 20),
+                ),
+                title: Text(
+                  rem['title']!,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.brown),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 2),
+                    Text(
+                      'Time: ${rem['time']!}',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.amber),
+                    ),
+                    if (rem['description'] != null && rem['description']!.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        rem['description']!,
+                        style: const TextStyle(fontSize: 11, color: Colors.black54),
+                      ),
+                    ],
+                  ],
+                ),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+                  onPressed: () {
+                    setState(() {
+                      _customReminders[dateKey]!.removeAt(idx);
+                    });
+                  },
+                ),
+              ),
+            );
+          }),
+          // Render real assignments due
+          ...dueAssignments.map((item) {
+            final a = item['assignment'] as SubjectAssignment;
+            final sub = item['subject'] as ProfessorSubject;
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              color: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.black.withOpacity(0.05)),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.assignment_late_rounded, color: Colors.red, size: 20),
+                ),
+                title: Text(
+                  a.title,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text(
+                  'Due for Class: ${sub.name} (${sub.courseCode} ${sub.yearLevel}-${sub.section})',
+                  style: const TextStyle(fontSize: 11, color: Colors.black54),
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded, size: 18, color: Colors.black38),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AssignmentDetailScreen(
+                        assignment: a,
+                        subjectName: sub.name,
+                        totalStudents: sub.studentCount,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          }),
+          // Render mock events
+          ...mockEvents.map((evt) {
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              color: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.black.withOpacity(0.05)),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.authPrimary.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.event_available_rounded, color: AppColors.authPrimary, size: 20),
+                ),
+                title: Text(
+                  evt['title']!,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 2),
+                    Text(
+                      'Time: ${evt['time']!}',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.authPrimary),
+                    ),
+                    if (evt['description'] != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        evt['description']!,
+                        style: const TextStyle(fontSize: 11, color: Colors.black54),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
+      ],
+    );
+  }
 
   String _getMonthName(int month) {
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -502,14 +1163,15 @@ class _DayName extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isWeekend = name == 'Su' || name == 'Sa';
     return SizedBox(
       width: 32,
       child: Text(
         name,
         textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: Colors.grey,
-          fontWeight: FontWeight.w500,
+        style: TextStyle(
+          color: isWeekend ? Colors.redAccent.withOpacity(0.8) : Colors.black54,
+          fontWeight: FontWeight.bold,
           fontSize: 12,
         ),
       ),

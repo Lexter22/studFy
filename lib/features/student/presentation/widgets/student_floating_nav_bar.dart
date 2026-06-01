@@ -69,11 +69,19 @@ class _StudentFloatingNavBarState extends State<StudentFloatingNavBar> {
     return MouseRegion(
       onEnter: (_) => setState(() => _hoveredIndex = index),
       onExit: (_) => setState(() => _hoveredIndex = null),
+      cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: () {
           if (index == 3) {
             _handleLogout();
-          } else if (index == 0) {
+            return;
+          }
+
+          while (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          }
+
+          if (index == 0) {
             context.goNamed(AppRoutes.studentDashboard);
           } else if (index == 1) {
             context.goNamed(AppRoutes.studentTodo);

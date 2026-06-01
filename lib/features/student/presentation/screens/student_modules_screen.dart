@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:html' as html;
 
 import '../../../../core/state/app_state.dart';
 import '../../data/repositories/student_repository.dart';
 import '../../domain/models/student_subject.dart';
 import '../../../professor/domain/models/professor_subject.dart';
 import '../widgets/student_floating_nav_bar.dart';
+import 'student_assignment_detail_screen.dart';
+import 'student_quiz_screen.dart';
 
 class StudentModulesScreen extends StatefulWidget {
   const StudentModulesScreen({super.key});
@@ -23,6 +26,8 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
   // Selected subject for detail view (Screenshot 4 right)
   StudentSubject? _selectedSubject;
   List<SubjectModule> _selectedModules = [];
+  List<SubjectQuiz> _quizzes = [];
+  List<SubjectAssignment> _assignments = [];
   bool _loadingModules = false;
 
   @override
@@ -52,13 +57,20 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
     setState(() {
       _selectedSubject = sub;
       _loadingModules = true;
+      _selectedModules = [];
+      _quizzes = [];
+      _assignments = [];
     });
 
     try {
       final list = await _repo.fetchModules(sub.id);
+      final assignments = await _repo.fetchAssignments(sub.id);
+      final quizzes = await _repo.fetchQuizzes(sub.id);
       if (mounted) {
         setState(() {
           _selectedModules = list;
+          _assignments = assignments;
+          _quizzes = quizzes;
           _loadingModules = false;
         });
       }
@@ -75,55 +87,63 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0A5C36),
-        elevation: 0,
-        toolbarHeight: 70,
-        title: const Row(
-          children: [
-            Icon(Icons.school, color: Colors.white, size: 28),
-            SizedBox(width: 8),
-            Text(
-              'STUDYFY',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-        automaticallyImplyLeading: false,
-        actions: [
-          Center(
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(90),
+        child: AppBar(
+          backgroundColor: const Color(0xFF0A5C36),
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          flexibleSpace: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    studentName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.school, color: Colors.white, size: 28),
+                      SizedBox(height: 2),
+                      Text(
+                        'STUDFY',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    courseSection,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        studentName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        courseSection,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
           ),
-        ],
+        ),
       ),
       body: Stack(
         children: [
@@ -256,123 +276,197 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_selectedModules.isEmpty) {
-      return const Center(child: Text('No modules uploaded yet.'));
+    if (_selectedModules.isEmpty && _quizzes.isEmpty && _assignments.isEmpty) {
+      return const Center(child: Text('No modules or content uploaded yet.'));
     }
 
-    return ListView.builder(
+    return ListView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-      itemCount: _selectedModules.length,
-      itemBuilder: (context, index) {
-        final mod = _selectedModules[index];
-        return Card(
-          elevation: 0,
-          margin: const EdgeInsets.only(bottom: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: const BorderSide(color: Color(0xFFEEEEEE)),
-          ),
-          child: InkWell(
-            onTap: () => _showModulePreview(mod),
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  const Icon(Icons.book_rounded, color: Color(0xFF0A5C36), size: 26),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          mod.title,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        if (mod.description != null && mod.description!.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            mod.description!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  const Text(
-                    'May 1', // Static date matching Screenshot 4 right
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey,
-                      fontWeight: FontWeight.bold,
-                    ),
+      children: [
+        ..._selectedModules.asMap().entries.map((entry) {
+          final i = entry.key;
+          final m = entry.value;
+          final mQuizzes = _quizzes.where((q) => q.moduleId == m.id).toList();
+          final mAssign = _assignments.where((a) => a.moduleId == m.id && !(a.description ?? '').startsWith('[MATERIAL]')).toList();
+          final mMaterials = _assignments.where((a) => a.moduleId == m.id && (a.description ?? '').startsWith('[MATERIAL]')).toList();
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+              border: Border.all(color: const Color(0xFFEEEEEE)),
+            ),
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Module ${i + 1} - ${m.title}',
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0A5C36)),
+                ),
+                if (m.description != null && m.description!.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    m.description!,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
-              ),
+                const SizedBox(height: 12),
+
+                // Legacy module file (if any)
+                if (m.fileUrl != null)
+                  _buildStudentContentRow(
+                    Icons.menu_book_rounded,
+                    m.fileName ?? '${m.title} - Document',
+                    'Material',
+                    () => _openUrl(m.fileUrl!),
+                  ),
+
+                // Materials (new style)
+                ...mMaterials.map((mat) => _buildStudentContentRow(
+                      Icons.menu_book_rounded,
+                      mat.fileName ?? '${mat.title} - Document',
+                      'Material',
+                      () {
+                        if (mat.fileUrl != null) _openUrl(mat.fileUrl!);
+                      },
+                    )),
+
+                // Quizzes
+                ...mQuizzes.map((q) => _buildStudentContentRow(
+                      Icons.quiz_rounded,
+                      q.title,
+                      'Quiz',
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => StudentQuizScreen(
+                              subject: _selectedSubject!,
+                              assignment: SubjectAssignment(
+                                id: q.id,
+                                title: q.title,
+                                description: q.description,
+                                deadline: q.deadline,
+                                moduleId: q.moduleId,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    )),
+
+                // Assignments
+                ...mAssign.map((a) => _buildStudentContentRow(
+                      Icons.assignment_rounded,
+                      a.title,
+                      'Assignment',
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => StudentAssignmentDetailScreen(
+                              subject: _selectedSubject!,
+                              assignment: a,
+                            ),
+                          ),
+                        );
+                      },
+                    )),
+              ],
             ),
-          ),
-        );
-      },
+          );
+        }).toList(),
+        // Unlinked quizzes
+        ..._quizzes.where((q) => q.moduleId == null).map((q) => _buildStudentContentRow(
+              Icons.quiz_rounded,
+              q.title,
+              'Quiz',
+              () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => StudentQuizScreen(
+                      subject: _selectedSubject!,
+                      assignment: SubjectAssignment(
+                        id: q.id,
+                        title: q.title,
+                        description: q.description,
+                        deadline: q.deadline,
+                        moduleId: q.moduleId,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            )),
+        // Unlinked assignments
+        ..._assignments.where((a) => a.moduleId == null && !(a.description ?? '').startsWith('[MATERIAL]')).map((a) => _buildStudentContentRow(
+              Icons.assignment_rounded,
+              a.title,
+              'Assignment',
+              () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => StudentAssignmentDetailScreen(
+                      subject: _selectedSubject!,
+                      assignment: a,
+                    ),
+                  ),
+                );
+              },
+            )),
+        // Unlinked materials
+        ..._assignments.where((a) => a.moduleId == null && (a.description ?? '').startsWith('[MATERIAL]')).map((mat) => _buildStudentContentRow(
+              Icons.menu_book_rounded,
+              mat.fileName ?? '${mat.title} - Document',
+              'Material',
+              () {
+                if (mat.fileUrl != null) _openUrl(mat.fileUrl!);
+              },
+            )),
+      ],
     );
   }
 
-  void _showModulePreview(SubjectModule mod) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text(mod.title, style: const TextStyle(color: Color(0xFF0A5C36), fontWeight: FontWeight.bold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(mod.description ?? 'No description provided.', style: const TextStyle(fontSize: 14)),
-              if (mod.fileName != null) ...[
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    const Icon(Icons.attach_file, color: Colors.blue, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        mod.fileName!,
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close', style: TextStyle(color: Colors.grey)),
-            ),
-            if (mod.fileUrl != null)
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0A5C36)),
-                onPressed: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Downloading ${mod.fileName ?? "file"}...')),
-                  );
-                },
-                child: const Text('Download', style: TextStyle(color: Colors.white)),
+  Widget _buildStudentContentRow(IconData icon, String title, String type, VoidCallback onTap) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0A5C36).withOpacity(0.08),
+                borderRadius: BorderRadius.circular(8),
               ),
-          ],
-        );
-      },
+              child: Icon(icon, size: 16, color: const Color(0xFF0A5C36)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(title,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.black87))),
+            Text(type, style: const TextStyle(fontSize: 11, color: Colors.black38)),
+            const SizedBox(width: 4),
+            const Icon(Icons.chevron_right_rounded, size: 16, color: Colors.black26),
+          ]),
+        ),
+      ),
     );
+  }
+
+  void _openUrl(String url) {
+    html.window.open(url, '_blank');
   }
 
 }

@@ -199,6 +199,51 @@ class StudentRepository {
       return _getMockAssignments(subjectId);
     }
   }
+  Future<List<SubjectQuiz>> fetchQuizzes(String subjectId) async {
+    if (subjectId.startsWith('mock-')) {
+      return [];
+    }
+    try {
+      final rows = await _client
+          .from('quizzes')
+          .select('id,title,description,deadline,module_id')
+          .eq('subject_offering_id', subjectId)
+          .order('created_at');
+
+      final quizzes = (rows as List).map((r) => Map<String, dynamic>.from(r as Map)).toList();
+      final result = <SubjectQuiz>[];
+
+      for (final q in quizzes) {
+        final qid = q['id'].toString();
+        final qRows = await _client
+            .from('quiz_questions')
+            .select('id,question,options,correct_answer,order_index')
+            .eq('quiz_id', qid)
+            .order('order_index');
+
+        final questions = (qRows as List).map((r) => QuizQuestion(
+          id: r['id'].toString(),
+          question: r['question']?.toString() ?? '',
+          options: List<String>.from(r['options'] as List? ?? []),
+          correctAnswer: r['correct_answer']?.toString() ?? '',
+          orderIndex: (r['order_index'] as num?)?.toInt() ?? 0,
+        )).toList();
+
+        result.add(SubjectQuiz(
+          id: qid,
+          title: q['title']?.toString() ?? '',
+          description: q['description']?.toString(),
+          deadline: q['deadline'] != null ? DateTime.tryParse(q['deadline'].toString()) : null,
+          moduleId: q['module_id']?.toString(),
+          questions: questions,
+        ));
+      }
+      return result;
+    } catch (_) {
+      return [];
+    }
+  }
+
 
   List<SubjectAssignment> _getMockAssignments(String subjectId) {
     return [

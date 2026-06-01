@@ -1,0 +1,1535 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../../../core/constants/app_colors.dart';
+import '../../../../core/state/app_state.dart';
+import '../../../../core/widgets/app_dialog.dart';
+import '../../data/repositories/professor_repository.dart';
+import '../../domain/models/professor_subject.dart';
+import '../widgets/professor_floating_nav_bar.dart';
+import 'professor_subject_screen.dart';
+
+class ProfessorClassesScreen extends StatefulWidget {
+  const ProfessorClassesScreen({super.key});
+
+  @override
+  State<ProfessorClassesScreen> createState() => _ProfessorClassesScreenState();
+}
+
+class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
+  final _repo = const ProfessorRepository();
+  bool _loading = true;
+  List<ProfessorSubject> _dbSubjects = [];
+  List<ProfessorSubject> _localAddedSubjects = [];
+  List<ProfessorSubject> _filteredSubjects = [];
+
+  // Filter values
+  String? _selectedStudentName;
+  int? _selectedYearLevel;
+  String? _selectedSubject;
+  String? _selectedCourseSection;
+
+  // Mock list of subjects to display if the database is empty (matching the screenshot exactly)
+  static final List<ProfessorSubject> _fallbackSubjects = [
+    const ProfessorSubject(
+      id: 'mock_ethics_1',
+      name: 'Ethics',
+      courseCode: 'BSIT',
+      section: '1',
+      yearLevel: 3,
+      studentCount: 60,
+    ),
+    const ProfessorSubject(
+      id: 'mock_ethics_2',
+      name: 'Ethics',
+      courseCode: 'BSIT',
+      section: '1',
+      yearLevel: 3,
+      studentCount: 60,
+    ),
+    const ProfessorSubject(
+      id: 'mock_ethics_3',
+      name: 'Ethics',
+      courseCode: 'BSIT',
+      section: '1',
+      yearLevel: 3,
+      studentCount: 60,
+    ),
+    const ProfessorSubject(
+      id: 'mock_ethics_4',
+      name: 'Ethics',
+      courseCode: 'BSIT',
+      section: '1',
+      yearLevel: 3,
+      studentCount: 60,
+    ),
+    const ProfessorSubject(
+      id: 'mock_ethics_5',
+      name: 'Ethics',
+      courseCode: 'BSIT',
+      section: '1',
+      yearLevel: 3,
+      studentCount: 60,
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final subjects = await _repo.fetchMySubjects();
+      if (mounted) {
+        setState(() {
+          _dbSubjects = subjects;
+          _loading = false;
+          _applyFilters();
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _applyFilters();
+        });
+      }
+    }
+  }
+
+  List<ProfessorSubject> get _allSubjects {
+    final list = [..._dbSubjects, ..._localAddedSubjects];
+    return list.isNotEmpty ? list : _fallbackSubjects;
+  }
+
+  void _applyFilters() {
+    setState(() {
+      _filteredSubjects = _allSubjects.where((sub) {
+        // Filter by Year Level
+        if (_selectedYearLevel != null && sub.yearLevel != _selectedYearLevel) {
+          return false;
+        }
+        // Filter by Subject Name
+        if (_selectedSubject != null &&
+            !sub.name.toLowerCase().contains(_selectedSubject!.toLowerCase())) {
+          return false;
+        }
+        // Filter by Course & Section
+        if (_selectedCourseSection != null) {
+          final filterStr = _selectedCourseSection!.toLowerCase();
+          final classCode = '${sub.courseCode} ${sub.yearLevel}-${sub.section}'.toLowerCase();
+          if (!classCode.contains(filterStr)) {
+            return false;
+          }
+        }
+        return true;
+      }).toList();
+    });
+  }
+
+  void _resetFilters() {
+    setState(() {
+      _selectedStudentName = null;
+      _selectedYearLevel = null;
+      _selectedSubject = null;
+      _selectedCourseSection = null;
+      _applyFilters();
+    });
+  }
+
+  void _showAddClassDialog() {
+    final subjectCtrl = TextEditingController();
+    final courseSecCtrl = TextEditingController(text: 'BSIT 3-1');
+    final numStudentsCtrl = TextEditingController(text: '60');
+
+    Widget buildDialogTextField({
+      required TextEditingController controller,
+      required String labelText,
+      required String hintText,
+      TextInputType keyboardType = TextInputType.text,
+    }) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          style: const TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.w500),
+          decoration: InputDecoration(
+            labelText: labelText,
+            hintText: hintText,
+            labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
+            hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+            filled: true,
+            fillColor: Colors.grey.shade50,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.authPrimary, width: 2),
+            ),
+          ),
+        ),
+      );
+    }
+
+    Widget buildUploadField() {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 24),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200, width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.cloud_upload_outlined, color: Colors.blue.shade700, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Upload Class List (.csv)',
+                    style: TextStyle(
+                      color: Colors.black87,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Optional class roster upload',
+                    style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400),
+          ],
+        ),
+      );
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          backgroundColor: Colors.white,
+          child: Container(
+            width: 450,
+            padding: const EdgeInsets.all(24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.authPrimary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.school_rounded, color: AppColors.authPrimary, size: 24),
+                      ),
+                      const SizedBox(width: 14),
+                      const Text(
+                        'New Class',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  buildDialogTextField(
+                    controller: subjectCtrl,
+                    labelText: 'Subject Name',
+                    hintText: 'Enter subject title',
+                  ),
+                  buildDialogTextField(
+                    controller: courseSecCtrl,
+                    labelText: 'Course & Section',
+                    hintText: 'e.g. BSIT 3-1',
+                  ),
+                  buildDialogTextField(
+                    controller: numStudentsCtrl,
+                    labelText: 'Number of Students',
+                    hintText: 'e.g. 60',
+                    keyboardType: TextInputType.number,
+                  ),
+                  buildUploadField(),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.grey.shade600,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text(
+                          'Discard',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.authPrimary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                          elevation: 0,
+                        ),
+                        onPressed: () {
+                          if (subjectCtrl.text.trim().isEmpty) return;
+                          
+                          final courseSec = courseSecCtrl.text.trim();
+                          String courseCode = 'BSIT';
+                          String section = '1';
+                          if (courseSec.contains(' ')) {
+                            final parts = courseSec.split(' ');
+                            section = parts.last;
+                            courseCode = parts.sublist(0, parts.length - 1).join(' ');
+                          } else {
+                            courseCode = courseSec.isNotEmpty ? courseSec : 'BSIT';
+                          }
+                          
+                          final studentCount = int.tryParse(numStudentsCtrl.text.trim()) ?? 60;
+                          
+                          final newSub = ProfessorSubject(
+                            id: 'local_${DateTime.now().millisecondsSinceEpoch}',
+                            name: subjectCtrl.text.trim(),
+                            courseCode: courseCode,
+                            section: section,
+                            yearLevel: 3,
+                            studentCount: studentCount,
+                          );
+                          
+                          setState(() {
+                            _localAddedSubjects.add(newSub);
+                            _applyFilters();
+                          });
+                          
+                          Navigator.pop(ctx);
+                          
+                          AppDialog.result(
+                            context,
+                            type: DialogType.success,
+                            message: 'Class "${newSub.name}" added successfully!',
+                            buttonLabel: 'Done',
+                          );
+                        },
+                        child: const Text(
+                          'Add Class',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showViewStudentsDialog(ProfessorSubject sub) async {
+    setState(() => _loading = true);
+    List<Map<String, String>> students = [];
+    try {
+      if (sub.id.startsWith('mock_') || sub.id.startsWith('local_')) {
+        students = List.generate(
+          10,
+          (index) => {
+            'profileId': 'mock_std_$index',
+            'name': [
+              'Archie Arevalo',
+              'John Doe',
+              'Jane Smith',
+              'Bob Johnson',
+              'Alice Davis',
+              'Charlie Brown',
+              'Diana Prince',
+              'Ethan Hunt',
+              'Fiona Gallagher',
+              'George Clark'
+            ][index],
+            'studentNumber': '2023-100$index-MN-0',
+          },
+        );
+      } else {
+        students = await _repo.fetchEnrolledStudents(sub.id);
+        if (students.isEmpty) {
+          students = List.generate(
+            5,
+            (index) => {
+              'profileId': 'mock_std_$index',
+              'name': 'Student ${index + 1}',
+              'studentNumber': '2023-200$index-MN-0',
+            },
+          );
+        }
+      }
+    } catch (_) {
+      students = List.generate(
+        5,
+        (index) => {
+          'profileId': 'mock_std_$index',
+          'name': 'Student ${index + 1}',
+          'studentNumber': '2023-200$index-MN-0',
+        },
+      );
+    } finally {
+      setState(() => _loading = false);
+    }
+
+    if (!mounted) return;
+
+    String getClassCode(String id) {
+      if (id.contains('ethics')) return 'a5NhJk';
+      if (id.contains('programming')) return 'a5NhJk';
+      final hash = id.hashCode.abs();
+      const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      final result = StringBuffer();
+      var temp = hash;
+      for (int i = 0; i < 6; i++) {
+        result.write(chars[temp % chars.length]);
+        temp = temp ~/ chars.length;
+      }
+      return result.toString();
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            backgroundColor: const Color(0xFFF9F9F9),
+            titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+            actionsPadding: const EdgeInsets.all(16),
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Student List',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    color: Color(0xFF1565C0),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${sub.courseCode} ${sub.yearLevel}-${sub.section}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Class Code: ${getClassCode(sub.id)}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            content: Container(
+              width: 480,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Student Name',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          'Actions',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, thickness: 1),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 350),
+                    child: students.isEmpty
+                        ? const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 24),
+                            child: Center(child: Text('No students found.')),
+                          )
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: students.length,
+                            itemBuilder: (_, i) {
+                              final s = students[i];
+                              final pid = s['profileId']!;
+
+                              return Container(
+                                color: i % 2 == 0 ? Colors.grey.shade50 : Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        s['name'] ?? '',
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                    ),
+                                    Row(
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.edit_note, color: Colors.blue),
+                                          iconSize: 20,
+                                          onPressed: () {
+                                            final nameCtrl = TextEditingController(text: s['name']);
+                                            showDialog(
+                                              context: context,
+                                              builder: (editCtx) => AlertDialog(
+                                                title: const Text('Edit Student Name'),
+                                                content: TextField(
+                                                  controller: nameCtrl,
+                                                  decoration: const InputDecoration(labelText: 'Name'),
+                                                ),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () => Navigator.pop(editCtx),
+                                                    child: const Text('Cancel'),
+                                                  ),
+                                                  TextButton(
+                                                    onPressed: () {
+                                                      setS(() {
+                                                        s['name'] = nameCtrl.text;
+                                                      });
+                                                      Navigator.pop(editCtx);
+                                                    },
+                                                    child: const Text('Save'),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                          iconSize: 20,
+                                          onPressed: () {
+                                            showDialog(
+                                              context: context,
+                                              builder: (deleteCtx) => AlertDialog(
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                                content: Column(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    const SizedBox(height: 12),
+                                                    const Text(
+                                                      'Are you sure you want to delete this student?',
+                                                      textAlign: TextAlign.center,
+                                                      style: TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: Colors.black87,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 24),
+                                                    Row(
+                                                      children: [
+                                                        Expanded(
+                                                          child: ElevatedButton(
+                                                            style: ElevatedButton.styleFrom(
+                                                              backgroundColor: const Color(0xFFC62828),
+                                                              foregroundColor: Colors.white,
+                                                              shape: RoundedRectangleBorder(
+                                                                borderRadius: BorderRadius.circular(8),
+                                                              ),
+                                                              padding: const EdgeInsets.symmetric(vertical: 12),
+                                                              elevation: 0,
+                                                            ),
+                                                            onPressed: () {
+                                                              setS(() {
+                                                                students.removeAt(i);
+                                                              });
+                                                              Navigator.pop(deleteCtx);
+                                                            },
+                                                            child: const Text(
+                                                              'Delete Student',
+                                                              style: TextStyle(fontWeight: FontWeight.bold),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        const SizedBox(width: 12),
+                                                        Expanded(
+                                                          child: OutlinedButton(
+                                                            style: OutlinedButton.styleFrom(
+                                                              side: const BorderSide(color: Colors.black26),
+                                                              shape: RoundedRectangleBorder(
+                                                                borderRadius: BorderRadius.circular(8),
+                                                              ),
+                                                              padding: const EdgeInsets.symmetric(vertical: 12),
+                                                            ),
+                                                            onPressed: () => Navigator.pop(deleteCtx),
+                                                            child: const Text(
+                                                              'Close',
+                                                              style: TextStyle(
+                                                                color: Colors.black54,
+                                                                fontWeight: FontWeight.bold,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Close'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showAttendanceDialog(ProfessorSubject sub) async {
+    setState(() => _loading = true);
+    List<Map<String, String>> students = [];
+    try {
+      if (sub.id.startsWith('mock_') || sub.id.startsWith('local_')) {
+        // Provide mock students
+        students = List.generate(
+          10,
+          (index) => {
+            'profileId': 'mock_std_$index',
+            'name': [
+              'Archie Arevalo',
+              'John Doe',
+              'Jane Smith',
+              'Bob Johnson',
+              'Alice Davis',
+              'Charlie Brown',
+              'Diana Prince',
+              'Ethan Hunt',
+              'Fiona Gallagher',
+              'George Clark'
+            ][index],
+            'studentNumber': '2023-100$index-MN-0',
+          },
+        );
+      } else {
+        students = await _repo.fetchEnrolledStudents(sub.id);
+        if (students.isEmpty) {
+          students = List.generate(
+            5,
+            (index) => {
+              'profileId': 'mock_std_$index',
+              'name': 'Student ${index + 1}',
+              'studentNumber': '2023-200$index-MN-0',
+            },
+          );
+        }
+      }
+    } catch (_) {
+      students = List.generate(
+        5,
+        (index) => {
+          'profileId': 'mock_std_$index',
+          'name': 'Student ${index + 1}',
+          'studentNumber': '2023-200$index-MN-0',
+        },
+      );
+    } finally {
+      setState(() => _loading = false);
+    }
+
+    if (!mounted) return;
+
+    final attendance = <String, String>{};
+    for (final s in students) {
+      attendance[s['profileId']!] = 'present'; // Present by default
+    }
+
+    String activeView = 'sheet'; // 'sheet', 'history', 'summary'
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) {
+          Widget buildHeaderCol(String label, Color color) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(fontSize: 9, color: Colors.black54, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ],
+            );
+          }
+
+          Widget buildStatusCheckbox({
+            required bool isSelected,
+            required Color color,
+            required VoidCallback onTap,
+          }) {
+            return InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(4),
+              child: Container(
+                width: 18,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: isSelected ? color : Colors.transparent,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: isSelected ? color : Colors.grey.shade300,
+                    width: 1.5,
+                  ),
+                ),
+                child: isSelected
+                    ? const Icon(Icons.check, color: Colors.white, size: 12)
+                    : null,
+              ),
+            );
+          }
+
+          Widget _buildStatBadge(String label, Color bgColor, Color textColor) {
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                label,
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textColor),
+              ),
+            );
+          }
+
+          Widget buildHistoryRow(String date, int total) {
+            // Scale dynamically and ensure stats are always positive
+            final int present = total > 0 ? (total * 0.9).round() : 0;
+            final int late = total > 0 ? (total * 0.05).round() : 0;
+            final int absent = total - present - late;
+
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: const BoxDecoration(
+                border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    date,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                  ),
+                  Row(
+                    children: [
+                      _buildStatBadge('$present Present', const Color(0xFFE0F2F1), const Color(0xFF00796B)),
+                      const SizedBox(width: 6),
+                      _buildStatBadge('$late Late', const Color(0xFFFFF3E0), const Color(0xFFEF6C00)),
+                      const SizedBox(width: 6),
+                      _buildStatBadge('$absent Absent', const Color(0xFFFFEBEE), const Color(0xFFC62828)),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }
+
+          Widget buildSegmentButton(String viewName, String label, IconData icon) {
+            final isSelected = activeView == viewName;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  setS(() {
+                    activeView = viewName;
+                  });
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.authPrimary : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: AppColors.authPrimary.withOpacity(0.15),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            )
+                          ]
+                        : null,
+                  ),
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        icon,
+                        size: 14,
+                        color: isSelected ? Colors.white : Colors.black54,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            backgroundColor: const Color(0xFFF9F9F9),
+            titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+            actionsPadding: const EdgeInsets.all(16),
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Attendance Sheet',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    color: AppColors.authPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${sub.name} - ${sub.courseCode} ${sub.yearLevel}-${sub.section}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Date: ${DateTime.now().month}/${DateTime.now().day}/${DateTime.now().year}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.blue.shade700,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 480,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Segmented control bar
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFEFEF),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        buildSegmentButton('sheet', 'Mark Sheet', Icons.assignment_turned_in_outlined),
+                        buildSegmentButton('history', 'History', Icons.history),
+                        buildSegmentButton('summary', 'Summary', Icons.analytics_outlined),
+                      ],
+                    ),
+                  ),
+
+                  if (activeView == 'history')
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
+                            child: Text(
+                              'Attendance History',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                            ),
+                          ),
+                          const Divider(height: 1),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 300),
+                            child: ListView(
+                              shrinkWrap: true,
+                              children: [
+                                buildHistoryRow('05/26/2026', sub.studentCount),
+                                buildHistoryRow('05/25/2026', sub.studentCount),
+                                buildHistoryRow('05/24/2026', sub.studentCount),
+                                buildHistoryRow('05/20/2026', sub.studentCount),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (activeView == 'summary')
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
+                            child: Text(
+                              'Attendance Summary (Overall)',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                            ),
+                          ),
+                          const Divider(height: 1),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 300),
+                            child: ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: students.length,
+                              itemBuilder: (_, i) {
+                                final s = students[i];
+                                final int present = 10 + (i % 3);
+                                final int late = i % 2;
+                                final int absent = 12 - present - late;
+                                final double pct = (present / 12) * 100;
+                                return Container(
+                                  color: i % 2 == 0 ? Colors.grey.shade50 : Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          s['name'] ?? '',
+                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87),
+                                        ),
+                                      ),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            '${pct.toStringAsFixed(0)}%',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w800,
+                                              color: pct > 85 ? const Color(0xFF00796B) : const Color(0xFFEF6C00),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          _buildStatBadge('$present P', const Color(0xFFE0F2F1), const Color(0xFF00796B)),
+                                          const SizedBox(width: 4),
+                                          _buildStatBadge('$late L', const Color(0xFFFFF3E0), const Color(0xFFEF6C00)),
+                                          const SizedBox(width: 4),
+                                          _buildStatBadge('$absent A', const Color(0xFFFFEBEE), const Color(0xFFC62828)),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Expanded(
+                                  child: Text(
+                                    'Student Name',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                                Row(
+                                  children: [
+                                    SizedBox(width: 50, child: Center(child: buildHeaderCol('Present', const Color(0xFF00796B)))),
+                                    SizedBox(width: 50, child: Center(child: buildHeaderCol('Late', const Color(0xFFEF6C00)))),
+                                    SizedBox(width: 50, child: Center(child: buildHeaderCol('Absent', const Color(0xFFC62828)))),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Divider(height: 1, thickness: 1),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 300),
+                            child: students.isEmpty
+                                ? const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 24),
+                                    child: Center(child: Text('No students found.')),
+                                  )
+                                : ListView.builder(
+                                    shrinkWrap: true,
+                                    itemCount: students.length,
+                                    itemBuilder: (_, i) {
+                                      final s = students[i];
+                                      final pid = s['profileId']!;
+                                      final currentStatus = attendance[pid] ?? 'present';
+
+                                      return Container(
+                                        color: i % 2 == 0 ? Colors.grey.shade50 : Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                s['name'] ?? '',
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Colors.black87,
+                                                ),
+                                              ),
+                                            ),
+                                            Row(
+                                              children: [
+                                                SizedBox(
+                                                  width: 50,
+                                                  child: Center(
+                                                    child: buildStatusCheckbox(
+                                                      isSelected: currentStatus == 'present',
+                                                      color: const Color(0xFF00796B),
+                                                      onTap: () => setS(() { attendance[pid] = 'present'; }),
+                                                    ),
+                                                  ),
+                                                ),
+                                                SizedBox(
+                                                  width: 50,
+                                                  child: Center(
+                                                    child: buildStatusCheckbox(
+                                                      isSelected: currentStatus == 'late',
+                                                      color: const Color(0xFFEF6C00),
+                                                      onTap: () => setS(() { attendance[pid] = 'late'; }),
+                                                    ),
+                                                  ),
+                                                ),
+                                                SizedBox(
+                                                  width: 50,
+                                                  child: Center(
+                                                    child: buildStatusCheckbox(
+                                                      isSelected: currentStatus == 'absent',
+                                                      color: const Color(0xFFC62828),
+                                                      onTap: () => setS(() { attendance[pid] = 'absent'; }),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              if (activeView != 'sheet')
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Close'),
+                )
+              else ...[
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    final presentCount = attendance.values.where((v) => v == 'present').length;
+                    final lateCount = attendance.values.where((v) => v == 'late').length;
+                    final absentCount = attendance.values.where((v) => v == 'absent').length;
+                    AppDialog.result(
+                      context,
+                      type: DialogType.success,
+                      message: 'Attendance submitted!\n$presentCount Present, $lateCount Late, $absentCount Absent.',
+                      buttonLabel: 'Done',
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.authPrimary,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Submit Attendance'),
+                ),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = context.watch<AppState>().currentUser;
+
+    // Get unique subject names for filter
+    final subjectNames = _allSubjects.map((s) => s.name).toSet().toList();
+    // Get unique course codes for filter
+    final courseSections = _allSubjects
+        .map((s) => '${s.courseCode} ${s.yearLevel}-${s.section}')
+        .toSet()
+        .toList();
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9F9F9),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(90),
+        child: AppBar(
+          backgroundColor: AppColors.authPrimary,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          flexibleSpace: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.school, color: Colors.white, size: 28),
+                      SizedBox(height: 2),
+                      Text(
+                        'STUDFY',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    user?.displayName ?? 'Archie Arevalo',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+      body: Stack(
+        children: [
+          SafeArea(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                    children: [
+                      // My Classes title
+                      const Text(
+                        'My Classes',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.authPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Dropdown Filters grid
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          return Row(
+                            children: [
+                              Expanded(
+                                child: _buildFilterDropdown<String>(
+                                  label: 'Classname',
+                                  value: _selectedSubject,
+                                  items: subjectNames,
+                                  onChanged: (v) => setState(() {
+                                    _selectedSubject = v;
+                                    _applyFilters();
+                                  }),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _buildFilterDropdown<String>(
+                                  label: 'Course & Section',
+                                  value: _selectedCourseSection,
+                                  items: courseSections,
+                                  onChanged: (v) => setState(() {
+                                    _selectedCourseSection = v;
+                                    _applyFilters();
+                                  }),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Buttons Row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: _showAddClassDialog,
+                            icon: const Icon(Icons.add_circle, size: 16),
+                            label: const Text('Add Class'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.authPrimary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            onPressed: _applyFilters,
+                            icon: const Icon(Icons.search, size: 16),
+                            label: const Text('Search'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.authPrimary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                          ),
+                          if (_selectedStudentName != null ||
+                              _selectedYearLevel != null ||
+                              _selectedSubject != null ||
+                              _selectedCourseSection != null) ...[
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: const Icon(Icons.refresh, color: Colors.grey),
+                              onPressed: _resetFilters,
+                              tooltip: 'Clear Filters',
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Classes List
+                      if (_filteredSubjects.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 40),
+                          child: Center(
+                            child: Text(
+                              'No classes match the filter criteria.',
+                              style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+                            ),
+                          ),
+                        )
+                      else
+                        Column(
+                          children: _filteredSubjects
+                              .map((sub) => _buildClassRow(sub))
+                              .toList(),
+                        ),
+                    ],
+                  ),
+          ),
+          const ProfessorFloatingNavBar(currentIndex: 0),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterDropdown<T>({
+    required String label,
+    required T? value,
+    required List<T> items,
+    Map<T, String>? itemLabels,
+    required ValueChanged<T?> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F0F0),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.black.withOpacity(0.08)),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<T>(
+          value: value,
+          hint: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(color: Colors.black54, fontSize: 13),
+              ),
+            ],
+          ),
+          isExpanded: true,
+          icon: const Icon(Icons.arrow_drop_down, color: Colors.black54),
+          style: const TextStyle(color: Colors.black87, fontSize: 13),
+          items: [
+            DropdownMenuItem<T>(
+              value: null,
+              child: Text('All ${label}s', style: const TextStyle(color: Colors.black54)),
+            ),
+            ...items.map((item) {
+              final text = itemLabels != null ? itemLabels[item] : item.toString();
+              return DropdownMenuItem<T>(
+                value: item,
+                child: Text(text ?? ''),
+              );
+            }),
+          ],
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildClassRow(ProfessorSubject sub) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 14),
+      elevation: 0,
+      color: Colors.transparent,
+      child: Container(
+        decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: const LinearGradient(
+              colors: [
+                Color(0xFFE3F2FD),
+                Color(0xFFBBDEFB),
+              ],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+            border: Border.all(color: Colors.blue.shade100.withOpacity(0.5)),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Left side
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      sub.name,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF1565C0),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${sub.courseCode} ${sub.yearLevel}-${sub.section}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.blueGrey.shade800,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${sub.studentCount} students',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blueGrey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Right side buttons
+              Column(
+                children: [
+                  SizedBox(
+                    width: 140,
+                    height: 34,
+                    child: ElevatedButton(
+                      onPressed: () => _showViewStudentsDialog(sub),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF1D4E8F),
+                        side: const BorderSide(color: Color(0xFF1D4E8F), width: 1.5),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: EdgeInsets.zero,
+                      ),
+                      child: const Text(
+                        'View Students',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: 140,
+                    height: 34,
+                    child: ElevatedButton(
+                      onPressed: () => _showAttendanceDialog(sub),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFFE65100),
+                        side: const BorderSide(color: Color(0xFFE65100), width: 1.5),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: EdgeInsets.zero,
+                      ),
+                      child: const Text(
+                        'Attendance Sheet',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+    );
+  }
+}

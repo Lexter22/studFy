@@ -270,6 +270,7 @@ class AppDialog {
     String confirmLabel = 'Confirm',
     String cancelLabel = 'Cancel',
     DialogType type = DialogType.error,
+    String hintText = 'Password',
   }) {
     final color = _typeColor(type);
     final controller = TextEditingController();
@@ -304,7 +305,7 @@ class AppDialog {
               controller: controller,
               obscureText: true,
               decoration: InputDecoration(
-                hintText: 'Admin Password',
+                hintText: hintText,
                 prefixIcon: const Icon(Icons.lock_outline, size: 20),
                 filled: true,
                 fillColor: Colors.grey.shade100,

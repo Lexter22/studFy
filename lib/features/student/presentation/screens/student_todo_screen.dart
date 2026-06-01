@@ -25,6 +25,7 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
 
   // Track state of assignment submissions
   final Map<String, bool> _submittedAssignments = {};
+  final Map<String, List<SubjectAssignment>> _subjectAssignments = {};
 
   @override
   void initState() {
@@ -42,7 +43,9 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
       // Fetch submissions status
       for (final sub in subjects) {
         final assignments = await _repo.fetchAssignments(sub.id);
-        for (final ass in assignments) {
+        final filtered = assignments.where((a) => !(a.description ?? '').startsWith('[MATERIAL]')).toList();
+        _subjectAssignments[sub.id] = filtered;
+        for (final ass in filtered) {
           final isSubmitted = await _repo.checkSubmission(ass.id);
           _submittedAssignments[ass.id] = isSubmitted;
         }
@@ -74,55 +77,63 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0A5C36),
-        elevation: 0,
-        toolbarHeight: 70,
-        title: const Row(
-          children: [
-            Icon(Icons.school, color: Colors.white, size: 28),
-            SizedBox(width: 8),
-            Text(
-              'STUDYFY',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-        automaticallyImplyLeading: false,
-        actions: [
-          Center(
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(90),
+        child: AppBar(
+          backgroundColor: const Color(0xFF0A5C36),
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          flexibleSpace: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    studentName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.school, color: Colors.white, size: 28),
+                      SizedBox(height: 2),
+                      Text(
+                        'STUDFY',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    courseSection,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        studentName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        courseSection,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
           ),
-        ],
+        ),
       ),
       body: Stack(
         children: [
@@ -228,49 +239,50 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
     );
   }
 
-  // Filter assignments based on tabs
   List<Map<String, dynamic>> _getAssignments({required bool isDone, required bool isMissing}) {
     final List<Map<String, dynamic>> results = [];
     final now = DateTime.now();
 
     for (final sub in _subjects) {
-      // In mock mode or fetched mode, get assignments
-      // For this screen, we also add the Mock Quiz so the user can test the Quiz interface
       final List<SubjectAssignment> list = [];
-      if (sub.id.contains('ethics')) {
-        list.add(
-          SubjectAssignment(
-            id: 'mock-a1',
-            title: 'Poster Making',
-            description: 'Make a creative poster showing your ethical views in technology.',
-            deadline: DateTime.now().add(const Duration(days: 2)),
-          ),
-        );
-        list.add(
-          SubjectAssignment(
-            id: 'mock-a2',
-            title: 'Activity 1: PPT',
-            description: 'Make a power point presentation about dilemma',
-            deadline: DateTime.now().subtract(const Duration(days: 1)),
-          ),
-        );
-        list.add(
-          SubjectAssignment(
-            id: 'mock-quiz-ethics',
-            title: 'Ethics Quiz 1',
-            description: 'Test your understanding on Managerial Ethics and Decision Making.',
-            deadline: DateTime.now().add(const Duration(days: 4)),
-          ),
-        );
+      if (sub.id.startsWith('mock-') || sub.id.contains('ethics')) {
+        if (sub.id.contains('ethics') || sub.id == 'mock-ethics') {
+          list.add(
+            SubjectAssignment(
+              id: 'mock-a1',
+              title: 'Poster Making',
+              description: 'Make a creative poster showing your ethical views in technology.',
+              deadline: DateTime.now().add(const Duration(days: 2)),
+            ),
+          );
+          list.add(
+            SubjectAssignment(
+              id: 'mock-a2',
+              title: 'Activity 1: PPT',
+              description: 'Make a power point presentation about dilemma',
+              deadline: DateTime.now().subtract(const Duration(days: 1)),
+            ),
+          );
+          list.add(
+            SubjectAssignment(
+              id: 'mock-quiz-ethics',
+              title: 'Ethics Quiz 1',
+              description: 'Test your understanding on Managerial Ethics and Decision Making.',
+              deadline: DateTime.now().add(const Duration(days: 4)),
+            ),
+          );
+        } else {
+          list.add(
+            SubjectAssignment(
+              id: 'mock-${sub.id}-a1',
+              title: 'Lesson Reflection',
+              description: 'Submit your 300 word reflection essay.',
+              deadline: DateTime.now().add(const Duration(days: 5)),
+            ),
+          );
+        }
       } else {
-        list.add(
-          SubjectAssignment(
-            id: 'mock-${sub.id}-a1',
-            title: 'Lesson Reflection',
-            description: 'Submit your 300 word reflection essay.',
-            deadline: DateTime.now().add(const Duration(days: 5)),
-          ),
-        );
+        list.addAll(_subjectAssignments[sub.id] ?? []);
       }
 
       for (final ass in list) {

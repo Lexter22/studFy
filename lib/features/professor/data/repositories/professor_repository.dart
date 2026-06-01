@@ -84,6 +84,13 @@ class ProfessorRepository {
     await _client.from('modules').delete().eq('id', moduleId);
   }
 
+  Future<void> deleteModuleAttachment(String moduleId) async {
+    await _client.from('modules').update({
+      'file_url': null,
+      'file_name': null,
+    }).eq('id', moduleId);
+  }
+
   Future<List<SubjectQuiz>> fetchQuizzes(String subjectId) async {
     final rows = await _client
         .from('quizzes')
@@ -262,6 +269,38 @@ class ProfessorRepository {
         'yearSection': r['year_section']?.toString() ?? '',
       };
     }).toList().cast<Map<String, String>>();
+  }
+
+  Future<List<Map<String, String>>> fetchAllStudents() async {
+    final rows = await _client
+        .from('student_profiles')
+        .select('profile_id,student_number,course_code,year_section');
+
+    if ((rows as List).isEmpty) return [];
+
+    final ids = rows.map((r) => r['profile_id'].toString()).toList();
+    final profileRows = await _client
+        .from('profiles')
+        .select('id,display_name,email')
+        .inFilter('id', ids);
+
+    final Map<String, Map<String, dynamic>> profileMap = {};
+    for (final r in (profileRows as List)) {
+      profileMap[r['id'].toString()] = Map<String, dynamic>.from(r as Map);
+    }
+
+    return rows.map((r) {
+      final pid = r['profile_id'].toString();
+      final p = profileMap[pid] ?? {};
+      return <String, String>{
+        'profileId': pid,
+        'name': p['display_name']?.toString() ?? 'Unknown',
+        'email': p['email']?.toString() ?? '',
+        'studentNumber': r['student_number']?.toString() ?? '',
+        'course': r['course_code']?.toString() ?? '',
+        'yearSection': r['year_section']?.toString() ?? '',
+      };
+    }).toList();
   }
 
   Future<List<Map<String, String>>> searchStudents(String studentNumber) async {

@@ -71,22 +71,26 @@ class _ProfessorFloatingNavBarState extends State<ProfessorFloatingNavBar> {
     return MouseRegion(
       onEnter: (_) => setState(() => _hoveredIndex = index),
       onExit: (_) => setState(() => _hoveredIndex = null),
+      cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: () {
           if (index == 4) {
             _handleLogout();
+            return;
+          }
+
+          while (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          }
+
+          if (index == 0) {
+            context.goNamed(AppRoutes.professorClasses);
+          } else if (index == 1) {
+            context.goNamed(AppRoutes.professorModules);
           } else if (index == 2) {
             context.goNamed(AppRoutes.professorDashboard);
-          } else {
-            // Map other categories to dashboard for now or show a brief toast
-            context.goNamed(AppRoutes.professorDashboard);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('$label view is integrated natively inside specific classes.'),
-                duration: const Duration(seconds: 2),
-                backgroundColor: AppColors.authPrimary,
-              ),
-            );
+          } else if (index == 3) {
+            context.goNamed(AppRoutes.professorAssignments);
           }
         },
         child: AnimatedContainer(
