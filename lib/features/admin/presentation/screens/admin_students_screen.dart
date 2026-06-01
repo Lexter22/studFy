@@ -1,12 +1,15 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'dart:math' as math;
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
+import '../../../../core/widgets/app_dialog.dart';
+import '../../../auth/domain/models/auth_exception.dart';
 import '../../domain/models/student.dart';
+import '../widgets/admin_floating_nav_bar.dart';
 
 class AdminStudentsScreen extends StatefulWidget {
   const AdminStudentsScreen({super.key});
@@ -16,115 +19,10 @@ class AdminStudentsScreen extends StatefulWidget {
 }
 
 class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
-  int? _hoveredIndex;
-  int? _hoveredStudentIndex;
-
   final TextEditingController _searchController = TextEditingController();
-
   String? _selectedCourse;
-  String? _selectedSubject;
-
-  late final List<String> _courseSectionList;
-  final List<String> _subjectList = [
-    'Programming',
-    'Mathematics',
-    'Communication',
-    'Data Structures',
-    'Networking',
-    'Web Development',
-    'Database Management',
-    'Operating Systems',
-    'Software Engineering',
-    'Discrete Math',
-  ];
-
-  // Each student keeps its own selected course & subject for the row dropdowns.
-  // We store them as parallel lists of the same index as _allStudents.
-  late List<StudentData> _allStudents;
-
-  late List<StudentData> _filteredStudents;
-
-  // Per-row selected subject (index-aligned with _allStudents)
-  late List<String> _rowSubject;
-  // Per-row randomized subjects (2-4 items)
-  late List<List<String>> _studentSubjects;
-
-  @override
-  void initState() {
-    super.initState();
-    _allStudents = [
-      const StudentData(name: 'Abad, Jose',        course: 'BSCS', yearSection: '1-1'),
-      const StudentData(name: 'Alvarez, Maria',     course: 'BSIT', yearSection: '2-1'),
-      const StudentData(name: 'Bautista, Arnel',   course: 'BSIT', yearSection: '2-2'),
-      const StudentData(name: 'Bernardo, Carlos',  course: 'BSCS', yearSection: '1-2'),
-      const StudentData(name: 'Castillo, Elena',   course: 'BSIE', yearSection: '3-3'),
-      const StudentData(name: 'Cruz, Miguel',      course: 'DIT',  yearSection: '2-1'),
-      const StudentData(name: 'De Guzman, Anna',   course: 'BSCS', yearSection: '3-2'),
-      const StudentData(name: 'Dela Cruz, Maria',  course: 'BSIT', yearSection: '1-1'),
-      const StudentData(name: 'Domingo, Roberto',  course: 'BSHM', yearSection: '4-1'),
-      const StudentData(name: 'Estacio, Felicia',  course: 'BSIT', yearSection: '3-1'),
-      const StudentData(name: 'Evangelista, Mark', course: 'BSIT', yearSection: '4-1'),
-      const StudentData(name: 'Ferrer, Grace',     course: 'BSHM', yearSection: '2-3'),
-      const StudentData(name: 'Flores, Diane',     course: 'BSCS', yearSection: '1-1'),
-      const StudentData(name: 'Garcia, Maria',     course: 'BSIT', yearSection: '3-2'),
-      const StudentData(name: 'Gomez, Paolo',      course: 'DIT',  yearSection: '1-2'),
-      const StudentData(name: 'Gonzales, Kevin',   course: 'BSIT', yearSection: '2-2'),
-      const StudentData(name: 'Hernandez, Rico',   course: 'BSCS', yearSection: '4-2'),
-      const StudentData(name: 'Hizon, Angela',     course: 'BSIE', yearSection: '1-1'),
-      const StudentData(name: 'Ignacio, Jerome',   course: 'DIT',  yearSection: '3-1'),
-      const StudentData(name: 'Isidro, Rafael',    course: 'BSCS', yearSection: '2-3'),
-      const StudentData(name: 'Javier, Lita',      course: 'BSIE', yearSection: '2-1'),
-      const StudentData(name: 'Lacsamana, Joey',   course: 'BSIT', yearSection: '1-3'),
-      const StudentData(name: 'Lopez, Rosa',       course: 'BSIE', yearSection: '1-3'),
-      const StudentData(name: 'Luna, Antonio',     course: 'BSCS', yearSection: '3-1'),
-      const StudentData(name: 'Mendoza, Sofia',    course: 'BSHM', yearSection: '1-4'),
-      const StudentData(name: 'Mercado, Pilar',    course: 'BSIT', yearSection: '3-3'),
-      const StudentData(name: 'Navarro, Luis',     course: 'DIT',  yearSection: '2-2'),
-      const StudentData(name: 'Noble, Rey',        course: 'DIT',  yearSection: '4-1'),
-      const StudentData(name: 'Ocampo, Teresa',    course: 'BSCS', yearSection: '3-2'),
-      const StudentData(name: 'Ortega, Susan',     course: 'BSHM', yearSection: '1-1'),
-      const StudentData(name: 'Pascual, Ben',      course: 'BSCS', yearSection: '2-2'),
-      const StudentData(name: 'Peralta, Simon',    course: 'BSIE', yearSection: '4-2'),
-      const StudentData(name: 'Quezon, Manuel',    course: 'BSIE', yearSection: '4-3'),
-      const StudentData(name: 'Quinto, Elena',     course: 'BSHM', yearSection: '2-1'),
-      const StudentData(name: 'Reyes, Pedro',      course: 'BSCS', yearSection: '2-1'),
-      const StudentData(name: 'Rivera, Rosa',      course: 'BSIT', yearSection: '1-2'),
-      const StudentData(name: 'Salazar, Jose',     course: 'DIT',  yearSection: '2-2'),
-      const StudentData(name: 'Santos, Juan',      course: 'BSIT', yearSection: '3-1'),
-      const StudentData(name: 'Solis, Maricel',    course: 'BSIT', yearSection: '2-3'),
-      const StudentData(name: 'Tan, Carlos',       course: 'BSIT', yearSection: '4-1'),
-      const StudentData(name: 'Tolentino, Linda',  course: 'BSHM', yearSection: '3-2'),
-      const StudentData(name: 'Torres, Victor',    course: 'BSIE', yearSection: '1-2'),
-      const StudentData(name: 'Umali, Victor',     course: 'BSIE', yearSection: '1-2'),
-      const StudentData(name: 'Valenzuela, Gina',  course: 'BSCS', yearSection: '4-1'),
-      const StudentData(name: 'Velasco, Ricardo',  course: 'DIT',  yearSection: '3-2'),
-      const StudentData(name: 'Zamora, Felicity',  course: 'BSCS', yearSection: '1-1'),
-    ]..sort((a, b) => a.name.compareTo(b.name));
-
-    _filteredStudents = List.from(_allStudents);
-
-    // Randomize 2-4 subjects per student
-    final random = Random();
-    _studentSubjects = _allStudents.map((_) {
-      final count = random.nextInt(3) + 2; // 2, 3, or 4
-      final shuffled = List<String>.from(_subjectList)..shuffle(random);
-      return shuffled.take(count).toList();
-    }).toList();
-
-    // Set default selected subject
-    _rowSubject = _studentSubjects.map((list) => list.first).toList();
-
-    // Generate Course & Section list for dropdown
-    final List<String> baseCourses = ['BSIT', 'BSIE', 'DIT', 'BSCS', 'BSHM'];
-    _courseSectionList = [];
-    for (var c in baseCourses) {
-      for (var y = 1; y <= 4; y++) {
-        for (var s = 1; s <= 3; s++) {
-          _courseSectionList.add("$c $y-$s");
-        }
-      }
-    }
-  }
+  static const int _pageSize = 8; // Showing 8 items per page for a cleaner layout
+  int _currentPage = 0;
 
   @override
   void dispose() {
@@ -132,359 +30,459 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
     super.dispose();
   }
 
-  // ── Filtering ─────────────────────────────────────────────────────────────
-
-  void _applyFilter() {
-    setState(() {
-      _filteredStudents = _allStudents.where((s) {
-        final nameMatch = s.name
-            .toLowerCase()
-            .contains(_searchController.text.toLowerCase());
-        final courseMatch =
-            _selectedCourse == null || "${s.course} ${s.yearSection}" == _selectedCourse;
-        return nameMatch && courseMatch;
-      }).toList();
-    });
-  }
+  void _applyFilter() => setState(() {});
 
   void _clearFilter() {
     _searchController.clear();
     setState(() {
       _selectedCourse = null;
-      _selectedSubject = null;
-      _filteredStudents = List.from(_allStudents);
+      _currentPage = 0;
     });
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
+  List<String> _courseSectionList(List<StudentData> students) {
+    return students
+        .map((s) => '${s.course} ${s.yearSection}')
+        .toSet()
+        .toList()
+      ..sort();
+  }
+
+  List<StudentData> _filterStudents(List<StudentData> students) {
+    return students.where((student) {
+      final courseSection = '${student.course} ${student.yearSection}';
+      final nameMatch = student.name.toLowerCase().contains(_searchController.text.toLowerCase()) ||
+          student.profileId.toLowerCase().contains(_searchController.text.toLowerCase());
+      final courseMatch = _selectedCourse == null || courseSection == _selectedCourse;
+      return nameMatch && courseMatch;
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+
     return Scaffold(
-      extendBody: true,
       backgroundColor: AppColors.adminPageBackground,
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
+      appBar: AppBar(
+        backgroundColor: AppColors.adminPrimary,
+        elevation: 0,
+        toolbarHeight: 70,
+        title: const Row(
+          children: [
+            Icon(Icons.school, color: Colors.white, size: 28),
+            SizedBox(width: 8),
+            Text(
+              'STUDFY',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+        actions: const [
+          Center(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.end,
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'Admin 1',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+        automaticallyImplyLeading: false,
+      ),
+      body: Stack(
+        children: [
+          ValueListenableBuilder<List<StudentData>>(
+            valueListenable: appState.studentsNotifier,
+            builder: (context, students, _) {
+              final filteredStudents = _filterStudents(students);
+              final courseSectionList = _courseSectionList(students);
+              final pageCount = math.max(1, (filteredStudents.length / _pageSize).ceil());
+              final safePage = _currentPage.clamp(0, pageCount - 1);
+              if (safePage != _currentPage) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) setState(() => _currentPage = safePage);
+                });
+              }
+              final pagedStudents = filteredStudents.skip(safePage * _pageSize).take(_pageSize).toList();
+
+              return SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Student List',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.adminPrimary,
-                          ),
-                        ),
-                        Row(
+                        // Header panel
+                        Wrap(
+                          alignment: WrapAlignment.spaceBetween,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 16,
+                          runSpacing: 12,
                           children: [
-                            const Text(
-                              'Total: ',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
-                                fontWeight: FontWeight.w500,
-                              ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Student Directory',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.adminPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Manage and view all registered students',
+                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                                ),
+                              ],
                             ),
-                            Text(
-                              '${_filteredStudents.length}',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.adminPrimary,
-                              ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.adminPrimary.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.people_alt_rounded, color: AppColors.adminPrimary, size: 18),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        '${filteredStudents.length} Total',
+                                        style: const TextStyle(
+                                          color: AppColors.adminPrimary,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                ElevatedButton.icon(
+                                  onPressed: _showCreateStudentDialog,
+                                  icon: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 18),
+                                  label: const Text('Add Student', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.adminPrimary,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    elevation: 0,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Search and Filter area card
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.02),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Container(
+                                      height: 46,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF5F6F9),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: TextField(
+                                        controller: _searchController,
+                                        onChanged: (_) => _applyFilter(),
+                                        decoration: InputDecoration(
+                                          hintText: 'Search by student name or ID...',
+                                          hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                                          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                                          suffixIcon: _searchController.text.isNotEmpty
+                                              ? IconButton(
+                                                  icon: const Icon(Icons.clear, size: 18),
+                                                  onPressed: () {
+                                                    _searchController.clear();
+                                                    _applyFilter();
+                                                  },
+                                                )
+                                              : null,
+                                          border: InputBorder.none,
+                                          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  IconButton(
+                                    onPressed: _clearFilter,
+                                    icon: const Icon(Icons.filter_alt_off_rounded, color: Colors.black54),
+                                    tooltip: 'Clear filters',
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: DropdownButtonFormField<String>(
+                                      value: _selectedCourse,
+                                      hint: const Text('Filter by Course & Section', style: TextStyle(fontSize: 13)),
+                                      decoration: InputDecoration(
+                                        filled: true,
+                                        fillColor: const Color(0xFFF5F6F9),
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                      ),
+                                      items: courseSectionList.map((sec) {
+                                        return DropdownMenuItem(
+                                          value: sec,
+                                          child: Text(sec, style: const TextStyle(fontSize: 13)),
+                                        );
+                                      }).toList(),
+                                      onChanged: (val) {
+                                        setState(() {
+                                          _selectedCourse = val;
+                                          _currentPage = 0;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Student grid/list
+                        _buildStudentList(pagedStudents),
+
+                        const SizedBox(height: 16),
+
+                        // Pagination UI
+                        _buildPagination(
+                          totalItems: filteredStudents.length,
+                          pageCount: pageCount,
+                          currentPage: safePage,
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  _buildSearchArea(),
-                  const SizedBox(height: 12),
-                  Expanded(child: _buildStudentList()),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
-          _buildNavBar(),
+          const AdminFloatingNavBar(currentIndex: 1),
         ],
       ),
     );
   }
 
-  // ── Search area ───────────────────────────────────────────────────────────
-
-  Widget _buildSearchArea() {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Container(
-                height: 42,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.black12),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (_) => _applyFilter(),
-                  decoration: const InputDecoration(
-                    hintText: 'Student Name/Student Number',
-                    hintStyle: TextStyle(color: Colors.grey, fontSize: 13),
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    border: InputBorder.none,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Material(
-              color: const Color(0xFF1A46A0),
-              borderRadius: BorderRadius.circular(8),
-              child: InkWell(
-                onTap: _applyFilter,
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  height: 42,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.search, color: Colors.white, size: 18),
-                      SizedBox(width: 4),
-                      Text('Search',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold)),
-                    ],
-                  ),
+  Widget _buildPagination({required int totalItems, required int pageCount, required int currentPage}) {
+    if (totalItems == 0) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'Page ${currentPage + 1} of $pageCount',
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+          ),
+          Row(
+            children: [
+              IconButton(
+                onPressed: currentPage > 0
+                    ? () => setState(() => _currentPage = currentPage - 1)
+                    : null,
+                icon: const Icon(Icons.chevron_left_rounded),
+                style: IconButton.styleFrom(
+                  backgroundColor: currentPage > 0 ? const Color(0xFFF5F6F9) : Colors.transparent,
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            IconButton(
-              onPressed: _clearFilter,
-              icon: const Icon(Icons.filter_alt_off, color: Colors.black54),
-              tooltip: 'Clear filters',
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(child: _buildFilterDropdown(
-              hint: 'Course & Section',
-              value: _selectedCourse,
-              items: _courseSectionList,
-              onChanged: (val) {
-                setState(() => _selectedCourse = val);
-                _applyFilter();
-              },
-            )),
-            const SizedBox(width: 8),
-            Expanded(child: _buildFilterDropdown(
-              hint: 'Subject',
-              value: _selectedSubject,
-              items: _subjectList,
-              onChanged: (val) => setState(() => _selectedSubject = val),
-            )),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFilterDropdown({
-    required String hint,
-    required String? value,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return DropdownMenu<String>(
-      expandedInsets: EdgeInsets.zero,
-      initialSelection: value,
-      hintText: hint,
-      enableSearch: true,
-      enableFilter: true,
-      requestFocusOnTap: true,
-      menuHeight: 300,
-      onSelected: onChanged,
-      dropdownMenuEntries: items.map((e) => DropdownMenuEntry(
-        value: e,
-        label: e,
-        style: MenuItemButton.styleFrom(
-          visualDensity: VisualDensity.compact,
-        ),
-      )).toList(),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-        constraints: const BoxConstraints(maxHeight: 42),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.black12),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.black12),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.adminPrimary, width: 1),
-        ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: currentPage < pageCount - 1
+                    ? () => setState(() => _currentPage = currentPage + 1)
+                    : null,
+                icon: const Icon(Icons.chevron_right_rounded),
+                style: IconButton.styleFrom(
+                  backgroundColor: currentPage < pageCount - 1 ? const Color(0xFFF5F6F9) : Colors.transparent,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  // ── Student list ──────────────────────────────────────────────────────────
-
-  Widget _buildStudentList() {
-    if (_filteredStudents.isEmpty) {
-      return const Center(
-        child: Text(
-          'No students in the list',
-          style: TextStyle(
-            color: Colors.grey,
-            fontSize: 14,
-            fontStyle: FontStyle.italic,
-          ),
+  Widget _buildStudentList(List<StudentData> students) {
+    if (students.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 60),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.people_outline_rounded, size: 64, color: Colors.grey.shade300),
+            const SizedBox(height: 12),
+            Text(
+              'No students match your filter criteria',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 15, fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
       );
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(0, 4, 0, 98),
-        itemCount: _filteredStudents.length,
-        separatorBuilder: (_, unused) =>
-            const Divider(height: 1, color: Colors.black12, indent: 12, endIndent: 12),
-        itemBuilder: (context, index) {
-          final student = _filteredStudents[index];
-          final originalIndex = _allStudents.indexOf(student);
-          return _buildStudentRow(student, originalIndex);
-        },
-      ),
+    return Column(
+      children: students.map((student) => _buildStudentCard(student)).toList(),
     );
   }
 
-  Widget _buildStudentRow(StudentData student, int originalIndex) {
-    final hasMeta = originalIndex >= 0;
-    final isHovered = _hoveredStudentIndex == originalIndex;
+  Widget _buildStudentCard(StudentData student) {
+    final String displayName = student.name;
+    final String courseSection = '${student.course} ${student.yearSection}';
+    final String initials = displayName.isNotEmpty
+        ? displayName.trim().split(' ').map((e) => e[0]).take(2).join('').toUpperCase()
+        : 'S';
 
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hoveredStudentIndex = originalIndex),
-      onExit: (_) => setState(() => _hoveredStudentIndex = null),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () async {
-          final result = await context.pushNamed(
-            AppRoutes.adminStudentsProfile,
-            extra: {
-              'student': {
-                'name': student.name,
-                'course': student.course,
-                'yearSection': student.yearSection,
-                'subjects': hasMeta ? _studentSubjects[originalIndex] : <String>[],
-              },
-            },
-          );
-
-          if (result == true) {
-            setState(() {
-              _allStudents.removeAt(originalIndex);
-              _studentSubjects.removeAt(originalIndex);
-              _rowSubject.removeAt(originalIndex);
-              _applyFilter();
-            });
-          }
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: isHovered
-                ? Colors.black.withOpacity(0.05)
-                : Colors.transparent,
-            border: Border(
-              bottom: BorderSide(
-                color: isHovered ? Colors.black12 : Colors.transparent,
-                width: 0.5,
-              ),
-            ),
-          ),
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: InkWell(
+        onTap: () => context.pushNamed(
+          AppRoutes.adminStudentsProfile,
+          pathParameters: {'profileId': student.profileId},
+          extra: {'student': student},
+        ),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
           child: Row(
             children: [
+              // Avatar
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                child: Text(
+                  initials,
+                  style: const TextStyle(
+                    color: AppColors.adminPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+
+              // Details
               Expanded(
-                flex: 3,
-                child: Hero(
-                  tag: 'student-name-${student.name}',
-                  child: Material(
-                    color: Colors.transparent,
-                    child: Text(
-                      student.name,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: isHovered ? FontWeight.bold : FontWeight.w500,
-                        color: isHovered ? AppColors.adminPrimary : Colors.black87,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      displayName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.black87,
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5F6F9),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: Text(
+                            courseSection,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'ID: ${student.profileId.substring(0, math.min(student.profileId.length, 12))}...',
+                            style: TextStyle(
+                              color: Colors.grey.shade400,
+                              fontSize: 11,
+                              fontFamily: 'monospace',
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 6),
-              Expanded(
-                flex: 2,
-                child: Container(
-                  height: 32,
-                  alignment: Alignment.centerLeft,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.black12),
+
+              // Action buttons
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 20, color: Colors.blue),
+                    onPressed: () => _showEditStudentDialog(student),
+                    tooltip: 'Edit details',
                   ),
-                  child: Text(
-                    "${student.course} ${student.yearSection}",
-                    style: const TextStyle(fontSize: 11, color: Colors.black87),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded, size: 20, color: Colors.red),
+                    onPressed: () => _showDeleteStudentDialog(student),
+                    tooltip: 'Delete student',
                   ),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                flex: 2,
-                child: _buildRowDropdown(
-                  value: hasMeta ? _rowSubject[originalIndex] : _subjectList.first,
-                  items: hasMeta
-                      ? _studentSubjects[originalIndex]
-                      : [_subjectList.first],
-                  onChanged: hasMeta
-                      ? (val) {
-                          if (val != null) {
-                            setState(() => _rowSubject[originalIndex] = val);
-                          }
-                        }
-                      : null,
-                ),
+                ],
               ),
             ],
           ),
@@ -493,162 +491,262 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
     );
   }
 
-  Widget _buildRowDropdown({
-    required String value,
-    required List<String> items,
-    required ValueChanged<String?>? onChanged,
-  }) {
-    return DropdownMenu<String>(
-      expandedInsets: EdgeInsets.zero,
-      initialSelection: items.contains(value) ? value : items.first,
-      enableSearch: true,
-      enableFilter: true,
-      requestFocusOnTap: true,
-      menuHeight: 200,
-      onSelected: onChanged,
-      dropdownMenuEntries: items.map((e) => DropdownMenuEntry(
-        value: e,
-        label: e,
-        style: MenuItemButton.styleFrom(
-          visualDensity: VisualDensity.compact,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-        ),
-      )).toList(),
-      textStyle: const TextStyle(fontSize: 11, color: Colors.black87),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: Colors.grey.shade100,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-        constraints: const BoxConstraints(maxHeight: 32),
-        isDense: true,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6),
-          borderSide: const BorderSide(color: Colors.black12),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6),
-          borderSide: const BorderSide(color: Colors.black12),
-        ),
-      ),
-    );
-  }
+  void _showEditStudentDialog(StudentData student) {
+    final nameCtrl = TextEditingController(text: student.name);
+    final courseCtrl = TextEditingController(text: student.course);
+    final yearSecCtrl = TextEditingController(text: student.yearSection);
+    bool isLoading = false;
 
-  Widget _buildHeader() {
-    return Container(
-      height: 70,
-      width: double.infinity,
-      color: AppColors.adminPrimary,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: const [
+              Icon(Icons.edit, color: AppColors.adminPrimary),
+              SizedBox(width: 8),
+              Text('Edit Student Details', style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.school, color: Colors.white, size: 28),
-              Text('STUDFY',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900)),
+              TextField(
+                controller: nameCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Name',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: courseCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Course (e.g. BSIT)',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: yearSecCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Year & Section (e.g. 2-A)',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+              ),
             ],
           ),
-          Text('Admin 1',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold)),
+          actions: [
+            TextButton(
+              onPressed: isLoading ? null : () => Navigator.pop(dialogCtx),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.adminPrimary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      setDialogState(() => isLoading = true);
+                      try {
+                        await context.read<AppState>().updateStudent(
+                              profileId: student.profileId,
+                              name: nameCtrl.text,
+                              course: courseCtrl.text,
+                              yearSection: yearSecCtrl.text,
+                            );
+                        if (!mounted) return;
+                        Navigator.pop(dialogCtx);
+                        await AppDialog.result(context, type: DialogType.success, message: 'Student updated successfully.');
+                      } catch (e) {
+                        setDialogState(() => isLoading = false);
+                        if (!mounted) return;
+                        await AppDialog.alert(context, title: 'Error', message: e.toString());
+                      }
+                    },
+              child: isLoading
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('Save Changes', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteStudentDialog(StudentData student) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: const [
+            Icon(Icons.warning_amber_rounded, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Delete Student', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text('Are you sure you want to delete ${student.name}? This will revoke their access and delete their profiles permanently.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(dialogCtx);
+              try {
+                await context.read<AppState>().deleteProfile(student.profileId);
+                if (!mounted) return;
+                await AppDialog.result(context, type: DialogType.success, message: 'Student deleted successfully.');
+              } catch (e) {
+                if (!mounted) return;
+                await AppDialog.alert(context, title: 'Error', message: e.toString());
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildNavBar() {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width > 800
-                ? 650
-                : MediaQuery.of(context).size.width - 20,
-          ),
-          child: Container(
-            height: 70,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: AppColors.adminPrimary,
-              borderRadius: BorderRadius.circular(35),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildNavItem(Icons.layers, 'INSTRUCTOR', 0),
-                _buildNavItem(Icons.group, 'STUDENTS', 1),
-                _buildNavItem(Icons.home, 'DASHBOARD', 2),
-                _buildNavItem(Icons.book, 'SUBJECTS', 3),
-                _buildNavItem(Icons.logout, 'LOGOUT', 4),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  void _showCreateStudentDialog() {
+    final emailCtrl = TextEditingController();
+    final firstNameCtrl = TextEditingController();
+    final lastNameCtrl = TextEditingController();
+    final courseCtrl = TextEditingController();
+    final yearSecCtrl = TextEditingController();
+    final studentNumCtrl = TextEditingController();
+    bool isLoading = false;
 
-  Widget _buildNavItem(IconData icon, String label, int index) {
-    final bool isHovered = _hoveredIndex == index;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hoveredIndex = index),
-      onExit: (_) => setState(() => _hoveredIndex = null),
-      child: GestureDetector(
-        onTap: () {
-          if (index == 4) {
-            context.read<AppState>().logout();
-            context.goNamed(AppRoutes.login);
-          } else if (index == 0) {
-            context.goNamed(AppRoutes.adminInstructors);
-          } else if (index == 1) {
-            context.goNamed(AppRoutes.adminStudents);
-          } else if (index == 2) {
-            context.goNamed(AppRoutes.adminDashboard);
-          } else if (index == 3) {
-            context.goNamed(AppRoutes.adminSubjects);
-          }
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color:
-                isHovered ? Colors.white.withOpacity(0.1) : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: Colors.white, size: 24),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 9,
-                  fontWeight:
-                      isHovered ? FontWeight.bold : FontWeight.normal,
-                  letterSpacing: 0.5,
-                ),
-              ),
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: const [
+              Icon(Icons.person_add_alt_1_rounded, color: AppColors.adminPrimary),
+              SizedBox(width: 8),
+              Text('Add New Student', style: TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: emailCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Email Address',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: firstNameCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'First Name',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: lastNameCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Last Name',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: studentNumCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Student Number (Optional)',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: courseCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Course (e.g. BSIT)',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: yearSecCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Year & Section (e.g. 2-A)',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isLoading ? null : () => Navigator.pop(dialogCtx),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.adminPrimary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      setDialogState(() => isLoading = true);
+                      try {
+                        final defaultPassword = await context.read<AppState>().createStudent(
+                              firstName: firstNameCtrl.text,
+                              lastName: lastNameCtrl.text,
+                              email: emailCtrl.text,
+                              courseCode: courseCtrl.text,
+                              yearSection: yearSecCtrl.text,
+                              studentNumber: studentNumCtrl.text,
+                            );
+                        if (!mounted) return;
+                        Navigator.pop(dialogCtx);
+                        await AppDialog.result(
+                          context,
+                          type: DialogType.success,
+                          message: 'Account created successfully.\n\nEmail: ${emailCtrl.text.trim()}\nDefault Password: $defaultPassword\n\nShare these credentials with the student.',
+                        );
+                      } on AuthException catch (e) {
+                        setDialogState(() => isLoading = false);
+                        if (!mounted) return;
+                        await AppDialog.alert(context, title: 'Error', message: e.message ?? 'Failed to create student.');
+                      } catch (e) {
+                        setDialogState(() => isLoading = false);
+                        if (!mounted) return;
+                        await AppDialog.alert(context, title: 'Error', message: e.toString());
+                      }
+                    },
+              child: isLoading
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('Create', style: TextStyle(color: Colors.white)),
+            ),
+          ],
         ),
       ),
     );

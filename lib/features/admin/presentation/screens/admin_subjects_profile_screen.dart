@@ -5,11 +5,12 @@ import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
-import '../../../auth/domain/services/auth_service.dart';
 import '../../../../core/widgets/app_dialog.dart';
+import '../widgets/admin_floating_nav_bar.dart';
 import '../../domain/models/student.dart';
 
 class AdminSubjectsProfileScreen extends StatefulWidget {
+  final String? subjectId;
   final String subjectName;
   final String courseSection;
   final String professor;
@@ -17,6 +18,7 @@ class AdminSubjectsProfileScreen extends StatefulWidget {
 
   const AdminSubjectsProfileScreen({
     super.key,
+    this.subjectId,
     required this.subjectName,
     required this.courseSection,
     required this.professor,
@@ -24,573 +26,722 @@ class AdminSubjectsProfileScreen extends StatefulWidget {
   });
 
   @override
-  State<AdminSubjectsProfileScreen> createState() =>
-      _AdminSubjectsProfileScreenState();
+  State<AdminSubjectsProfileScreen> createState() => _AdminSubjectsProfileScreenState();
 }
 
-class _AdminSubjectsProfileScreenState
-    extends State<AdminSubjectsProfileScreen> {
-  final AuthService _authService = const AuthService();
-  int? _hoveredIndex;
+class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen> {
+  final TextEditingController _subjectNameCtrl = TextEditingController();
+  final TextEditingController _professorNameCtrl = TextEditingController();
+  final TextEditingController _courseSectionCtrl = TextEditingController();
+  final TextEditingController _roomCtrl = TextEditingController();
+  final TextEditingController _scheduleCtrl = TextEditingController();
+  final TextEditingController _studentSearchCtrl = TextEditingController();
 
-  final Size _btnSize = const Size(85, 32);
-
-  // ── Controllers ──────────────────────────────────────────────────────────
-  final TextEditingController _subjectNameController = TextEditingController();
-  final TextEditingController _professorNameController =
-      TextEditingController();
-  final TextEditingController _courseSectionController =
-      TextEditingController();
-  final TextEditingController _timeController = TextEditingController();
-  final TextEditingController _roomController = TextEditingController();
-
-  final TextEditingController _studentNumberController =
-      TextEditingController();
-  final TextEditingController _studentSearchController =
-      TextEditingController();
-  final TextEditingController _academicYearController =
-      TextEditingController();
-  final TextEditingController _semesterController = TextEditingController();
-
-  bool _isSubjectEditing = false;
-  bool _isEnrollEditing = false;
+  bool _isEditing = false;
   bool _isRequestHandled = false;
+  bool _isLoadingEnrolled = true;
 
-  late List<String> _filteredStudents;
+  List<String> _enrolledStudentIds = [];
+  List<StudentData> _enrolledStudents = [];
+  List<StudentData> _filteredEnrolled = [];
 
   @override
   void initState() {
     super.initState();
-    _subjectNameController.text = widget.subjectName;
-    _professorNameController.text = widget.professor;
-    _courseSectionController.text = widget.courseSection;
-    _filteredStudents = List.from(_allStudents);
+    _subjectNameCtrl.text = widget.subjectName;
+    _professorNameCtrl.text = widget.professor;
+    _courseSectionCtrl.text = widget.courseSection;
+    if (widget.subjectId != null) _loadEnrolledStudents();
   }
-
-  // Mock student list — 30 students, alphabetical by surname (Surname, First M.)
-  final List<String> _allStudents = [
-    'Aquino, Mark A.',
-    'Bautista, Claire B.',
-    'Castillo, Ryan C.',
-    'Cruz, Miguel D.',
-    'De Guzman, Anna E.',
-    'Flores, Diane F.',
-    'Garcia, Maria G.',
-    'Gonzales, Kevin H.',
-    'Herrera, Patricia I.',
-    'Ignacio, Jerome J.',
-    'Jimenez, Kristine K.',
-    'Lim, Leonard L.',
-    'Lopez, Rosa M.',
-    'Manalo, Maricel N.',
-    'Mendoza, Sofia O.',
-    'Navarro, Nathan P.',
-    'Ocampo, Olivia Q.',
-    'Pascual, Paolo R.',
-    'Quizon, Queenie S.',
-    'Ramos, Jose T.',
-    'Reyes, Pedro U.',
-    'Reyes, Rodel V.',
-    'Santos, Juan W.',
-    'Santos, Sheila X.',
-    'Tan, Carlos Y.',
-    'Torres, Tristan Z.',
-    'Uy, Ursula A.',
-    'Valdez, Vincent B.',
-    'Villanueva, Liza C.',
-    'Wenceslao, Wendy D.',
-  ];
 
   @override
   void dispose() {
-    _subjectNameController.dispose();
-    _professorNameController.dispose();
-    _courseSectionController.dispose();
-    _timeController.dispose();
-    _roomController.dispose();
-    _studentNumberController.dispose();
-    _studentSearchController.dispose();
-    _academicYearController.dispose();
-    _semesterController.dispose();
+    _subjectNameCtrl.dispose();
+    _professorNameCtrl.dispose();
+    _courseSectionCtrl.dispose();
+    _roomCtrl.dispose();
+    _scheduleCtrl.dispose();
+    _studentSearchCtrl.dispose();
     super.dispose();
   }
 
-  void _filterStudents() {
+  Future<void> _loadEnrolledStudents() async {
+    setState(() => _isLoadingEnrolled = true);
+    try {
+      final allStudents = context.read<AppState>().students;
+      final rows = await context.read<AppState>().fetchStudentsEnrolledInSubject(widget.subjectId!);
+      setState(() {
+        _enrolledStudentIds = rows;
+        _enrolledStudents = allStudents.where((s) => rows.contains(s.profileId)).toList();
+        _filteredEnrolled = List.from(_enrolledStudents);
+        _isLoadingEnrolled = false;
+      });
+    } catch (_) {
+      setState(() => _isLoadingEnrolled = false);
+    }
+  }
+
+  void _filterEnrolled() {
     setState(() {
-      _filteredStudents = _allStudents
-          .where((s) => s
-              .toLowerCase()
-              .contains(_studentSearchController.text.toLowerCase()))
+      _filteredEnrolled = _enrolledStudents
+          .where((s) => s.name.toLowerCase().contains(_studentSearchCtrl.text.toLowerCase()))
           .toList();
     });
   }
 
-  void _clearStudentFilter() {
-    _studentSearchController.clear();
-    setState(() {
-      _filteredStudents = List.from(_allStudents);
-    });
+  Future<void> _saveEdits() async {
+    if (widget.subjectId == null) return;
+    try {
+      final parts = _courseSectionCtrl.text.trim().split(' ');
+      await context.read<AppState>().updateSubject(
+        subjectId: widget.subjectId!,
+        subjectName: _subjectNameCtrl.text,
+        courseCode: parts.first,
+        section: parts.length > 1 ? parts.last : parts.first,
+        room: _roomCtrl.text,
+        scheduleLabel: _scheduleCtrl.text,
+      );
+      if (!mounted) return;
+      setState(() => _isEditing = false);
+      await AppDialog.result(context, type: DialogType.success, message: 'Subject updated successfully.');
+    } catch (e) {
+      if (!mounted) return;
+      await AppDialog.alert(context, title: 'Error', message: e.toString());
+    }
   }
 
-  void _confirmAction(String action, VoidCallback onConfirm) {
-    final isDelete = action == 'Delete';
+  void _showDeleteDialog() {
+    if (widget.subjectId == null) return;
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete Subject', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Text('Delete "${widget.subjectName}"? This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              Navigator.pop(dialogCtx);
+              try {
+                await context.read<AppState>().deleteSubject(widget.subjectId!);
+                if (!mounted) return;
+                context.pop();
+              } catch (e) {
+                if (!mounted) return;
+                await AppDialog.alert(context, title: 'Error', message: e.toString());
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 
-    if (isDelete) {
-      AppDialog.password(
-        context,
-        title: 'Confirm Deletion',
-        message: 'Are you sure you want to delete this record? This action cannot be undone.',
-        type: DialogType.error,
-        confirmLabel: 'Delete',
-        onConfirm: (pw) async {
-          if (pw == 'admin123') {
-            onConfirm();
-            AppDialog.result(
-              context,
-              type: DialogType.error,
-              message: 'Record deleted successfully.',
-              onDismiss: () => context.pop(true),
-            );
-          } else {
-            AppDialog.alert(
-              context,
-              title: 'Incorrect Password',
-              message: 'The admin password you entered is incorrect.',
-            );
-          }
-        },
-      );
-    } else {
-      AppDialog.confirm(
-        context,
-        title: 'Confirm $action',
-        message: 'Are you sure you want to $action?',
-        type: DialogType.success,
-        confirmLabel: action,
-        onConfirm: () {
-          onConfirm();
-          AppDialog.result(
-            context,
-            type: DialogType.success,
-            message: '$action completed successfully.',
+  void _showAssignProfessorDialog() {
+    if (widget.subjectId == null) {
+      AppDialog.alert(context, title: 'Notice', message: 'Cannot assign a professor to a pending subject. Please create the subject first.');
+      return;
+    }
+    final instructors = context.read<AppState>().instructors;
+    if (instructors.isEmpty) {
+      AppDialog.alert(context, title: 'Notice', message: 'No instructors available. Please add an instructor first.');
+      return;
+    }
+
+    String searchQuery = '';
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) {
+          final filtered = instructors
+              .where((i) => i.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+                  i.course.toLowerCase().contains(searchQuery.toLowerCase()))
+              .toList();
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Text('Assign Professor', style: TextStyle(fontWeight: FontWeight.bold)),
+            content: SizedBox(
+              width: 450,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Search by name or department...',
+                      prefixIcon: const Icon(Icons.search, size: 18),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      isDense: true,
+                    ),
+                    onChanged: (val) => setDialogState(() => searchQuery = val),
+                  ),
+                  const SizedBox(height: 12),
+                  if (filtered.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text('No instructors found.', style: TextStyle(color: Colors.grey)),
+                    )
+                  else
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: filtered.length,
+                        itemBuilder: (ctx, index) {
+                          final instructor = filtered[index];
+                          return ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            leading: CircleAvatar(
+                              backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                              child: const Icon(Icons.person, color: AppColors.adminPrimary, size: 20),
+                            ),
+                            title: Text(instructor.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                            subtitle: Text(instructor.course, style: const TextStyle(fontSize: 12)),
+                            onTap: () async {
+                              Navigator.pop(dialogCtx);
+                              try {
+                                await context.read<AppState>().assignProfessorToSubject(
+                                  subjectId: widget.subjectId!,
+                                  profileId: instructor.profileId,
+                                );
+                                if (!mounted) return;
+                                setState(() => _professorNameCtrl.text = instructor.name);
+                                await AppDialog.result(context, type: DialogType.success, message: '${instructor.name} has been assigned as professor.');
+                              } catch (e) {
+                                if (!mounted) return;
+                                await AppDialog.alert(context, title: 'Error', message: e.toString());
+                              }
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+              ),
+            ],
           );
         },
-      );
+      ),
+    );
+  }
+
+  void _showEnrollStudentDialog() {
+    final allStudents = context.read<AppState>().students;
+    if (allStudents.isEmpty) {
+      AppDialog.alert(context, title: 'Notice', message: 'No students available.');
+      return;
     }
+
+    String searchQuery = '';
+    String? selectedSection;
+
+    final uniqueSections = allStudents
+        .map((s) => s.yearSection.trim())
+        .where((s) => s.isNotEmpty)
+        .toSet()
+        .toList();
+    uniqueSections.sort();
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) {
+          final filteredStudents = allStudents.where((student) {
+            final nameMatch = student.name.toLowerCase().contains(searchQuery.toLowerCase());
+            final courseMatch = student.course.toLowerCase().contains(searchQuery.toLowerCase());
+            final sectionMatch = student.yearSection.toLowerCase().contains(searchQuery.toLowerCase());
+            return nameMatch || courseMatch || sectionMatch;
+          }).toList();
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Text('Enroll Students', style: TextStyle(fontWeight: FontWeight.bold)),
+            content: SizedBox(
+              width: 500,
+              height: 500,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Search student by name or section...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                    onChanged: (val) {
+                      setDialogState(() {
+                        searchQuery = val;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
+                  if (uniqueSections.isNotEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.adminPrimary.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.adminPrimary.withOpacity(0.1)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Bulk Section Enrollment',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.adminPrimary),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: DropdownButtonFormField<String>(
+                                  value: selectedSection,
+                                  decoration: InputDecoration(
+                                    hintText: 'Select Section',
+                                    isDense: true,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                    fillColor: Colors.white,
+                                    filled: true,
+                                  ),
+                                  items: uniqueSections.map((sec) {
+                                    return DropdownMenuItem(value: sec, child: Text(sec, style: const TextStyle(fontSize: 13)));
+                                  }).toList(),
+                                  onChanged: (val) {
+                                    setDialogState(() {
+                                      selectedSection = val;
+                                    });
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.adminPrimary,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                ),
+                                onPressed: selectedSection == null
+                                    ? null
+                                    : () async {
+                                        final studentsInSection = allStudents
+                                            .where((s) => s.yearSection == selectedSection)
+                                            .toList();
+                                        
+                                        for (final s in studentsInSection) {
+                                          if (!_enrolledStudentIds.contains(s.profileId)) {
+                                            await context.read<AppState>().enrollStudentInSubject(
+                                              studentProfileId: s.profileId,
+                                              subjectOfferingId: widget.subjectId!,
+                                            );
+                                            setDialogState(() {
+                                              _enrolledStudentIds.add(s.profileId);
+                                            });
+                                          }
+                                        }
+                                        await _loadEnrolledStudents();
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('Enrolled all students from $selectedSection')),
+                                          );
+                                        }
+                                      },
+                                icon: const Icon(Icons.group_add_rounded, size: 16),
+                                label: const Text('Enroll All', style: TextStyle(fontSize: 12)),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  const Divider(),
+                  Expanded(
+                    child: filteredStudents.isEmpty
+                        ? const Center(child: Text('No students found.'))
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: filteredStudents.length,
+                            itemBuilder: (ctx, index) {
+                              final student = filteredStudents[index];
+                              final isEnrolled = _enrolledStudentIds.contains(student.profileId);
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: CircleAvatar(
+                                  backgroundColor: Colors.grey.shade100,
+                                  child: const Icon(Icons.person, color: Colors.grey),
+                                ),
+                                title: Text(student.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                subtitle: Text('${student.course} - ${student.yearSection}', style: const TextStyle(fontSize: 12)),
+                                trailing: IconButton(
+                                  icon: Icon(
+                                    isEnrolled ? Icons.check_circle : Icons.add_circle_outline,
+                                    color: isEnrolled ? Colors.green : Colors.grey,
+                                  ),
+                                  onPressed: () async {
+                                    if (isEnrolled) {
+                                      await context.read<AppState>().unenrollStudentFromSubject(
+                                        studentProfileId: student.profileId,
+                                        subjectOfferingId: widget.subjectId!,
+                                      );
+                                      setDialogState(() {
+                                        _enrolledStudentIds.remove(student.profileId);
+                                      });
+                                    } else {
+                                      await context.read<AppState>().enrollStudentInSubject(
+                                        studentProfileId: student.profileId,
+                                        subjectOfferingId: widget.subjectId!,
+                                      );
+                                      setDialogState(() {
+                                        _enrolledStudentIds.add(student.profileId);
+                                      });
+                                    }
+                                    await _loadEnrolledStudents();
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: const Text('Close', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true,
       backgroundColor: AppColors.adminPageBackground,
-      body: Column(
+      appBar: AppBar(
+        backgroundColor: AppColors.adminPrimary,
+        elevation: 0,
+        toolbarHeight: 70,
+        title: const Row(
+          children: [
+            Icon(Icons.school, color: Colors.white, size: 28),
+            SizedBox(width: 8),
+            Text('STUDFY', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+          ],
+        ),
+        actions: const [
+          Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text('Admin 1', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+        automaticallyImplyLeading: false,
+      ),
+      body: Stack(
         children: [
-          _buildHeader(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 90.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (widget.pendingRequest != null && !_isRequestHandled)
-                    _buildPendingRequestBanner(),
-                  const SizedBox(height: 16),
-                  // ── Subject Offered section ──────────────────────────────
-                  _buildSectionTitle('Subject Offered'),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.black12),
-                    ),
-                    child: Column(
+          SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildBackButton(),
+                    const SizedBox(height: 12),
+                    if (widget.pendingRequest != null && !_isRequestHandled) ...[
+                      _buildPendingRequestBanner(),
+                      const SizedBox(height: 16),
+                    ],
+
+                    _buildSectionTitle('Subject Information'),
+                    _buildProfileCard(),
+                    const SizedBox(height: 28),
+
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 16,
+                      runSpacing: 12,
                       children: [
-                        _buildInputField('Subject Name', _subjectNameController,
-                            enabled: _isSubjectEditing),
-                        const SizedBox(height: 8),
-                        _buildInputField('Professor Name', _professorNameController,
-                            enabled: _isSubjectEditing),
-                        const SizedBox(height: 8),
-                        _buildInputField(
-                            'Course & Section', _courseSectionController,
-                            enabled: _isSubjectEditing),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                                child: _buildInputField('Time', _timeController,
-                                    enabled: _isSubjectEditing)),
-                            const SizedBox(width: 8),
-                            Expanded(
-                                child: _buildInputField('Room #', _roomController,
-                                    enabled: _isSubjectEditing)),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            _buildActionBtn(
-                              _isSubjectEditing ? 'Discard' : 'Delete',
-                              const Color(0xFF801E1E),
-                              _isSubjectEditing ? Icons.warning : Icons.delete,
-                              () {
-                                if (_isSubjectEditing) {
-                                  setState(() => _isSubjectEditing = false);
-                                } else {
-                                  _confirmAction('Delete', () {});
-                                }
-                              },
+                        _buildSectionTitle('Enrolled Students (${_enrolledStudents.length})'),
+                        if (widget.subjectId != null)
+                          ElevatedButton.icon(
+                            onPressed: _showEnrollStudentDialog,
+                            icon: const Icon(Icons.person_add_rounded, size: 16, color: Colors.white),
+                            label: const Text('Enroll / Manage', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.adminPrimary,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              elevation: 0,
                             ),
-                            const SizedBox(width: 8),
-                            _buildActionBtn(
-                              _isSubjectEditing ? 'Save' : 'Edit',
-                              const Color(0xFF1E63D2),
-                              _isSubjectEditing
-                                  ? Icons.save
-                                  : Icons.edit_square,
-                              () {
-                                if (_isSubjectEditing) {
-                                  _confirmAction('Save', () {
-                                    setState(() => _isSubjectEditing = false);
-                                  });
-                                } else {
-                                  setState(() => _isSubjectEditing = true);
-                                }
-                              },
-                            ),
-                          ],
-                        ),
+                          ),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 12),
 
-                  const SizedBox(height: 24),
-
-                  // ── Enroll Student/s section ─────────────────────────────
-                  _buildSectionTitle('Enroll Student/s (For Specific Students)'),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.black12),
-                    ),
-                    child: Column(
-                      children: [
-                        _buildInputField(
-                            'Student Number / Student Name', _studentNumberController,
-                            enabled: true),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            _buildActionBtn(
-                              'Add student',
-                              const Color(0xFF1E63D2),
-                              Icons.add_circle_outline,
-                              () {
-                                if (_studentNumberController.text.isNotEmpty) {
-                                  _confirmAction('Enroll', () {
-                                    setState(() {
-                                      _allStudents.add(_studentNumberController.text);
-                                      _allStudents.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-                                      _filterStudents();
-                                      _studentNumberController.clear();
-                                    });
-                                  });
-                                }
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // ── Enrolled Students section ─────────────────────────────
-                  _buildSectionTitleWithCount(
-                      'Enrolled Students', _allStudents.length),
-                  
-                  // Search area for student list
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.black12),
-                    ),
-                    child: Row(
+                    // Search panel
+                    Row(
                       children: [
                         Expanded(
-                          child: _buildInputField(
-                            'Search Student Name',
-                            _studentSearchController,
-                            enabled: true,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        _buildActionBtn(
-                          'Search',
-                          const Color(0xFF1E63D2),
-                          Icons.search,
-                          _filterStudents,
-                        ),
-                        const SizedBox(width: 8),
-                        Material(
-                          color: Colors.grey.shade200,
-                          borderRadius: BorderRadius.circular(6),
-                          child: InkWell(
-                            onTap: _clearStudentFilter,
-                            borderRadius: BorderRadius.circular(6),
-                            child: Container(
-                              padding: const EdgeInsets.all(10),
-                              child: const Icon(Icons.filter_alt_off,
-                                  color: Colors.black54, size: 20),
+                          child: Container(
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: TextField(
+                              controller: _studentSearchCtrl,
+                              onChanged: (_) => _filterEnrolled(),
+                              decoration: const InputDecoration(
+                                hintText: 'Search student name...',
+                                hintStyle: TextStyle(fontSize: 13, color: Colors.grey),
+                                prefixIcon: Icon(Icons.search_rounded, size: 18, color: Colors.grey),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                border: InputBorder.none,
+                              ),
                             ),
                           ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: () {
+                            _studentSearchCtrl.clear();
+                            _filterEnrolled();
+                          },
+                          icon: const Icon(Icons.filter_alt_off_rounded, color: Colors.black54),
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 16),
 
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD4D4D4),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: _filteredStudents.isEmpty
-                          ? const Padding(
-                              padding: EdgeInsets.all(20),
-                              child: Center(
-                                  child: Text('No students in the list',
-                                      style: TextStyle(color: Colors.grey, fontSize: 14, fontStyle: FontStyle.italic))),
-                            )
-                          : ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: _filteredStudents.length,
-                              itemBuilder: (context, index) {
-                                final isLast =
-                                    index == _filteredStudents.length - 1;
-                                return _buildStudentItem(
-                                    _filteredStudents[index], !isLast);
-                              },
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
+                    _buildEnrolledStudentsList(),
+                  ],
+                ),
               ),
             ),
           ),
-          _buildFooter(),
+          const AdminFloatingNavBar(currentIndex: 3),
         ],
       ),
     );
   }
 
-  Widget _buildSectionTitleWithCount(String title, int count) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title,
-              style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.adminPrimary)),
-          Text('Total: $count',
-              style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.adminPrimary)),
-        ],
-      ),
-    );
-  }
-
-  // ── Header ────────────────────────────────────────────────────────────────
-  Widget _buildHeader() {
-    return Container(
-      height: 75,
-      width: double.infinity,
-      color: AppColors.adminPrimary,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.school, color: Colors.white, size: 28),
-                Text(
-                  'STUDFY',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            'Admin 1',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
+  Widget _buildBackButton() {
+    return TextButton.icon(
+      onPressed: () => context.pop(),
+      icon: const Icon(Icons.arrow_back_rounded, color: AppColors.adminPrimary, size: 18),
+      label: const Text('Back to Directory', style: TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold)),
+      style: TextButton.styleFrom(padding: EdgeInsets.zero),
     );
   }
 
   Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10, left: 4),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF800000),
-        ),
-      ),
+    return Text(
+      title,
+      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.adminPrimary),
     );
   }
 
-  Widget _buildInputField(String hint, TextEditingController controller,
-      {bool enabled = true}) {
+  Widget _buildProfileCard() {
     return Container(
-      height: 40,
+      width: double.infinity,
       decoration: BoxDecoration(
-        color: enabled ? Colors.white : const Color(0xFFF9F9F9),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: Colors.black12),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade200),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: TextField(
-        controller: controller,
-        enabled: enabled,
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
-          border: InputBorder.none,
-          isDense: true,
-          contentPadding: const EdgeInsets.symmetric(vertical: 10),
-        ),
-        style: TextStyle(
-            fontSize: 13,
-            color: enabled ? Colors.black87 : Colors.black54,
-            fontWeight: enabled ? FontWeight.w500 : FontWeight.normal),
-      ),
-    );
-  }
-
-  Widget _buildActionBtn(
-      String label, Color color, IconData icon, VoidCallback onTap) {
-    return Material(
-      color: color,
-      borderRadius: BorderRadius.circular(6),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(6),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, color: Colors.white, size: 16),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold),
+              CircleAvatar(
+                radius: 36,
+                backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                child: const Icon(
+                  Icons.book_rounded,
+                  color: AppColors.adminPrimary,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (_isEditing) ...[
+                      _buildEditField('Subject Name', _subjectNameCtrl),
+                      const SizedBox(height: 8),
+                      _buildEditField('Course & Section (e.g. BSIT 1-1)', _courseSectionCtrl),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(child: _buildEditField('Schedule', _scheduleCtrl)),
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildEditField('Room', _roomCtrl)),
+                        ],
+                      ),
+                    ] else ...[
+                      Text(
+                        _subjectNameCtrl.text,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF5F6F9),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: Text(
+                              _courseSectionCtrl.text,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF5F6F9),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.person_outline_rounded, size: 12, color: Colors.grey),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _professorNameCtrl.text.isNotEmpty ? _professorNameCtrl.text : 'Unassigned Professor',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (_scheduleCtrl.text.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF5F6F9),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey.shade200),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.access_time_rounded, size: 12, color: Colors.grey),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _scheduleCtrl.text,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (_roomCtrl.text.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF5F6F9),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey.shade200),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.meeting_room_rounded, size: 12, color: Colors.grey),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Room ${_roomCtrl.text}',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStudentItem(String name, bool showBorder) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: showBorder
-            ? const Border(bottom: BorderSide(color: Color(0xFFE0E0E0)))
-            : null,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(name,
-                style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.black87,
-                    fontWeight: FontWeight.w500)),
-          ),
+          const SizedBox(height: 20),
+          const Divider(),
+          const SizedBox(height: 8),
           Row(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              IconButton(
-                onPressed: () {
-                  context.pushNamed(
-                    AppRoutes.adminStudentsProfile,
-                    extra: {
-                      'student': {
-                        'name': name,
-                        'course': 'BSIT',
-                        'yearSection': '3-1',
-                        'subjects': ['Programming', 'Mathematics'],
-                      },
-                    },
-                  );
-                },
-                icon: const Icon(Icons.edit_square,
-                    color: Color(0xFF1E63D2), size: 22),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-              const SizedBox(width: 14),
-              IconButton(
-                onPressed: () => _confirmAction('Delete', () {
-                  setState(() {
-                    _allStudents.remove(name);
-                    _filterStudents();
-                  });
-                }),
-                icon: const Icon(Icons.delete,
-                    color: Color(0xFFE74C3C), size: 22),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
+              if (_isEditing) ...[
+                _buildActionButton('Cancel', Colors.grey.shade600, Icons.close_rounded, () => setState(() => _isEditing = false)),
+                const SizedBox(width: 8),
+                _buildActionButton('Save Changes', Colors.green, Icons.save_rounded, () => _saveEdits()),
+              ] else ...[
+                _buildActionButton('Delete Subject', const Color(0xFF8B0000), Icons.delete_rounded, _showDeleteDialog),
+                if (widget.subjectId != null) ...[
+                  const SizedBox(width: 8),
+                  _buildActionButton('Assign Professor', const Color(0xFF1E63D2), Icons.person_add_rounded, _showAssignProfessorDialog),
+                ],
+                const SizedBox(width: 8),
+                _buildActionButton('Edit Details', const Color(0xFF2B67E1), Icons.edit_rounded, () => setState(() => _isEditing = true)),
+              ],
             ],
           ),
         ],
@@ -598,100 +749,134 @@ class _AdminSubjectsProfileScreenState
     );
   }
 
-  // ── Footer ────────────────────────────────────────────────────────────────
-  Widget _buildFooter() {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width > 800
-                ? 650
-                : MediaQuery.of(context).size.width - 20,
-          ),
-          child: Container(
-            height: 70,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: AppColors.adminPrimary,
-              borderRadius: BorderRadius.circular(35),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ],
+  Widget _buildEditField(String label, TextEditingController controller) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      style: const TextStyle(fontSize: 14),
+    );
+  }
+
+  Widget _buildActionButton(String label, Color color, IconData icon, VoidCallback onTap) {
+    return ElevatedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 16, color: Colors.white),
+      label: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        elevation: 0,
+      ),
+    );
+  }
+
+  Widget _buildEnrolledStudentsList() {
+    if (_isLoadingEnrolled) {
+      return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
+    }
+
+    if (_filteredEnrolled.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.people_outline_rounded, size: 48, color: Colors.grey.shade300),
+            const SizedBox(height: 12),
+            Text(
+              'No enrolled students found',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 14, fontWeight: FontWeight.bold),
             ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: _filteredEnrolled.map((student) {
+        final initials = student.name.isNotEmpty
+            ? student.name.trim().split(' ').map((e) => e[0]).take(2).join('').toUpperCase()
+            : 'S';
+
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.grey.shade200),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildNavItem(Icons.layers, 'INSTRUCTOR', 0),
-                _buildNavItem(Icons.group, 'STUDENTS', 1),
-                _buildNavItem(Icons.home, 'DASHBOARD', 2),
-                _buildNavItem(Icons.book, 'SUBJECTS', 3),
-                _buildNavItem(Icons.logout, 'LOGOUT', 4),
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                  child: Text(
+                    initials,
+                    style: const TextStyle(
+                      color: AppColors.adminPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        student.name,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF5F6F9),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: Text(
+                              '${student.course} ${student.yearSection}',
+                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                  tooltip: 'View Profile',
+                  onPressed: () => context.pushNamed(
+                    AppRoutes.adminStudentsProfile,
+                    pathParameters: {'profileId': student.profileId},
+                    extra: {'student': student},
+                  ),
+                ),
               ],
             ),
           ),
-        ),
-      ),
+        );
+      }).toList(),
     );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, int index) {
-    final bool isHovered = _hoveredIndex == index;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hoveredIndex = index),
-      onExit: (_) => setState(() => _hoveredIndex = null),
-      child: GestureDetector(
-        onTap: () {
-          if (index == 4) {
-            _handleLogout();
-          } else if (index == 0) {
-            context.goNamed(AppRoutes.adminInstructors);
-          } else if (index == 1) {
-            context.goNamed(AppRoutes.adminStudents);
-          } else if (index == 2) {
-            context.goNamed(AppRoutes.adminDashboard);
-          } else if (index == 3) {
-            context.goNamed(AppRoutes.adminSubjects);
-          }
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: isHovered ? Colors.white.withOpacity(0.1) : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: Colors.white, size: 24),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 9,
-                  fontWeight: isHovered ? FontWeight.bold : FontWeight.normal,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _handleLogout() async {
-    await _authService.signOut();
-    if (!mounted) return;
-    context.read<AppState>().logout();
-    context.goNamed(AppRoutes.login);
   }
 
   Widget _buildPendingRequestBanner() {
@@ -711,20 +896,8 @@ class _AdminSubjectsProfileScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Pending Request',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.orange,
-                  ),
-                ),
-                Text(
-                  widget.pendingRequest!,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.orange.shade900,
-                  ),
-                ),
+                const Text('Pending Request', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
+                Text(widget.pendingRequest!, style: TextStyle(fontSize: 13, color: Colors.orange.shade900)),
               ],
             ),
           ),
@@ -737,31 +910,15 @@ class _AdminSubjectsProfileScreenState
                 type: DialogType.success,
                 confirmLabel: 'Done',
                 onConfirm: () {
-                  context.read<AppState>().removeSubjectRequest(
-                        widget.subjectName,
-                        widget.pendingRequest!,
-                      );
+                  context.read<AppState>().removeSubjectRequest(widget.subjectName, widget.pendingRequest!);
                   setState(() => _isRequestHandled = true);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Request marked as completed.'),
-                      backgroundColor: Colors.green.shade600,
-                      behavior: SnackBarBehavior.floating,
-                      margin: const EdgeInsets.fromLTRB(16, 0, 16, 110),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  );
                 },
               );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               padding: const EdgeInsets.symmetric(horizontal: 20),
             ),
             child: const Text('Done'),

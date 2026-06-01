@@ -1,26 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
-import '../../domain/models/instructor.dart';
 import '../../../../core/widgets/app_dialog.dart';
-
-// ── Simple model for a handled subject row ────────────────────────────────────
-class _HandledSubject {
-  final String subjectName;
-  final String courseSection;
-  final String timeRoom;
-
-  const _HandledSubject({
-    required this.subjectName,
-    required this.courseSection,
-    required this.timeRoom,
-  });
-}
+import '../../domain/models/instructor.dart';
+import '../widgets/admin_floating_nav_bar.dart';
 
 class AdminInstructorProfileScreen extends StatefulWidget {
   final Instructor instructor;
@@ -33,751 +19,339 @@ class AdminInstructorProfileScreen extends StatefulWidget {
   });
 
   @override
-  State<AdminInstructorProfileScreen> createState() =>
-      _AdminInstructorProfileScreenState();
+  State<AdminInstructorProfileScreen> createState() => _AdminInstructorProfileScreenState();
 }
 
-class _AdminInstructorProfileScreenState
-    extends State<AdminInstructorProfileScreen> {
-  // ── Profile edit state ────────────────────────────────────────────────────
+class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScreen> {
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _deptCtrl;
   bool _isEditing = false;
-  int? _hoveredIndex;
-  late Instructor _currentInstructor;
-  late TextEditingController _nameController;
-  late TextEditingController _courseController;
-  final TextEditingController _passwordController = TextEditingController();
-
-  // ── Assign Class form controllers ─────────────────────────────────────────
-  final TextEditingController _courseCodeCtrl = TextEditingController();
-  final TextEditingController _subjectNameCtrl = TextEditingController();
-  final TextEditingController _academicYearCtrl = TextEditingController();
-
-  // Dropdown Selections
-  String? _selectedCourse;
-  String? _selectedSemester;
-  String? _selectedYearLevel;
-  String? _selectedSection;
-  String? _selectedDay;
-  String? _selectedTime;
-  String? _selectedRoom;
-  // ── Requests list ────────────────────────────────────────────────────────
-  late List<Map<String, dynamic>> _requests;
-
-  // ── Subjects handled list ────────────────────────────────────────────────
-  final List<_HandledSubject> _handledSubjects = [
-    const _HandledSubject(
-        subjectName: 'Subject Name',
-        courseSection: 'BSIT 2-1',
-        timeRoom: 'MWF 8:00 / MC-101'),
-    const _HandledSubject(
-        subjectName: 'Subject Name',
-        courseSection: 'BSIT 3-1',
-        timeRoom: 'TTH 10:00 / C-202'),
-    const _HandledSubject(
-        subjectName: 'Subject Name',
-        courseSection: 'BSCS 1-2',
-        timeRoom: 'MWF 1:00 / MC-305'),
-    const _HandledSubject(
-        subjectName: 'Subject Name',
-        courseSection: 'BSIT 4-1',
-        timeRoom: 'TTH 3:00 / C-110'),
-  ];
+  bool _isLoadingSubjects = true;
+  List<Map<String, String>> _assignedSubjects = [];
 
   @override
   void initState() {
     super.initState();
-    _currentInstructor = widget.instructor;
-    _nameController = TextEditingController(text: _currentInstructor.name);
-    _courseController = TextEditingController(text: _currentInstructor.course);
-    _requests = [
-      {'icon': Icons.person_add, 'title': widget.initialRequest ?? 'Class Creation'},
-      {'icon': Icons.access_time_filled, 'title': 'Schedule Conflict Request'},
-    ];
+    _nameCtrl = TextEditingController(text: widget.instructor.name);
+    _deptCtrl = TextEditingController(text: widget.instructor.course);
+    _loadAssignedSubjects();
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _courseController.dispose();
-    _passwordController.dispose();
-    _courseCodeCtrl.dispose();
-    _subjectNameCtrl.dispose();
-    _academicYearCtrl.dispose();
+    _nameCtrl.dispose();
+    _deptCtrl.dispose();
     super.dispose();
   }
 
-  // ── Pop-up Helpers ────────────────────────────────────────────────────────
-
-  void _showSuccessDialog(String message, {IconData icon = Icons.check_circle, Color iconColor = Colors.green}) {
-    AppDialog.result(
-      context,
-      type: iconColor == Colors.green ? DialogType.success
-          : iconColor == Colors.orange ? DialogType.warning
-          : DialogType.error,
-      message: message,
-    );
+  void _loadAssignedSubjects() {
+    final subjects = context.read<AppState>().subjectOfferings;
+    setState(() {
+      _assignedSubjects = subjects
+          .where((s) => s['professor'] == widget.instructor.name)
+          .toList();
+      _isLoadingSubjects = false;
+    });
   }
 
-  // ── Profile helpers ───────────────────────────────────────────────────────
-
-  void _saveEdits() {
-    setState(() {
-      _currentInstructor = Instructor(
-        name: _nameController.text,
-        course: _courseController.text,
-        subject: _currentInstructor.subject,
+  Future<void> _saveEdits() async {
+    try {
+      await context.read<AppState>().updateInstructor(
+        profileId: widget.instructor.profileId,
+        name: _nameCtrl.text.trim(),
+        department: _deptCtrl.text.trim(),
       );
-      _isEditing = false;
-    });
-    _showSuccessDialog('Profile updated successfully');
+      if (!mounted) return;
+      setState(() => _isEditing = false);
+      await AppDialog.result(context, type: DialogType.success, message: 'Instructor updated successfully.');
+    } catch (e) {
+      if (!mounted) return;
+      await AppDialog.result(context, type: DialogType.error, message: e.toString());
+    }
   }
 
   void _showDeleteDialog() {
-    AppDialog.password(
-      context,
-      title: 'Confirm Deletion',
-      message: 'Delete ${_currentInstructor.name}? This cannot be undone.',
-      type: DialogType.error,
-      confirmLabel: 'Delete',
-      onConfirm: (pw) async {
-        if (pw == 'admin123') {
-          await AppDialog.result(
-            context,
-            type: DialogType.error,
-            message: 'Instructor deleted successfully.',
-            onDismiss: () => context.pop(),
-          );
-        } else {
-          AppDialog.alert(
-            context,
-            title: 'Incorrect Password',
-            message: 'The admin password you entered is incorrect.',
-          );
-        }
-      },
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete Instructor', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Text('Delete "${widget.instructor.name}"? This will revoke their access and cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await context.read<AppState>().deleteProfile(widget.instructor.profileId);
+                if (!mounted) return;
+                context.pop();
+              } catch (e) {
+                if (!mounted) return;
+                await AppDialog.result(context, type: DialogType.error, message: e.toString());
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 
-  void _showApproveRequestDialog(String title) {
-    AppDialog.confirm(
-      context,
-      title: 'Approve Request',
-      message: 'Are you sure you want to approve the request "$title"?',
-      type: DialogType.success,
-      confirmLabel: 'Approve',
-      onConfirm: () {
-        setState(() {
-          _requests.removeWhere((r) => r['title'] == title);
-        });
-        _showSuccessDialog('Request "$title" has been approved.');
-      },
-    );
-  }
-
-  void _showRejectRequestDialog(String title) {
-    AppDialog.confirm(
-      context,
-      title: 'Reject Request',
-      message: 'Are you sure you want to reject the request "$title"?',
-      type: DialogType.error,
-      confirmLabel: 'Reject',
-      onConfirm: () {
-        setState(() {
-          _requests.removeWhere((r) => r['title'] == title);
-        });
-        AppDialog.result(
-          context,
-          type: DialogType.error,
-          message: 'Request "$title" has been rejected.',
-        );
-      },
-    );
-  }
-
-  void _clearAssignForm() {
-    setState(() {
-      _courseCodeCtrl.clear();
-      _subjectNameCtrl.clear();
-      _academicYearCtrl.clear();
-      _selectedCourse = null;
-      _selectedSemester = null;
-      _selectedYearLevel = null;
-      _selectedSection = null;
-      _selectedDay = null;
-      _selectedTime = null;
-      _selectedRoom = null;
-    });
-  }
-
-  void _commitAssignment() {
-    // ── Validation ─────────────────────────────────────────────────────────
-    final bool anyEmpty = _courseCodeCtrl.text.trim().isEmpty ||
-        _subjectNameCtrl.text.trim().isEmpty ||
-        _academicYearCtrl.text.trim().isEmpty ||
-        _selectedCourse == null ||
-        _selectedSemester == null ||
-        _selectedYearLevel == null ||
-        _selectedSection == null ||
-        _selectedDay == null ||
-        _selectedTime == null ||
-        _selectedRoom == null;
-
-    if (anyEmpty) {
-      AppDialog.alert(
-        context,
-        title: 'Incomplete Form',
-        message: 'All fields must be filled before saving the class assignment.',
-        type: DialogType.warning,
-      );
+  void _showAssignSubjectDialog() {
+    final subjects = context.read<AppState>().subjectOfferings;
+    if (subjects.isEmpty) {
+      AppDialog.result(context, type: DialogType.info, message: 'No subjects available to assign.');
       return;
     }
-
-    // ── Commit ─────────────────────────────────────────────────────────────
-    final courseSection =
-        '${_selectedCourse ?? ''} ${_selectedYearLevel ?? ''}-${_selectedSection ?? ''}';
-    final timeRoom =
-        '${_selectedDay ?? ''} ${_selectedTime ?? ''} / ${_selectedRoom ?? ''}';
-
-    setState(() {
-      _handledSubjects.add(_HandledSubject(
-        subjectName: _subjectNameCtrl.text.trim(),
-        courseSection: courseSection,
-        timeRoom: timeRoom,
-      ));
-    });
-    _clearAssignForm();
-    _showSuccessDialog('Class assigned successfully');
-  }
-
-
-  void _showDeleteSubjectDialog(int index) {
-    AppDialog.password(
-      context,
-      title: 'Confirm Removal',
-      message: 'Remove "${_handledSubjects[index].subjectName}"?',
-      type: DialogType.warning,
-      confirmLabel: 'Remove',
-      onConfirm: (pw) async {
-        if (pw == 'admin123') {
-          setState(() => _handledSubjects.removeAt(index));
-          _showSuccessDialog('Subject removed successfully',
-              icon: Icons.delete_sweep, iconColor: Colors.orange);
-        } else {
-          AppDialog.alert(
-            context,
-            title: 'Incorrect Password',
-            message: 'The admin password you entered is incorrect.',
-          );
-        }
-      },
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            'Assign Subject to ${widget.instructor.name}',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          content: SizedBox(
+            width: 450,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: subjects.length,
+              itemBuilder: (_, index) {
+                final subject = subjects[index];
+                final isAssigned = _assignedSubjects.any((s) => s['id'] == subject['id']);
+                return ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  leading: CircleAvatar(
+                    backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                    child: const Icon(Icons.book_rounded, color: AppColors.adminPrimary, size: 18),
+                  ),
+                  title: Text(subject['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  subtitle: Text('${subject['course'] ?? ''} ${subject['section'] ?? ''}'),
+                  trailing: Icon(
+                    isAssigned ? Icons.check_circle : Icons.add_circle_outline,
+                    color: isAssigned ? Colors.green : Colors.grey,
+                  ),
+                  onTap: isAssigned ? null : () async {
+                    Navigator.pop(ctx);
+                    try {
+                      await context.read<AppState>().assignProfessorToSubject(
+                        subjectId: subject['id']!,
+                        profileId: widget.instructor.profileId,
+                      );
+                      if (!mounted) return;
+                      // Reload subjects from updated AppState
+                      final updated = context.read<AppState>().subjectOfferings;
+                      setState(() {
+                        _assignedSubjects = updated
+                            .where((s) => s['professor'] == _nameCtrl.text.trim())
+                            .toList();
+                      });
+                      await AppDialog.result(context, type: DialogType.success, message: 'Subject assigned successfully.');
+                    } catch (e) {
+                      if (!mounted) return;
+                      await AppDialog.result(context, type: DialogType.error, message: e.toString());
+                    }
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Close', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
     );
   }
-
-  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.adminPageBackground,
+      appBar: AppBar(
+        backgroundColor: AppColors.adminPrimary,
+        elevation: 0,
+        toolbarHeight: 70,
+        title: const Row(children: [
+          Icon(Icons.school, color: Colors.white, size: 28),
+          SizedBox(width: 8),
+          Text('STUDFY', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+        ]),
+        actions: const [
+          Center(child: Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('Admin 1', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)))),
+        ],
+        automaticallyImplyLeading: false,
+      ),
       body: Stack(
         children: [
-          Column(
-            children: [
-              _buildHeader(),
-              Expanded(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildSectionLabel('Instructor Profile'),
-                      _buildProfileCard(),
-                      const SizedBox(height: 20),
-                      _buildSectionLabel('Requests'),
-                      if (_requests.isEmpty)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
-                              borderRadius: BorderRadius.circular(12)),
-                          child: const Center(
-                              child: Text('No pending requests in the list',
-                                  style: TextStyle(color: Colors.grey, fontSize: 14, fontStyle: FontStyle.italic))),
-                        )
-                      else
-                        ..._requests.map((r) => Column(
-                              children: [
-                                _buildRequestItem(r['icon'] as IconData,
-                                    r['title'] as String),
-                                const SizedBox(height: 8),
-                              ],
-                            )),
-                      const SizedBox(height: 24),
-                      _buildSectionLabel('Subjects Handled'),
-                      _buildSubjectsTable(),
-                      const SizedBox(height: 24),
-                      _buildSectionLabel('Assign Class'),
-                      _buildAssignClassForm(),
-                      const SizedBox(height: 16),
-                      _buildFormActions(),
-                    ],
-                  ),
+          SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildBackButton(),
+                    const SizedBox(height: 12),
+                    _sectionTitle('Instructor Information'),
+                    _buildProfileCard(),
+                    const SizedBox(height: 28),
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 16,
+                      runSpacing: 12,
+                      children: [
+                        _sectionTitle('Assigned Subjects (${_assignedSubjects.length})'),
+                        ElevatedButton.icon(
+                          onPressed: _showAssignSubjectDialog,
+                          icon: const Icon(Icons.assignment_rounded, size: 16, color: Colors.white),
+                          label: const Text('Assign Subject', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.adminPrimary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            elevation: 0,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSubjectsList(),
+                  ],
                 ),
               ),
-            ],
-          ),
-          _buildFloatingNavBar(),
-        ],
-      ),
-    );
-  }
-
-  // ── UI Components ─────────────────────────────────────────────────────────
-
-  Widget _buildSubjectsTable() {
-    return Container(
-      decoration: BoxDecoration(
-          color: Colors.grey.shade50, borderRadius: BorderRadius.circular(8)),
-      child: Column(
-        children: [
-          _buildSubjectRowRaw('Subject Name', 'Course & Section', 'Time & Room',
-              isHeader: true),
-          ..._handledSubjects.asMap().entries.map((entry) => _buildSubjectRowRaw(
-              entry.value.subjectName,
-              entry.value.courseSection,
-              entry.value.timeRoom,
-              index: entry.key)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSubjectRowRaw(String col1, String col2, String col3,
-      {bool isHeader = false, int? index}) {
-    final style = TextStyle(
-        fontSize: 12, fontWeight: isHeader ? FontWeight.bold : FontWeight.normal);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: Colors.grey.shade200))),
-      child: Row(
-        children: [
-          Expanded(flex: 3, child: Text(col1, style: style)),
-          Expanded(
-              flex: 2, child: Text(col2, textAlign: TextAlign.center, style: style)),
-          Expanded(
-              flex: 2, child: Text(col3, textAlign: TextAlign.right, style: style)),
-          if (!isHeader)
-            SizedBox(
-              width: 35,
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                icon: const Icon(Icons.delete_outline,
-                    color: Color(0xFF800000), size: 18),
-                onPressed: () => _showDeleteSubjectDialog(index!),
-              ),
-            )
-          else
-            const SizedBox(width: 35),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAssignClassForm() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-          color: Colors.grey.shade50, borderRadius: BorderRadius.circular(8)),
-      child: Column(
-        children: [
-          _buildCourseCodeHybrid(),
-          const SizedBox(height: 8),
-          Row(children: [
-            Expanded(child: _buildFormInput('Subject Name', controller: _subjectNameCtrl)),
-            const SizedBox(width: 8),
-            Expanded(child: _buildFormInput('Academic Year', controller: _academicYearCtrl)),
-          ]),
-          const SizedBox(height: 8),
-          Row(children: [
-            Expanded(
-                child: _buildDropdown(
-                    'Course',
-                    ['BSIT', 'BSCS', 'BSCpE'],
-                    _selectedCourse,
-                    (v) => setState(() => _selectedCourse = v))),
-            const SizedBox(width: 8),
-            Expanded(
-                child: _buildDropdown(
-                    'Semester',
-                    ['1st Semester', '2nd Semester'],
-                    _selectedSemester,
-                    (v) => setState(() => _selectedSemester = v))),
-          ]),
-          const SizedBox(height: 8),
-          Row(children: [
-            Expanded(
-                child: _buildDropdown(
-                    'Year Level',
-                    ['1', '2', '3', '4'],
-                    _selectedYearLevel,
-                    (v) => setState(() => _selectedYearLevel = v))),
-            const SizedBox(width: 8),
-            Expanded(
-                child: _buildDropdown(
-                    'Section',
-                    ['1', '2', '3'],
-                    _selectedSection,
-                    (v) => setState(() => _selectedSection = v))),
-          ]),
-          const SizedBox(height: 8),
-          Row(children: [
-            Expanded(
-                child: _buildDropdown(
-                    'Day',
-                    ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-                    _selectedDay,
-                    (v) => setState(() => _selectedDay = v))),
-            const SizedBox(width: 8),
-            Expanded(
-                child: _buildDropdown(
-                    'Time',
-                    ['7:00 AM - 9:00 AM', '9:00 AM - 11:00 AM', '11:00 AM - 1:00 PM', '1:00 PM - 3:00 PM', '3:00 PM - 5:00 PM', '5:00 PM - 7:00 PM'],
-                    _selectedTime,
-                    (v) => setState(() => _selectedTime = v))),
-            const SizedBox(width: 8),
-            Expanded(
-                child: _buildDropdown(
-                    'Room #',
-                    ['MC-101', 'MC-102', 'MC-201', 'MC-202', 'MC-301', 'MC-305', 'C-101', 'C-110', 'C-201', 'C-202'],
-                    _selectedRoom,
-                    (v) => setState(() => _selectedRoom = v))),
-          ]),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCourseCodeHybrid() {
-    return Row(
-      children: [
-        Expanded(
-            child: _buildFormInput('Course Code (e.g. CSC101)',
-                controller: _courseCodeCtrl)),
-        const SizedBox(width: 4),
-        Container(
-          height: 35,
-          decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: Colors.black12),
-              borderRadius: BorderRadius.circular(4)),
-          child: PopupMenuButton<String>(
-            icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
-            onSelected: (val) => setState(() => _courseCodeCtrl.text = val),
-            itemBuilder: (ctx) => ['CSC101', 'IT202', 'NET301']
-                .map((c) => PopupMenuItem(value: c, child: Text(c)))
-                .toList(),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFormInput(String hint, {TextEditingController? controller}) {
-    return Container(
-      height: 35,
-      decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: Colors.black12)),
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Center(
-        child: TextField(
-          controller: controller,
-          textAlignVertical: TextAlignVertical.center,
-          style: const TextStyle(fontSize: 11),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(fontSize: 11, color: Colors.grey),
-            border: InputBorder.none,
-            isDense: true,
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDropdown(String hint, List<String> items, String? value,
-      ValueChanged<String?> onChanged) {
-    return Container(
-      height: 35,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: Colors.black12)),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value,
-          hint: Text(hint,
-              style: const TextStyle(fontSize: 11, color: Colors.grey)),
-          isExpanded: true,
-          isDense: true,
-          items: items
-              .map((s) => DropdownMenuItem(
-                  value: s, child: Text(s, style: const TextStyle(fontSize: 11))))
-              .toList(),
-          onChanged: onChanged,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      height: 70,
-      width: double.infinity,
-      color: AppColors.adminPrimary,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // REMOVED: IconButton and the outer Row that contained the back arrow
-          const Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.school, color: Colors.white, size: 28),
-              Text(
-                'STUDFY',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-          const Text(
-            'Admin 1',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
             ),
           ),
+          const AdminFloatingNavBar(currentIndex: 0),
         ],
       ),
+    );
+  }
+
+  Widget _buildBackButton() {
+    return TextButton.icon(
+      onPressed: () => context.pop(),
+      icon: const Icon(Icons.arrow_back_rounded, color: AppColors.adminPrimary, size: 18),
+      label: const Text('Back to Directory', style: TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold)),
+      style: TextButton.styleFrom(padding: EdgeInsets.zero),
+    );
+  }
+
+  Widget _sectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.adminPrimary),
     );
   }
 
   Widget _buildProfileCard() {
+    final String initials = widget.instructor.name.isNotEmpty
+        ? widget.instructor.name.trim().split(' ').map((e) => e[0]).take(2).join('').toUpperCase()
+        : 'I';
+
     return Container(
-      padding: const EdgeInsets.all(12),
+      width: double.infinity,
       decoration: BoxDecoration(
-          color: Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.black.withOpacity(0.05))),
-      child: Row(
-        children: [
-          const CircleAvatar(
-              radius: 40,
-              backgroundColor: Colors.white,
-              child: Icon(Icons.person_outline, size: 50, color: Colors.black)),
-          const SizedBox(width: 16),
-          Expanded(
-            child: _isEditing
-                ? Column(children: [
-                    _buildFormInput('Name', controller: _nameController),
-                    const SizedBox(height: 4),
-                    _buildFormInput('Course Handled',
-                        controller: _courseController),
-                  ])
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                        Text(_currentInstructor.name,
-                            style: const TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.bold)),
-                        Text('Course: ${_currentInstructor.course}',
-                            style: const TextStyle(color: Colors.black54)),
-                      ]),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          Column(children: [
-            _isEditing
-                ? _buildSmallActionBtn('Save', Icons.save, Colors.green,
-                    onTap: _saveEdits)
-                : _buildSmallActionBtn('Edit', Icons.edit_document,
-                    const Color(0xFF3B71CA),
-                    onTap: () => setState(() => _isEditing = true)),
-            const SizedBox(height: 8),
-            _buildSmallActionBtn('Delete', Icons.warning, const Color(0xFF800000),
-                onTap: _showDeleteDialog),
-          ]),
         ],
+        border: Border.all(color: Colors.grey.shade200),
       ),
-    );
-  }
-
-  Widget _buildFloatingNavBar() {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width > 800
-                ? 650
-                : MediaQuery.of(context).size.width - 20,
-          ),
-          child: Container(
-            height: 70,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: AppColors.adminPrimary,
-              borderRadius: BorderRadius.circular(35),
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5))
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildNavItem(Icons.layers, 'INSTRUCTOR', 0),
-                _buildNavItem(Icons.group, 'STUDENTS', 1),
-                _buildNavItem(Icons.home, 'DASHBOARD', 2),
-                _buildNavItem(Icons.book, 'SUBJECTS', 3),
-                _buildNavItem(Icons.logout, 'LOGOUT', 4),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, int index) {
-    final bool isHovered = _hoveredIndex == index;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hoveredIndex = index),
-      onExit: (_) => setState(() => _hoveredIndex = null),
-      child: GestureDetector(
-        onTap: () {
-          if (index == 4) {
-            context.read<AppState>().logout();
-            if (mounted) context.goNamed(AppRoutes.login);
-          } else if (index == 0) {
-            context.goNamed(AppRoutes.adminInstructors);
-          } else if (index == 1) {
-            context.goNamed(AppRoutes.adminStudents);
-          } else if (index == 2) {
-            context.goNamed(AppRoutes.adminDashboard);
-          } else if (index == 3) {
-            context.goNamed(AppRoutes.adminSubjects);
-          }
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: isHovered ? Colors.white.withOpacity(0.1) : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: Colors.white, size: 24),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 9,
-                  fontWeight: isHovered ? FontWeight.bold : FontWeight.normal,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionLabel(String text) {
-    return Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Text(text,
-            style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF800000))));
-  }
-
-  Widget _buildRequestItem(IconData icon, String title) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.black12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.02),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            )
-          ]),
+      padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          Row(children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8F9FA),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: const Color(0xFF800000), size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  color: Colors.black87,
-                ),
-              ),
-            ),
-          ]),
-          const SizedBox(height: 16),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: _buildRequestActionBtn(
-                  'Approve',
-                  Icons.check,
-                  const Color(0xFFD4EDDA),
-                  const Color(0xFF28A745),
-                  () => _showApproveRequestDialog(title),
+              CircleAvatar(
+                radius: 36,
+                backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                child: Text(
+                  initials,
+                  style: const TextStyle(
+                    color: AppColors.adminPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22,
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 20),
               Expanded(
-                child: _buildRequestActionBtn(
-                  'Reject',
-                  Icons.close,
-                  const Color(0xFFF8D7DA),
-                  const Color(0xFFDC3545),
-                  () => _showRejectRequestDialog(title),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (_isEditing) ...[
+                      _buildEditField('Instructor Name', _nameCtrl),
+                      const SizedBox(height: 8),
+                      _buildEditField('Department (e.g. BSIT)', _deptCtrl),
+                    ] else ...[
+                      Text(
+                        widget.instructor.name,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF5F6F9),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: Text(
+                              widget.instructor.course,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const Divider(),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (_isEditing) ...[
+                _buildActionButton('Cancel', Colors.grey.shade600, Icons.close_rounded, () => setState(() => _isEditing = false)),
+                const SizedBox(width: 8),
+                _buildActionButton('Save Changes', Colors.green, Icons.save_rounded, _saveEdits),
+              ] else ...[
+                _buildActionButton('Delete Instructor', const Color(0xFF8B0000), Icons.delete_rounded, _showDeleteDialog),
+                const SizedBox(width: 8),
+                _buildActionButton('Edit Details', const Color(0xFF2B67E1), Icons.edit_rounded, () => setState(() => _isEditing = true)),
+              ],
             ],
           ),
         ],
@@ -785,88 +359,113 @@ class _AdminInstructorProfileScreenState
     );
   }
 
-  Widget _buildRequestActionBtn(
-      String label, IconData icon, Color bg, Color text, VoidCallback onTap) {
-    return Material(
-      color: bg,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          height: 36,
-          alignment: Alignment.center,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 14, color: text),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  color: text,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ),
+  Widget _buildEditField(String label, TextEditingController controller) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      style: const TextStyle(fontSize: 14),
+    );
+  }
+
+  Widget _buildActionButton(String label, Color color, IconData icon, VoidCallback onTap) {
+    return ElevatedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 16, color: Colors.white),
+      label: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        elevation: 0,
       ),
     );
   }
 
-  Widget _buildFormActions() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        _buildActionBtn('Discard', Icons.block, const Color(0xFF800000),
-            onTap: _clearAssignForm),
-        const SizedBox(width: 12),
-        _buildActionBtn('Save', Icons.save, const Color(0xFF3B71CA),
-            onTap: _commitAssignment),
-      ],
-    );
-  }
+  Widget _buildSubjectsList() {
+    if (_isLoadingSubjects) {
+      return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
+    }
 
-  Widget _buildSmallActionBtn(String label, IconData icon, Color color,
-      {VoidCallback? onTap}) {
-    return Material(
-        color: color,
-        borderRadius: BorderRadius.circular(4),
-        child: InkWell(
-            onTap: onTap,
-            child: Container(
-                width: 80,
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+    if (_assignedSubjects.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.assignment_outlined, size: 48, color: Colors.grey.shade300),
+            const SizedBox(height: 12),
+            Text(
+              'No subjects assigned yet',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: _assignedSubjects.map((subject) {
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.grey.shade200),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                  child: const Icon(Icons.book_rounded, color: AppColors.adminPrimary, size: 18),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(icon, size: 12, color: Colors.white),
-                      const SizedBox(width: 4),
-                      Text(label,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold))
-                    ]))));
-  }
-
-  Widget _buildActionBtn(String label, IconData icon, Color color,
-      {VoidCallback? onTap}) {
-    return Material(
-        color: color,
-        borderRadius: BorderRadius.circular(4),
-        child: InkWell(
-            onTap: onTap,
-            child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(children: [
-                  Icon(icon, size: 16, color: Colors.white),
-                  const SizedBox(width: 8),
-                  Text(label,
-                      style: const TextStyle(
-                          color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))
-                ]))));
+                      Text(
+                        subject['name'] ?? '',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF5F6F9),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: Text(
+                              '${subject['course'] ?? ''} ${subject['section'] ?? ''}'.trim(),
+                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
   }
 }
