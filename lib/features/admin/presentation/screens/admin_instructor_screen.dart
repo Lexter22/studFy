@@ -84,56 +84,198 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
           Center(child: Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('Admin 1', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)))),
         ],
         automaticallyImplyLeading: false,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 75),
-        child: FloatingActionButton(
-          onPressed: _showAddDialog,
-          backgroundColor: AppColors.adminPrimary,
-          child: const Icon(Icons.person_add, color: Colors.white),
-        ),
       ),
       body: Stack(
         children: [
           SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _sectionLabel('Pending Requests'),
-            _buildPendingRequests(appState),
-            const SizedBox(height: 24),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Instructor List', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF800000))),
-                  RichText(text: TextSpan(children: [
-                    const TextSpan(text: 'Total: ', style: TextStyle(fontSize: 14, color: Colors.grey)),
-                    TextSpan(text: '${filtered.length}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF800000))),
-                  ])),
-                ],
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header panel
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 16,
+                      runSpacing: 12,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Instructor Directory',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.adminPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Manage registered instructors and applications',
+                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: AppColors.adminPrimary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.people_alt_rounded, color: AppColors.adminPrimary, size: 18),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '${filtered.length} Total',
+                                    style: const TextStyle(
+                                      color: AppColors.adminPrimary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            ElevatedButton.icon(
+                              onPressed: _showAddDialog,
+                              icon: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 18),
+                              label: const Text('Add Instructor', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.adminPrimary,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                elevation: 0,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Pending requests section
+                    _sectionLabel('Pending Applications'),
+                    const SizedBox(height: 8),
+                    _buildPendingRequests(appState),
+                    const SizedBox(height: 28),
+
+                    // Filter Card
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.02),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: Container(
+                                  height: 46,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF5F6F9),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: TextField(
+                                    controller: _searchCtrl,
+                                    onChanged: (_) => _filterList(),
+                                    decoration: InputDecoration(
+                                      hintText: 'Search by instructor name...',
+                                      hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                                      border: InputBorder.none,
+                                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              IconButton(
+                                onPressed: _clearFilters,
+                                icon: const Icon(Icons.filter_alt_off_rounded, color: Colors.black54),
+                                tooltip: 'Clear filters',
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: DropdownButtonFormField<String>(
+                                  value: _selectedDepartment,
+                                  hint: const Text('Filter by Department', style: TextStyle(fontSize: 13)),
+                                  decoration: InputDecoration(
+                                    filled: true,
+                                    fillColor: const Color(0xFFF5F6F9),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                  ),
+                                  items: deptList.map((dept) {
+                                    return DropdownMenuItem(
+                                      value: dept,
+                                      child: Text(dept, style: const TextStyle(fontSize: 13)),
+                                    );
+                                  }).toList(),
+                                  onChanged: (val) {
+                                    setState(() {
+                                      _selectedDepartment = val;
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Instructor list
+                    _buildInstructorList(filtered),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 8),
-            _buildFilters(deptList),
-            const SizedBox(height: 16),
-            _buildTable(filtered),
-          ],
-        ),
+          ),
+          const AdminFloatingNavBar(currentIndex: 0),
+        ],
       ),
-      const AdminFloatingNavBar(currentIndex: 0),
-    ]),
-  );
-}
+    );
+  }
 
   Widget _sectionLabel(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 8, left: 4),
-    child: Text(text, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF800000))),
-  );
+        padding: const EdgeInsets.only(left: 4),
+        child: Text(
+          text,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.adminPrimary,
+          ),
+        ),
+      );
 
   Widget _buildPendingRequests(AppState appState) {
     return ValueListenableBuilder<List<Map<String, String>>>(
@@ -142,9 +284,23 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
         if (requests.isEmpty) {
           return Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.black12)),
-            child: const Center(child: Text('No pending requests', style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic))),
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.check_circle_outline_rounded, size: 36, color: Colors.green.shade300),
+                const SizedBox(height: 8),
+                Text(
+                  'All instructor applications resolved',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
           );
         }
         return Column(children: requests.map((r) => _buildRequestCard(r)).toList());
@@ -157,47 +313,68 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
     final name = r['name'] ?? '';
     final status = r['status'] ?? '';
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black12),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         children: [
           Row(
             children: [
-              CircleAvatar(backgroundColor: Colors.grey.shade100, child: const Icon(Icons.person, color: Colors.grey)),
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                child: const Icon(Icons.person, color: AppColors.adminPrimary),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  Text(status, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-                ],
-              )),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    Text(status, style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                  ],
+                ),
+              ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: Colors.amber.shade50, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.amber.shade200)),
-                child: const Text('Pending', style: TextStyle(color: Color(0xFFB8860B), fontSize: 11, fontWeight: FontWeight.bold)),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber.shade200),
+                ),
+                child: const Text(
+                  'Pending Approval',
+                  style: TextStyle(color: Color(0xFFB8860B), fontSize: 11, fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Row(children: [
-            Expanded(child: _actionBtn('Approve', Icons.check, const Color(0xFF28A745), () => _resolveRequest(requestId: requestId, approve: true, action: 'Approve'))),
-            const SizedBox(width: 8),
-            Expanded(child: _actionBtn('Reject', Icons.close, const Color(0xFFDC3545), () => _resolveRequest(requestId: requestId, approve: false, action: 'Reject'))),
-            const SizedBox(width: 8),
-            Expanded(child: _actionBtn('View', Icons.chevron_right, AppColors.adminPrimary, () {
-              final instructors = context.read<AppState>().instructors;
-              if (instructors.isEmpty) return;
-              final instructor = instructors.firstWhere((i) => i.name == name, orElse: () => instructors.first);
-              _goToProfile(instructor);
-            })),
-          ]),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: _actionBtn('Approve', Icons.check, Colors.green, () => _resolveRequest(requestId: requestId, approve: true, action: 'Approve'))),
+              const SizedBox(width: 8),
+              Expanded(child: _actionBtn('Reject', Icons.close, Colors.red, () => _resolveRequest(requestId: requestId, approve: false, action: 'Reject'))),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _actionBtn(
+                  'View Profile',
+                  Icons.arrow_forward_rounded,
+                  AppColors.adminPrimary,
+                  () {
+                    final instructors = context.read<AppState>().instructors;
+                    if (instructors.isEmpty) return;
+                    final instructor = instructors.firstWhere((i) => i.name == name, orElse: () => instructors.first);
+                    _goToProfile(instructor);
+                  },
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -205,112 +382,141 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
 
   Widget _actionBtn(String label, IconData icon, Color color, VoidCallback onTap) {
     return Material(
-      color: color.withOpacity(0.1),
-      borderRadius: BorderRadius.circular(8),
+      color: color.withOpacity(0.08),
+      borderRadius: BorderRadius.circular(10),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         child: Container(
-          height: 36,
+          height: 38,
           alignment: Alignment.center,
-          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(icon, size: 14, color: color),
-            const SizedBox(width: 4),
-            Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
-          ]),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 14, color: color),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildFilters(List<String> deptList) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.black12)),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: SizedBox(
-              height: 42,
-              child: TextField(
-                controller: _searchCtrl,
-                onChanged: (_) => _filterList(),
-                decoration: InputDecoration(
-                  hintText: 'Search by name...',
-                  hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
-                  prefixIcon: const Icon(Icons.search, size: 18, color: Colors.grey),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
+  Widget _buildInstructorList(List<Instructor> instructors) {
+    if (instructors.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.people_outline_rounded, size: 48, color: Colors.grey.shade300),
+            const SizedBox(height: 12),
+            Text(
+              'No instructors found',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 14, fontWeight: FontWeight.bold),
             ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Container(
-              height: 42,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(border: Border.all(color: Colors.black12), borderRadius: BorderRadius.circular(8)),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  hint: const Text('Department', style: TextStyle(fontSize: 13, color: Colors.grey)),
-                  value: _selectedDepartment,
-                  isExpanded: true,
-                  items: deptList.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 13)))).toList(),
-                  onChanged: (val) => setState(() { _selectedDepartment = val; }),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton(onPressed: _clearFilters, icon: const Icon(Icons.filter_alt_off, color: Colors.black54), tooltip: 'Clear filters'),
-        ],
-      ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: instructors.map((instructor) => _buildInstructorCard(instructor)).toList(),
     );
   }
 
-  Widget _buildTable(List<Instructor> instructors) {
-    if (instructors.isEmpty) {
-      return Container(
-        height: 100,
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.black12)),
-        child: const Center(child: Text('No instructors found', style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic))),
-      );
-    }
-    return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.black12)),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: const Color(0xFFF4F4F4),
-            child: const Row(children: [
-              Expanded(flex: 3, child: Text('Name', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-              Expanded(flex: 2, child: Text('Department', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-              Expanded(flex: 3, child: Text('Subject', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-              SizedBox(width: 24),
-            ]),
-          ),
-          ...instructors.asMap().entries.map((e) {
-            final isEven = e.key % 2 == 0;
-            final i = e.value;
-            return InkWell(
-              onTap: () => _goToProfile(i),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                color: isEven ? Colors.white : const Color(0xFFF9F9F9),
-                child: Row(children: [
-                  Expanded(flex: 3, child: Text(i.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.adminPrimary))),
-                  Expanded(flex: 2, child: Text(i.course, style: const TextStyle(fontSize: 13, color: Colors.black54))),
-                  Expanded(flex: 3, child: Text(i.subject, style: const TextStyle(fontSize: 13, color: Colors.black54))),
-                  const Icon(Icons.chevron_right, size: 18, color: Colors.black38),
-                ]),
+  Widget _buildInstructorCard(Instructor instructor) {
+    final String initials = instructor.name.isNotEmpty
+        ? instructor.name.trim().split(' ').map((e) => e[0]).take(2).join('').toUpperCase()
+        : 'I';
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: InkWell(
+        onTap: () => _goToProfile(instructor),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                child: Text(
+                  initials,
+                  style: const TextStyle(
+                    color: AppColors.adminPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
               ),
-            );
-          }),
-        ],
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      instructor.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5F6F9),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: Text(
+                            instructor.course,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            instructor.subject,
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 12,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -325,52 +531,114 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Add Instructor'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: const [
+              Icon(Icons.person_add_alt_1_rounded, color: AppColors.adminPrimary),
+              SizedBox(width: 8),
+              Text('Add New Instructor', style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
           content: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              TextField(controller: firstNameCtrl, decoration: const InputDecoration(labelText: 'First Name')),
-              TextField(controller: lastNameCtrl, decoration: const InputDecoration(labelText: 'Last Name')),
-              TextField(controller: emailCtrl, decoration: const InputDecoration(labelText: 'Email'), keyboardType: TextInputType.emailAddress),
-              TextField(controller: deptCtrl, decoration: const InputDecoration(labelText: 'Department')),
-              TextField(controller: instructorIdCtrl, decoration: const InputDecoration(labelText: 'Instructor ID (Optional)')),
-            ]),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: emailCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Email Address',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: firstNameCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'First Name',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: lastNameCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Last Name',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: deptCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Department (e.g. BSIT)',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: instructorIdCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Instructor ID (Optional)',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                ),
+              ],
+            ),
           ),
           actions: [
-            TextButton(onPressed: isLoading ? null : () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(
+              onPressed: isLoading ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            ),
             ElevatedButton(
-              onPressed: isLoading ? null : () async {
-                if (firstNameCtrl.text.trim().isEmpty || lastNameCtrl.text.trim().isEmpty || emailCtrl.text.trim().isEmpty || deptCtrl.text.trim().isEmpty) {
-                  AppDialog.result(ctx, type: DialogType.error, message: 'Please fill in all required fields.');
-                  return;
-                }
-                setDialogState(() => isLoading = true);
-                try {
-                  final password = await context.read<AppState>().createInstructor(
-                    firstName: firstNameCtrl.text,
-                    lastName: lastNameCtrl.text,
-                    email: emailCtrl.text,
-                    department: deptCtrl.text,
-                    instructorId: instructorIdCtrl.text,
-                  );
-                  if (!mounted) return;
-                  final email = emailCtrl.text.trim();
-                  Navigator.pop(ctx);
-                  AppDialog.result(
-                    context,
-                    type: DialogType.success,
-                    message: 'Instructor created!\n\nEmail: $email\nPassword: $password',
-                  );
-                } on AuthException catch (e) {
-                  setDialogState(() => isLoading = false);
-                  AppDialog.result(ctx, type: DialogType.error, message: e.message ?? 'Failed to create instructor.');
-                } catch (e) {
-                  setDialogState(() => isLoading = false);
-                  AppDialog.result(ctx, type: DialogType.error, message: e.toString());
-                }
-              },
-              child: isLoading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Create'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.adminPrimary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      if (firstNameCtrl.text.trim().isEmpty || lastNameCtrl.text.trim().isEmpty || emailCtrl.text.trim().isEmpty || deptCtrl.text.trim().isEmpty) {
+                        AppDialog.result(ctx, type: DialogType.error, message: 'Please fill in all required fields.');
+                        return;
+                      }
+                      setDialogState(() => isLoading = true);
+                      try {
+                        final password = await context.read<AppState>().createInstructor(
+                              firstName: firstNameCtrl.text,
+                              lastName: lastNameCtrl.text,
+                              email: emailCtrl.text,
+                              department: deptCtrl.text,
+                              instructorId: instructorIdCtrl.text,
+                            );
+                        if (!mounted) return;
+                        final email = emailCtrl.text.trim();
+                        Navigator.pop(ctx);
+                        await AppDialog.result(
+                          context,
+                          type: DialogType.success,
+                          message: 'Instructor created!\n\nEmail: $email\nPassword: $password',
+                        );
+                      } on AuthException catch (e) {
+                        setDialogState(() => isLoading = false);
+                        await AppDialog.result(ctx, type: DialogType.error, message: e.message ?? 'Failed to create instructor.');
+                      } catch (e) {
+                        setDialogState(() => isLoading = false);
+                        await AppDialog.result(ctx, type: DialogType.error, message: e.toString());
+                      }
+                    },
+              child: isLoading
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('Create', style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
