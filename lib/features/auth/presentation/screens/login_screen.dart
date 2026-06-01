@@ -179,63 +179,81 @@ Widget build(BuildContext context) {
                         const SizedBox(height: 24),
                         SizedBox(
                           width: double.infinity,
-                          height: 55,
+                          height: 56,
                           child: Opacity(
-                            opacity: _isButtonEnabled ? 1.0 : 0.5,
+                            opacity: _isButtonEnabled ? 1.0 : 0.6,
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.authPrimary,
                                 disabledBackgroundColor: AppColors.authPrimary,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                elevation: 0,
+                                elevation: _isButtonEnabled ? 8 : 0,
+                                shadowColor: AppColors.authPrimary.withOpacity(0.4),
                               ),
                               onPressed: _isButtonEnabled ? _handleLogin : null,
                               child: const Text(
                                 'Login',
-                                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  color: Colors.white, 
+                                  fontSize: 18, 
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.5,
+                                ),
                               ),
                             ),
                           ),
                         ),
+                        const SizedBox(height: 8),
                         TextButton(
                           onPressed: () => context.goNamed(AppRoutes.forgotPassword),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
                           child: const Text(
                             'Forgot Password?',
-                            style: TextStyle(color: AppColors.authPrimary, fontSize: 11, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: AppColors.authPrimary, 
+                              fontSize: 13, 
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
+                        const SizedBox(height: 12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Container(width: 30, height: 1.5, color: Colors.black87),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 10),
-                              child: Text('or', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1.2)),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text(
+                                'OR CONTINUE WITH', 
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600, 
+                                  fontSize: 12, 
+                                  color: Colors.grey.shade500,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
                             ),
-                            Container(width: 30, height: 1.5, color: Colors.black87),
+                            Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1.2)),
                           ],
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 24),
                         SocialLoginButton(
                           label: 'Continue with Google',
                           assetPath: 'assets/images/google.png',
                           onTap: () {},
                         ),
-                        const SizedBox(height: 12),
-                        SocialLoginButton(
-                          label: 'Continue with Outlook',
-                          assetPath: 'assets/images/outlook.png',
-                          onTap: () {},
-                        ),
                         
                         // --- NEW CODE START ---
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 32),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Text(
+                            Text(
                               "Don't have an account? ",
-                              style: TextStyle(fontSize: 13, color: Colors.black87),
+                              style: TextStyle(fontSize: 14, color: Colors.grey.shade700, fontWeight: FontWeight.w500),
                             ),
                             MouseRegion(
                               cursor: SystemMouseCursors.click,
@@ -246,7 +264,7 @@ Widget build(BuildContext context) {
                                 child: const Text(
                                   "Create an account",
                                   style: TextStyle(
-                                    fontSize: 13,
+                                    fontSize: 14,
                                     fontWeight: FontWeight.bold,
                                     color: AppColors.authPrimary,
                                   ),
