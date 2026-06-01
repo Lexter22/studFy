@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/widgets/app_dialog.dart';
 import '../../../../core/state/app_state.dart';
 import '../../../auth/domain/enums/user_role.dart';
 import '../widgets/admin_floating_nav_bar.dart';
@@ -190,16 +191,24 @@ class _AdminRoleManagerScreenState extends State<AdminRoleManagerScreen> with Si
         }
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User role successfully updated!')),
-      );
+      if (context.mounted) {
+        AppDialog.result(
+          context,
+          type: DialogType.success,
+          message: 'User role successfully updated!',
+        );
+      }
 
       // Refresh list
       _resetAndFetch();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update role: $e')),
-      );
+      if (context.mounted) {
+        AppDialog.result(
+          context,
+          type: DialogType.error,
+          message: 'Failed to update role: $e',
+        );
+      }
     } finally {
       setState(() => _isSaving = false);
     }
