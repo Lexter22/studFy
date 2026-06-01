@@ -25,18 +25,7 @@ class _ProfessorModulesScreenState extends State<ProfessorModulesScreen> {
   String? _selectedSubject;
   String? _selectedCourseSection;
 
-  // Mock list for fallback (matching the screenshot exactly: multiple Ethics BSIT 3-1 cards)
-  static final List<ProfessorSubject> _fallbackSubjects = List.generate(
-    15,
-    (index) => ProfessorSubject(
-      id: 'mock_ethics_$index',
-      name: 'Ethics',
-      courseCode: 'BSIT',
-      section: '1',
-      yearLevel: 3,
-      studentCount: 60,
-    ),
-  );
+
 
   @override
   void initState() {
@@ -66,7 +55,7 @@ class _ProfessorModulesScreenState extends State<ProfessorModulesScreen> {
   }
 
   List<ProfessorSubject> get _allSubjects {
-    return _dbSubjects.isNotEmpty ? _dbSubjects : _fallbackSubjects;
+    return _dbSubjects;
   }
 
   void _applyFilters() {

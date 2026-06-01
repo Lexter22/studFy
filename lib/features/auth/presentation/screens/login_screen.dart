@@ -113,21 +113,6 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
-    if (email.toLowerCase() == 'prof@studfy.com' && password == 'password123') {
-      final user = AppUser(
-        uid: 'mock-professor-id',
-        email: email,
-        displayName: 'Professor Test',
-        role: UserRole.professor,
-        isEmailVerified: true,
-      );
-      await _saveCredentials();
-      if (!mounted) return;
-      context.read<AppState>().login(user);
-      context.go(AppRoutes.pathForRole(user.role));
-      return;
-    }
-
     try {
       final user = await _authService.signInWithEmailAndPassword(
         email: email,

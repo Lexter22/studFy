@@ -66,27 +66,6 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
       final quizzes = await _repo.fetchQuizzes(widget.subject.id);
       var assignments = await _repo.fetchAssignments(widget.subject.id);
       final students = await _repo.fetchEnrolledStudents(widget.subject.id);
-      if (assignments.isEmpty) {
-        if (widget.subject.name.toLowerCase().contains('ethics')) {
-          assignments = [
-            SubjectAssignment(
-              id: 'mock_assign_1',
-              title: 'Lesson 1',
-              description: 'Introduction to Ethics and Moral Philosophy.',
-              deadline: DateTime(2026, 5, 29),
-            ),
-          ];
-        } else if (widget.subject.name.toLowerCase().contains('pathfit')) {
-          assignments = [
-            SubjectAssignment(
-              id: 'mock_assign_2',
-              title: 'Lesson 2',
-              description: 'Physical Activities Toward Health and Fitness.',
-              deadline: DateTime(2026, 5, 21),
-            ),
-          ];
-        }
-      }
       if (!mounted) return;
       setState(() {
         _modules = modules;

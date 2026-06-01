@@ -244,46 +244,7 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
     final now = DateTime.now();
 
     for (final sub in _subjects) {
-      final List<SubjectAssignment> list = [];
-      if (sub.id.startsWith('mock-') || sub.id.contains('ethics')) {
-        if (sub.id.contains('ethics') || sub.id == 'mock-ethics') {
-          list.add(
-            SubjectAssignment(
-              id: 'mock-a1',
-              title: 'Poster Making',
-              description: 'Make a creative poster showing your ethical views in technology.',
-              deadline: DateTime.now().add(const Duration(days: 2)),
-            ),
-          );
-          list.add(
-            SubjectAssignment(
-              id: 'mock-a2',
-              title: 'Activity 1: PPT',
-              description: 'Make a power point presentation about dilemma',
-              deadline: DateTime.now().subtract(const Duration(days: 1)),
-            ),
-          );
-          list.add(
-            SubjectAssignment(
-              id: 'mock-quiz-ethics',
-              title: 'Ethics Quiz 1',
-              description: 'Test your understanding on Managerial Ethics and Decision Making.',
-              deadline: DateTime.now().add(const Duration(days: 4)),
-            ),
-          );
-        } else {
-          list.add(
-            SubjectAssignment(
-              id: 'mock-${sub.id}-a1',
-              title: 'Lesson Reflection',
-              description: 'Submit your 300 word reflection essay.',
-              deadline: DateTime.now().add(const Duration(days: 5)),
-            ),
-          );
-        }
-      } else {
-        list.addAll(_subjectAssignments[sub.id] ?? []);
-      }
+      final List<SubjectAssignment> list = _subjectAssignments[sub.id] ?? [];
 
       for (final ass in list) {
         final bool submitted = _submittedAssignments[ass.id] ?? false;

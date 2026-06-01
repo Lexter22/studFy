@@ -309,75 +309,17 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              if (_dashboardAssignments.isEmpty) ...[
-                _buildAssignmentRow(
-                  'BSIT 3-1',
-                  'Ethics',
-                  'Lesson 1',
-                  '60/60',
-                  1.0,
-                  '05/29/2026',
-                  onTap: () {
-                    final mockSubject = _subjects.isNotEmpty ? _subjects.first : ProfessorSubject(
-                      id: 'mock_subject_1',
-                      name: 'Ethics',
-                      courseCode: 'BSIT',
-                      section: '1',
-                      yearLevel: 3,
-                      studentCount: 60,
-                    );
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AssignmentDetailScreen(
-                          assignment: SubjectAssignment(
-                            id: 'mock_assignment_1',
-                            title: 'Ethics - Lesson 1',
-                            description: 'Answer the questions in the module.',
-                            deadline: DateTime(2026, 5, 29),
-                          ),
-                          subjectName: mockSubject.name,
-                          totalStudents: mockSubject.studentCount,
-                        ),
-                      ),
-                    ).then((_) => _load());
-                  },
-                ),
-                const SizedBox(height: 8),
-                _buildAssignmentRow(
-                  'BSIT 4-1',
-                  'PATHFIT',
-                  'Lesson 2',
-                  '59/59',
-                  1.0,
-                  '05/21/2026',
-                  onTap: () {
-                    final mockSubject = _subjects.length > 1 ? _subjects[1] : ProfessorSubject(
-                      id: 'mock_subject_2',
-                      name: 'PATHFIT',
-                      courseCode: 'BSIT',
-                      section: '1',
-                      yearLevel: 4,
-                      studentCount: 59,
-                    );
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AssignmentDetailScreen(
-                          assignment: SubjectAssignment(
-                            id: 'mock_assignment_2',
-                            title: 'PATHFIT - Lesson 2',
-                            description: 'Submit your physical fitness video.',
-                            deadline: DateTime(2026, 5, 21),
-                          ),
-                          subjectName: mockSubject.name,
-                          totalStudents: mockSubject.studentCount,
-                        ),
-                      ),
-                    ).then((_) => _load());
-                  },
-                ),
-              ] else
+              if (_dashboardAssignments.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Text(
+                      'No assignments found.',
+                      style: TextStyle(color: Colors.grey, fontSize: 14),
+                    ),
+                  ),
+                )
+              else
                 ..._dashboardAssignments.map((item) {
                   final ProfessorSubject sub = item['subject'];
                   final SubjectAssignment a = item['assignment'];
@@ -528,27 +470,6 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
   }
 
   Widget _buildClassesSection(List<ProfessorSubject> subjects) {
-    final displayList = subjects.isNotEmpty
-        ? subjects
-        : [
-            ProfessorSubject(
-              id: '1',
-              name: 'Art Appreciation',
-              courseCode: 'BSIT',
-              section: '1',
-              yearLevel: 3,
-              studentCount: 60,
-            ),
-            ProfessorSubject(
-              id: '2',
-              name: 'PATHFIT',
-              courseCode: 'BSIT',
-              section: '1',
-              yearLevel: 4,
-              studentCount: 59,
-            ),
-          ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -561,9 +482,20 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
           ),
         ),
         const SizedBox(height: 10),
-        Column(
-          children: displayList.map((sub) => _buildClassCard(sub)).toList(),
-        ),
+        if (subjects.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text(
+                'No classes assigned.',
+                style: TextStyle(color: Colors.grey, fontSize: 14),
+              ),
+            ),
+          )
+        else
+          Column(
+            children: subjects.map((sub) => _buildClassCard(sub)).toList(),
+          ),
       ],
     );
   }
@@ -651,16 +583,13 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
     final int firstWeekday = DateTime(_calendarDate.year, _calendarDate.month, 1).weekday;
     final int offset = firstWeekday == 7 ? 0 : firstWeekday; // Adjust so Sunday is 0
 
-    // Get event days dynamically from assignments plus mock event days plus custom reminders
+    // Get event days dynamically from assignments plus custom reminders
     final Set<int> dynamicEventDays = {};
     for (final item in _dashboardAssignments) {
       final a = item['assignment'] as SubjectAssignment;
       if (a.deadline != null && a.deadline!.year == _calendarDate.year && a.deadline!.month == _calendarDate.month) {
         dynamicEventDays.add(a.deadline!.day);
       }
-    }
-    if (_calendarDate.year == 2026 && _calendarDate.month == 6) {
-      dynamicEventDays.addAll(_eventDays);
     }
     _customReminders.forEach((dateKey, reminders) {
       if (reminders.isNotEmpty) {
@@ -937,27 +866,9 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
           a.deadline!.day == _selectedDate!.day;
     }).toList();
 
-    // Check mock events
-    final List<Map<String, String>> mockEvents = [];
-    if (_selectedDate!.year == 2026 && _selectedDate!.month == 6) {
-      if (_selectedDate!.day == 9) {
-        mockEvents.add({
-          'title': 'Ethics Midterm Exam Review',
-          'time': '10:00 AM - 12:00 PM',
-          'description': 'Online review session for the upcoming midterm exam.',
-        });
-      } else if (_selectedDate!.day == 13) {
-        mockEvents.add({
-          'title': 'Syllabus Q&A Session',
-          'time': '2:00 PM - 3:30 PM',
-          'description': 'Open consulting hours for syllabus and course requirements.',
-        });
-      }
-    }
-
     final List<Map<String, String>> reminders = _customReminders[dateKey] ?? [];
 
-    final hasContent = dueAssignments.isNotEmpty || mockEvents.isNotEmpty || reminders.isNotEmpty;
+    final hasContent = dueAssignments.isNotEmpty || reminders.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1099,50 +1010,6 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                     ),
                   );
                 },
-              ),
-            );
-          }),
-          // Render mock events
-          ...mockEvents.map((evt) {
-            return Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              color: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.black.withOpacity(0.05)),
-              ),
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.authPrimary.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.event_available_rounded, color: AppColors.authPrimary, size: 20),
-                ),
-                title: Text(
-                  evt['title']!,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 2),
-                    Text(
-                      'Time: ${evt['time']!}',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.authPrimary),
-                    ),
-                    if (evt['description'] != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        evt['description']!,
-                        style: const TextStyle(fontSize: 11, color: Colors.black54),
-                      ),
-                    ],
-                  ],
-                ),
               ),
             );
           }),

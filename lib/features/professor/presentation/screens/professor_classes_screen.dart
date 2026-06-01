@@ -29,49 +29,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
   String? _selectedSubject;
   String? _selectedCourseSection;
 
-  // Mock list of subjects to display if the database is empty (matching the screenshot exactly)
-  static final List<ProfessorSubject> _fallbackSubjects = [
-    const ProfessorSubject(
-      id: 'mock_ethics_1',
-      name: 'Ethics',
-      courseCode: 'BSIT',
-      section: '1',
-      yearLevel: 3,
-      studentCount: 60,
-    ),
-    const ProfessorSubject(
-      id: 'mock_ethics_2',
-      name: 'Ethics',
-      courseCode: 'BSIT',
-      section: '1',
-      yearLevel: 3,
-      studentCount: 60,
-    ),
-    const ProfessorSubject(
-      id: 'mock_ethics_3',
-      name: 'Ethics',
-      courseCode: 'BSIT',
-      section: '1',
-      yearLevel: 3,
-      studentCount: 60,
-    ),
-    const ProfessorSubject(
-      id: 'mock_ethics_4',
-      name: 'Ethics',
-      courseCode: 'BSIT',
-      section: '1',
-      yearLevel: 3,
-      studentCount: 60,
-    ),
-    const ProfessorSubject(
-      id: 'mock_ethics_5',
-      name: 'Ethics',
-      courseCode: 'BSIT',
-      section: '1',
-      yearLevel: 3,
-      studentCount: 60,
-    ),
-  ];
+
 
   @override
   void initState() {
@@ -101,8 +59,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
   }
 
   List<ProfessorSubject> get _allSubjects {
-    final list = [..._dbSubjects, ..._localAddedSubjects];
-    return list.isNotEmpty ? list : _fallbackSubjects;
+    return [..._dbSubjects, ..._localAddedSubjects];
   }
 
   void _applyFilters() {
@@ -146,48 +103,9 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
     setState(() => _loading = true);
     List<Map<String, String>> students = [];
     try {
-      if (sub.id.startsWith('mock_') || sub.id.startsWith('local_')) {
-        students = List.generate(
-          10,
-          (index) => {
-            'profileId': 'mock_std_$index',
-            'name': [
-              'Archie Arevalo',
-              'John Doe',
-              'Jane Smith',
-              'Bob Johnson',
-              'Alice Davis',
-              'Charlie Brown',
-              'Diana Prince',
-              'Ethan Hunt',
-              'Fiona Gallagher',
-              'George Clark'
-            ][index],
-            'studentNumber': '2023-100$index-MN-0',
-          },
-        );
-      } else {
-        students = await _repo.fetchEnrolledStudents(sub.id);
-        if (students.isEmpty) {
-          students = List.generate(
-            5,
-            (index) => {
-              'profileId': 'mock_std_$index',
-              'name': 'Student ${index + 1}',
-              'studentNumber': '2023-200$index-MN-0',
-            },
-          );
-        }
-      }
+      students = await _repo.fetchEnrolledStudents(sub.id);
     } catch (_) {
-      students = List.generate(
-        5,
-        (index) => {
-          'profileId': 'mock_std_$index',
-          'name': 'Student ${index + 1}',
-          'studentNumber': '2023-200$index-MN-0',
-        },
-      );
+      students = [];
     } finally {
       setState(() => _loading = false);
     }
@@ -393,49 +311,9 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
     setState(() => _loading = true);
     List<Map<String, String>> students = [];
     try {
-      if (sub.id.startsWith('mock_') || sub.id.startsWith('local_')) {
-        // Provide mock students
-        students = List.generate(
-          10,
-          (index) => {
-            'profileId': 'mock_std_$index',
-            'name': [
-              'Archie Arevalo',
-              'John Doe',
-              'Jane Smith',
-              'Bob Johnson',
-              'Alice Davis',
-              'Charlie Brown',
-              'Diana Prince',
-              'Ethan Hunt',
-              'Fiona Gallagher',
-              'George Clark'
-            ][index],
-            'studentNumber': '2023-100$index-MN-0',
-          },
-        );
-      } else {
-        students = await _repo.fetchEnrolledStudents(sub.id);
-        if (students.isEmpty) {
-          students = List.generate(
-            5,
-            (index) => {
-              'profileId': 'mock_std_$index',
-              'name': 'Student ${index + 1}',
-              'studentNumber': '2023-200$index-MN-0',
-            },
-          );
-        }
-      }
+      students = await _repo.fetchEnrolledStudents(sub.id);
     } catch (_) {
-      students = List.generate(
-        5,
-        (index) => {
-          'profileId': 'mock_std_$index',
-          'name': 'Student ${index + 1}',
-          'studentNumber': '2023-200$index-MN-0',
-        },
-      );
+      students = [];
     } finally {
       setState(() => _loading = false);
     }

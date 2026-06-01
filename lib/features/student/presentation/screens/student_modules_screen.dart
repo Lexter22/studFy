@@ -204,36 +204,11 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
       return const Center(child: Text('No courses assigned.'));
     }
 
-    // Add extra courses to match the long course list in Screenshot 4 left
-    final List<Map<String, String>> mockCourseTitles = [
-      {'name': 'Ethics', 'code': 'ETHICS'},
-      {'name': 'Computer Programming', 'code': 'COMPPROG'},
-      {'name': 'PATHFIT', 'code': 'PATHFIT'},
-      {'name': 'Information Management', 'code': 'INFOMGMT'},
-      {'name': 'IT ELECTIVE 2', 'code': 'ITELECTIVE2'},
-      {'name': 'Integration', 'code': 'INTEG'},
-      {'name': 'Software Engineering', 'code': 'SOFTENG'},
-      {'name': 'Capstone', 'code': 'CAPSTONE'},
-    ];
-
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-      itemCount: mockCourseTitles.length,
+      itemCount: _subjects.length,
       itemBuilder: (context, index) {
-        final item = mockCourseTitles[index];
-        
-        // Find if we have a match in the active database subjects
-        final dbMatch = _subjects.firstWhere(
-          (s) => s.name.toLowerCase() == item['name']!.toLowerCase(),
-          orElse: () => StudentSubject(
-            id: 'mock-${item['code']!.toLowerCase()}',
-            name: item['name']!,
-            courseCode: item['code']!,
-            section: 'BSIT 3-1',
-            yearLevel: 3,
-            professorName: 'Sir Dela Cruz',
-          ),
-        );
+        final dbMatch = _subjects[index];
 
         return Card(
           elevation: 0,
@@ -253,7 +228,7 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
-                      item['name']!,
+                      dbMatch.name,
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
