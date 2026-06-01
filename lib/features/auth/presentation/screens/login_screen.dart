@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
+import '../../domain/models/auth_exception.dart' as app_auth;
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/studfy_header.dart';
@@ -85,12 +85,16 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       context.go(AppRoutes.pathForRole(user.role));
-    } on FirebaseAuthException catch (error, stackTrace) {
+    } on app_auth.AuthException catch (error, stackTrace) {
       await ErrorTelemetry.captureException(error, stackTrace, operation: 'auth.login');
       String errorMessage = 'Login failed. Please check your credentials.';
-      if (error.code == 'user-not-found') errorMessage = 'Account does not exist.';
-      if (error.code == 'wrong-password') errorMessage = 'Incorrect password.';
-      if (error.code == 'invalid-email') errorMessage = 'The email format is invalid.';
+      if (error.code == 'user-not-found' || error.code == 'invalid-credentials') {
+        errorMessage = 'Account does not exist or incorrect password.';
+      } else if (error.code == 'invalid-email') {
+        errorMessage = 'The email format is invalid.';
+      } else if (error.message != null) {
+        errorMessage = error.message!;
+      }
       AppDialog.alert(context, title: 'Login Error', message: errorMessage);
     } catch (error, stackTrace) {
       await ErrorTelemetry.captureException(error, stackTrace, operation: 'auth.login.unexpected');
