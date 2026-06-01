@@ -251,8 +251,11 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_selectedModules.isEmpty && _quizzes.isEmpty && _assignments.isEmpty) {
-      return const Center(child: Text('No modules or content uploaded yet.'));
+    final hasMaterials = _assignments.any((a) => (a.description ?? '').startsWith('[MATERIAL]'));
+    final hasLegacyFiles = _selectedModules.any((m) => m.fileUrl != null);
+
+    if (_selectedModules.isEmpty && !hasMaterials && !hasLegacyFiles) {
+      return const Center(child: Text('No modules or materials uploaded yet.'));
     }
 
     return ListView(
@@ -261,9 +264,10 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
         ..._selectedModules.asMap().entries.map((entry) {
           final i = entry.key;
           final m = entry.value;
-          final mQuizzes = _quizzes.where((q) => q.moduleId == m.id).toList();
-          final mAssign = _assignments.where((a) => a.moduleId == m.id && !(a.description ?? '').startsWith('[MATERIAL]')).toList();
           final mMaterials = _assignments.where((a) => a.moduleId == m.id && (a.description ?? '').startsWith('[MATERIAL]')).toList();
+
+          final bool hasLegacyFile = m.fileUrl != null;
+          final bool hasMaterialsList = mMaterials.isNotEmpty;
 
           return Container(
             margin: const EdgeInsets.only(bottom: 16),
@@ -290,7 +294,7 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
                 const SizedBox(height: 12),
 
                 // Legacy module file (if any)
-                if (m.fileUrl != null)
+                if (hasLegacyFile)
                   _buildStudentContentRow(
                     Icons.menu_book_rounded,
                     m.fileName ?? '${m.title} - Document',
@@ -308,91 +312,23 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
                       },
                     )),
 
-                // Quizzes
-                ...mQuizzes.map((q) => _buildStudentContentRow(
-                      Icons.quiz_rounded,
-                      q.title,
-                      'Quiz',
-                      () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => StudentQuizScreen(
-                              subject: _selectedSubject!,
-                              assignment: SubjectAssignment(
-                                id: q.id,
-                                title: q.title,
-                                description: q.description,
-                                deadline: q.deadline,
-                                moduleId: q.moduleId,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    )),
-
-                // Assignments
-                ...mAssign.map((a) => _buildStudentContentRow(
-                      Icons.assignment_rounded,
-                      a.title,
-                      'Assignment',
-                      () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => StudentAssignmentDetailScreen(
-                              subject: _selectedSubject!,
-                              assignment: a,
-                            ),
-                          ),
-                        );
-                      },
-                    )),
+                if (!hasLegacyFile && !hasMaterialsList)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      'No materials uploaded yet.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade400,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
               ],
             ),
           );
         }).toList(),
-        // Unlinked quizzes
-        ..._quizzes.where((q) => q.moduleId == null).map((q) => _buildStudentContentRow(
-              Icons.quiz_rounded,
-              q.title,
-              'Quiz',
-              () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => StudentQuizScreen(
-                      subject: _selectedSubject!,
-                      assignment: SubjectAssignment(
-                        id: q.id,
-                        title: q.title,
-                        description: q.description,
-                        deadline: q.deadline,
-                        moduleId: q.moduleId,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            )),
-        // Unlinked assignments
-        ..._assignments.where((a) => a.moduleId == null && !(a.description ?? '').startsWith('[MATERIAL]')).map((a) => _buildStudentContentRow(
-              Icons.assignment_rounded,
-              a.title,
-              'Assignment',
-              () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => StudentAssignmentDetailScreen(
-                      subject: _selectedSubject!,
-                      assignment: a,
-                    ),
-                  ),
-                );
-              },
-            )),
+
         // Unlinked materials
         ..._assignments.where((a) => a.moduleId == null && (a.description ?? '').startsWith('[MATERIAL]')).map((mat) => _buildStudentContentRow(
               Icons.menu_book_rounded,
