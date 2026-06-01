@@ -304,6 +304,15 @@ class _ProfessorModulesScreenState extends State<ProfessorModulesScreen> {
     required List<T> items,
     required ValueChanged<T?> onChanged,
   }) {
+    String displayText = 'All ${label}s';
+    if (label.toLowerCase() == 'classname') {
+      displayText = 'Class Name';
+    } else if (label.toLowerCase() == 'course & section') {
+      displayText = 'Course & Section';
+    } else if (label.toLowerCase() == 'subject name') {
+      displayText = 'Subject Names';
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
@@ -318,7 +327,7 @@ class _ProfessorModulesScreenState extends State<ProfessorModulesScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                label,
+                displayText,
                 style: const TextStyle(color: Colors.black54, fontSize: 13),
               ),
             ],
@@ -329,7 +338,7 @@ class _ProfessorModulesScreenState extends State<ProfessorModulesScreen> {
           items: [
             DropdownMenuItem<T>(
               value: null,
-              child: Text('All ${label}s', style: const TextStyle(color: Colors.black54)),
+              child: Text(displayText, style: const TextStyle(color: Colors.black54)),
             ),
             ...items.map((item) {
               return DropdownMenuItem<T>(

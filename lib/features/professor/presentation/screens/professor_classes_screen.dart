@@ -140,227 +140,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
     });
   }
 
-  void _showAddClassDialog() {
-    final subjectCtrl = TextEditingController();
-    final courseSecCtrl = TextEditingController(text: 'BSIT 3-1');
-    final numStudentsCtrl = TextEditingController(text: '60');
 
-    Widget buildDialogTextField({
-      required TextEditingController controller,
-      required String labelText,
-      required String hintText,
-      TextInputType keyboardType = TextInputType.text,
-    }) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: TextField(
-          controller: controller,
-          keyboardType: keyboardType,
-          style: const TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.w500),
-          decoration: InputDecoration(
-            labelText: labelText,
-            hintText: hintText,
-            labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
-            hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-            filled: true,
-            fillColor: Colors.grey.shade50,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.authPrimary, width: 2),
-            ),
-          ),
-        ),
-      );
-    }
-
-    Widget buildUploadField() {
-      return Container(
-        margin: const EdgeInsets.only(bottom: 24),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200, width: 1.5),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(Icons.cloud_upload_outlined, color: Colors.blue.shade700, size: 20),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Upload Class List (.csv)',
-                    style: TextStyle(
-                      color: Colors.black87,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Optional class roster upload',
-                    style: TextStyle(
-                      color: Colors.grey.shade500,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400),
-          ],
-        ),
-      );
-    }
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setS) => Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          backgroundColor: Colors.white,
-          child: Container(
-            width: 450,
-            padding: const EdgeInsets.all(24),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppColors.authPrimary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(Icons.school_rounded, color: AppColors.authPrimary, size: 24),
-                      ),
-                      const SizedBox(width: 14),
-                      const Text(
-                        'New Class',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  buildDialogTextField(
-                    controller: subjectCtrl,
-                    labelText: 'Subject Name',
-                    hintText: 'Enter subject title',
-                  ),
-                  buildDialogTextField(
-                    controller: courseSecCtrl,
-                    labelText: 'Course & Section',
-                    hintText: 'e.g. BSIT 3-1',
-                  ),
-                  buildDialogTextField(
-                    controller: numStudentsCtrl,
-                    labelText: 'Number of Students',
-                    hintText: 'e.g. 60',
-                    keyboardType: TextInputType.number,
-                  ),
-                  buildUploadField(),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.grey.shade600,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: const Text(
-                          'Discard',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.authPrimary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                          elevation: 0,
-                        ),
-                        onPressed: () {
-                          if (subjectCtrl.text.trim().isEmpty) return;
-                          
-                          final courseSec = courseSecCtrl.text.trim();
-                          String courseCode = 'BSIT';
-                          String section = '1';
-                          if (courseSec.contains(' ')) {
-                            final parts = courseSec.split(' ');
-                            section = parts.last;
-                            courseCode = parts.sublist(0, parts.length - 1).join(' ');
-                          } else {
-                            courseCode = courseSec.isNotEmpty ? courseSec : 'BSIT';
-                          }
-                          
-                          final studentCount = int.tryParse(numStudentsCtrl.text.trim()) ?? 60;
-                          
-                          final newSub = ProfessorSubject(
-                            id: 'local_${DateTime.now().millisecondsSinceEpoch}',
-                            name: subjectCtrl.text.trim(),
-                            courseCode: courseCode,
-                            section: section,
-                            yearLevel: 3,
-                            studentCount: studentCount,
-                          );
-                          
-                          setState(() {
-                            _localAddedSubjects.add(newSub);
-                            _applyFilters();
-                          });
-                          
-                          Navigator.pop(ctx);
-                          
-                          AppDialog.result(
-                            context,
-                            type: DialogType.success,
-                            message: 'Class "${newSub.name}" added successfully!',
-                            buttonLabel: 'Done',
-                          );
-                        },
-                        child: const Text(
-                          'Add Class',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   void _showViewStudentsDialog(ProfessorSubject sub) async {
     setState(() => _loading = true);
@@ -572,74 +352,17 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                                           icon: const Icon(Icons.delete_outline, color: Colors.red),
                                           iconSize: 20,
                                           onPressed: () {
-                                            showDialog(
-                                              context: context,
-                                              builder: (deleteCtx) => AlertDialog(
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                                content: Column(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    const SizedBox(height: 12),
-                                                    const Text(
-                                                      'Are you sure you want to delete this student?',
-                                                      textAlign: TextAlign.center,
-                                                      style: TextStyle(
-                                                        fontSize: 16,
-                                                        fontWeight: FontWeight.bold,
-                                                        color: Colors.black87,
-                                                      ),
-                                                    ),
-                                                    const SizedBox(height: 24),
-                                                    Row(
-                                                      children: [
-                                                        Expanded(
-                                                          child: ElevatedButton(
-                                                            style: ElevatedButton.styleFrom(
-                                                              backgroundColor: const Color(0xFFC62828),
-                                                              foregroundColor: Colors.white,
-                                                              shape: RoundedRectangleBorder(
-                                                                borderRadius: BorderRadius.circular(8),
-                                                              ),
-                                                              padding: const EdgeInsets.symmetric(vertical: 12),
-                                                              elevation: 0,
-                                                            ),
-                                                            onPressed: () {
-                                                              setS(() {
-                                                                students.removeAt(i);
-                                                              });
-                                                              Navigator.pop(deleteCtx);
-                                                            },
-                                                            child: const Text(
-                                                              'Delete Student',
-                                                              style: TextStyle(fontWeight: FontWeight.bold),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                        const SizedBox(width: 12),
-                                                        Expanded(
-                                                          child: OutlinedButton(
-                                                            style: OutlinedButton.styleFrom(
-                                                              side: const BorderSide(color: Colors.black26),
-                                                              shape: RoundedRectangleBorder(
-                                                                borderRadius: BorderRadius.circular(8),
-                                                              ),
-                                                              padding: const EdgeInsets.symmetric(vertical: 12),
-                                                            ),
-                                                            onPressed: () => Navigator.pop(deleteCtx),
-                                                            child: const Text(
-                                                              'Close',
-                                                              style: TextStyle(
-                                                                color: Colors.black54,
-                                                                fontWeight: FontWeight.bold,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
+                                            AppDialog.confirm(
+                                              context,
+                                              title: 'Delete Student',
+                                              message: 'Are you sure you want to delete this student?',
+                                              type: DialogType.error,
+                                              confirmLabel: 'Delete',
+                                              onConfirm: () async {
+                                                setS(() {
+                                                  students.removeAt(i);
+                                                });
+                                              },
                                             );
                                           },
                                         ),
@@ -1301,20 +1024,6 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           ElevatedButton.icon(
-                            onPressed: _showAddClassDialog,
-                            icon: const Icon(Icons.add_circle, size: 16),
-                            label: const Text('Add Class'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.authPrimary,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          ElevatedButton.icon(
                             onPressed: _applyFilters,
                             icon: const Icon(Icons.search, size: 16),
                             label: const Text('Search'),
@@ -1375,6 +1084,15 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
     Map<T, String>? itemLabels,
     required ValueChanged<T?> onChanged,
   }) {
+    String displayText = 'All ${label}s';
+    if (label.toLowerCase() == 'classname') {
+      displayText = 'Class Name';
+    } else if (label.toLowerCase() == 'course & section') {
+      displayText = 'Course & Section';
+    } else if (label.toLowerCase() == 'subject name') {
+      displayText = 'Subject Names';
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
@@ -1389,7 +1107,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                label,
+                displayText,
                 style: const TextStyle(color: Colors.black54, fontSize: 13),
               ),
             ],
@@ -1400,7 +1118,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
           items: [
             DropdownMenuItem<T>(
               value: null,
-              child: Text('All ${label}s', style: const TextStyle(color: Colors.black54)),
+              child: Text(displayText, style: const TextStyle(color: Colors.black54)),
             ),
             ...items.map((item) {
               final text = itemLabels != null ? itemLabels[item] : item.toString();

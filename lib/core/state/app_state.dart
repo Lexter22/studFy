@@ -418,5 +418,54 @@ class AppState extends ChangeNotifier {
       return '$m ${dt.day} $hr:$min$ampm';
     }
   }
+
+  // Global meetings list
+  final List<Map<String, dynamic>> _meetings = [
+    {
+      'id': 'meet_1',
+      'subject': 'Ethics',
+      'title': 'Ethics Online Discussion',
+      'platform': 'Google Meet',
+      'link': 'https://meet.google.com/abc-defg-hij',
+      'date': '2026-06-15',
+      'time': '10:00 AM',
+    },
+    {
+      'id': 'meet_2',
+      'subject': 'Capstone',
+      'title': 'Weekly Capstone Consultation',
+      'platform': 'Zoom',
+      'link': 'https://zoom.us/j/123456789',
+      'date': '2026-06-20',
+      'time': '02:00 PM',
+    }
+  ];
+
+  List<Map<String, dynamic>> get meetings => _meetings;
+
+  void addMeeting({
+    required String subject,
+    required String title,
+    required String platform,
+    required String link,
+    required String date,
+    required String time,
+  }) {
+    _meetings.insert(0, {
+      'id': 'meet_${DateTime.now().millisecondsSinceEpoch}',
+      'subject': subject,
+      'title': title,
+      'platform': platform,
+      'link': link,
+      'date': date,
+      'time': time,
+    });
+    notifyListeners();
+  }
+
+  void deleteMeeting(String id) {
+    _meetings.removeWhere((m) => m['id'] == id);
+    notifyListeners();
+  }
 }
 
