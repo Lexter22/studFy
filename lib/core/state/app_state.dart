@@ -368,4 +368,104 @@ class AppState extends ChangeNotifier {
       'requested_role': request['requested_role'] ?? '',
     };
   }
+
+  // Global announcements list
+  final List<Map<String, String>> _announcements = [
+    {
+      'subject': 'Ethics',
+      'body': "Class, we're online daw until friday. I will just post our lecture here na lng. No online session kc...",
+      'date': 'Today 1:00pm',
+      'fullText': "Good Afternoon! Class, we're online daw until friday. I will just post our lecture here na lng. No online session kc I'll be having dentist appointment bukas."
+    },
+    {
+      'subject': 'Capstone',
+      'body': "Class, we're online daw until friday. I will just post our lecture here na lng. No online session kc...",
+      'date': 'Jan 20 3:01pm',
+      'fullText': "Good Afternoon! Capstone class is online today. Please review the Capstone guidelines posted under modules and begin drafting your abstract. I will be on leave today."
+    }
+  ];
+
+  List<Map<String, String>> get announcements => _announcements;
+
+  void addAnnouncement(String subject, String text, DateTime date) {
+    final dateStr = _formatAnnouncementDate(date);
+    final snippet = text.length > 80 ? '${text.substring(0, 80)}...' : text;
+    _announcements.insert(0, {
+      'subject': subject,
+      'body': snippet,
+      'date': dateStr,
+      'fullText': text,
+    });
+    notifyListeners();
+  }
+
+  void deleteAnnouncement(Map<String, String> ann) {
+    _announcements.remove(ann);
+    notifyListeners();
+  }
+
+  String _formatAnnouncementDate(DateTime dt) {
+    final now = DateTime.now();
+    final isToday = dt.year == now.year && dt.month == now.month && dt.day == now.day;
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final m = months[dt.month - 1];
+    final hr = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+    final ampm = dt.hour >= 12 ? 'pm' : 'am';
+    final min = dt.minute.toString().padLeft(2, '0');
+    if (isToday) {
+      return 'Today $hr:$min$ampm';
+    } else {
+      return '$m ${dt.day} $hr:$min$ampm';
+    }
+  }
+
+  // Global meetings list
+  final List<Map<String, dynamic>> _meetings = [
+    {
+      'id': 'meet_1',
+      'subject': 'Ethics',
+      'title': 'Ethics Online Discussion',
+      'platform': 'Google Meet',
+      'link': 'https://meet.google.com/abc-defg-hij',
+      'date': '2026-06-15',
+      'time': '10:00 AM',
+    },
+    {
+      'id': 'meet_2',
+      'subject': 'Capstone',
+      'title': 'Weekly Capstone Consultation',
+      'platform': 'Zoom',
+      'link': 'https://zoom.us/j/123456789',
+      'date': '2026-06-20',
+      'time': '02:00 PM',
+    }
+  ];
+
+  List<Map<String, dynamic>> get meetings => _meetings;
+
+  void addMeeting({
+    required String subject,
+    required String title,
+    required String platform,
+    required String link,
+    required String date,
+    required String time,
+  }) {
+    _meetings.insert(0, {
+      'id': 'meet_${DateTime.now().millisecondsSinceEpoch}',
+      'subject': subject,
+      'title': title,
+      'platform': platform,
+      'link': link,
+      'date': date,
+      'time': time,
+    });
+    notifyListeners();
+  }
+
+  void deleteMeeting(String id) {
+    _meetings.removeWhere((m) => m['id'] == id);
+    notifyListeners();
+  }
 }
+

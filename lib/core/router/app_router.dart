@@ -19,6 +19,9 @@ import '../../features/auth/presentation/screens/account_creation_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/verify_email_screen.dart';
 import '../../features/professor/presentation/screens/professor_dashboard_screen.dart';
+import '../../features/professor/presentation/screens/professor_classes_screen.dart';
+import '../../features/professor/presentation/screens/professor_modules_screen.dart';
+import '../../features/professor/presentation/screens/professor_assignments_screen.dart';
 import '../../features/student/presentation/screens/student_dashboard_screen.dart';
 import '../../features/student/presentation/screens/student_todo_screen.dart';
 import '../../features/student/presentation/screens/student_modules_screen.dart';
@@ -40,6 +43,9 @@ abstract class AppRoutes {
   static const adminSubjects = 'admin-subjects';
   static const adminSubjectsProfile = 'admin-subjects-profile';
   static const professorDashboard = 'professor-dashboard';
+  static const professorClasses = 'professor-classes';
+  static const professorModules = 'professor-modules';
+  static const professorAssignments = 'professor-assignments';
   static const studentDashboard = 'student-dashboard';
   static const studentTodo = 'student-todo';
   static const studentModules = 'student-modules';
@@ -253,6 +259,21 @@ GoRouter createAppRouter(AppState appState) {
         path: '/professor/dashboard',
         name: AppRoutes.professorDashboard,
         pageBuilder: (context, state) => _seamlessPage(state.pageKey, const ProfessorDashboardScreen()),
+      ),
+      GoRoute(
+        path: '/professor/classes',
+        name: AppRoutes.professorClasses,
+        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const ProfessorClassesScreen()),
+      ),
+      GoRoute(
+        path: '/professor/modules',
+        name: AppRoutes.professorModules,
+        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const ProfessorModulesScreen()),
+      ),
+      GoRoute(
+        path: '/professor/assignments',
+        name: AppRoutes.professorAssignments,
+        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const ProfessorAssignmentsScreen()),
       ),
       GoRoute(
         path: '/student/dashboard',
