@@ -20,7 +20,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   Map<String, dynamic>? _studentProfile;
 
   // Selected date for calendar
-  DateTime _calendarDate = DateTime(2025, 9, 1);
+  DateTime _calendarDate = DateTime.now();
   final List<int> _eventDays = [9, 13];
 
   // List of hardcoded announcements matching the screenshot exactly
@@ -483,7 +483,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 }
 
                 // Check if this day is an event day (e.g. Sep 9 and 13)
-                final bool isEvent = _calendarDate.month == 9 && _calendarDate.year == 2025 && _eventDays.contains(dayNumber);
+                final bool isEvent = _calendarDate.month == DateTime.now().month && _calendarDate.year == DateTime.now().year && _eventDays.contains(dayNumber);
 
                 return Container(
                   decoration: BoxDecoration(
