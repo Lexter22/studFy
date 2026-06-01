@@ -195,6 +195,13 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 24,
+                          offset: const Offset(0, 12),
+                        ),
+                      ],
                     ),
                     child: SingleChildScrollView(
                       child: Column(
@@ -217,8 +224,8 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
                                     Text(
                                       'Back',
                                       style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
                                         color: AppColors.authPrimary,
                                       ),
                                     ),
@@ -227,21 +234,27 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 16),
-
+                          const SizedBox(height: 24),
                           // ── Title ────────────────────────────────────────
-                          const Center(
-                            child: Text(
-                              'ACCOUNT CREATION FORM',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
+                          const Text(
+                            'Create an Account',
+                            style: TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.authPrimary,
+                              letterSpacing: -0.5,
                             ),
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Please fill in the form below',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 32),
 
                           // ── Role Dropdown ────────────────────────────────
                           _buildLabel('Role'),
@@ -287,7 +300,7 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
 
                           // ── Terms ────────────────────────────────────────
                           Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               SizedBox(
                                 height: 24,
@@ -295,65 +308,70 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
                                 child: Checkbox(
                                   value: _agreeToTerms,
                                   activeColor: AppColors.authPrimary,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                  side: BorderSide(color: Colors.grey.shade400, width: 1.5),
                                   onChanged: (val) {
                                     setState(() => _agreeToTerms = val ?? false);
                                     _validateInputs();
                                   },
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 12),
                               Expanded(
-                                child: RichText(
-                                  text: TextSpan(
-                                    style: const TextStyle(fontSize: 12, color: Colors.black87),
-                                    children: [
-                                      const TextSpan(
-                                          text: 'I Agree to the Terms of Service and\nPrivacy '),
-                                      WidgetSpan(
-                                        child: MouseRegion(
-                                          cursor: SystemMouseCursors.click,
-                                          child: GestureDetector(
-                                            onTap: () => debugPrint('Privacy Policy tapped'),
-                                            child: const Text(
-                                              'Policy.',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: AppColors.authPrimary,
-                                                fontWeight: FontWeight.bold,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: RichText(
+                                    text: TextSpan(
+                                      style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
+                                      children: [
+                                        const TextSpan(text: 'I agree to the Terms of Service and '),
+                                        WidgetSpan(
+                                          child: MouseRegion(
+                                            cursor: SystemMouseCursors.click,
+                                            child: GestureDetector(
+                                              onTap: () => debugPrint('Privacy Policy tapped'),
+                                              child: const Text(
+                                                'Privacy Policy.',
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: AppColors.authPrimary,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
                                               ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 32),
 
                           // ── Submit Button ────────────────────────────────
                           SizedBox(
                             width: double.infinity,
-                            height: 50,
+                            height: 56,
                             child: Opacity(
-                              opacity: _isButtonEnabled ? 1.0 : 0.5,
+                              opacity: _isButtonEnabled ? 1.0 : 0.6,
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.authPrimary,
                                   disabledBackgroundColor: AppColors.authPrimary,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16)),
-                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  elevation: _isButtonEnabled ? 8 : 0,
+                                  shadowColor: AppColors.authPrimary.withOpacity(0.4),
                                 ),
                                 onPressed: _isButtonEnabled ? _handleSubmit : null,
                                 child: const Text(
                                   'Submit',
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.5,
                                   ),
                                 ),
                               ),
@@ -418,15 +436,24 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   Widget _buildLabel(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: Text(text, style: const TextStyle(fontSize: 13, color: Colors.black87)),
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.grey.shade800,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       );
 
   Widget _buildDropdown() {
     return DropdownButtonFormField<String>(
       value: _selectedRole,
-      hint: const Text(''),
+      hint: Text('Select Role', style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w400)),
       decoration: _inputDecoration(),
+      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black87),
+      icon: Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey.shade600),
       items: _roles
           .map((role) => DropdownMenuItem(value: role, child: Text(role)))
           .toList(),
@@ -451,6 +478,7 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
   Widget _buildTextField({required TextEditingController controller}) {
     return TextFormField(
       controller: controller,
+      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black87),
       decoration: _inputDecoration(),
     );
   }
@@ -463,11 +491,12 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
     return TextFormField(
       controller: controller,
       obscureText: obscure,
+      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black87),
       decoration: _inputDecoration().copyWith(
         suffixIcon: IconButton(
           icon: Icon(
             obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-            color: Colors.grey,
+            color: Colors.grey.shade600,
           ),
           onPressed: onToggle,
         ),
@@ -480,24 +509,24 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
         fillColor: AppColors.authInputBackground,
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Colors.transparent, width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppColors.authPrimary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: Colors.red, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: Colors.red, width: 2.0),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 2.0),
         ),
       );
 }
