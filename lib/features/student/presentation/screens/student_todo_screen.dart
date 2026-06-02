@@ -16,7 +16,8 @@ class StudentTodoScreen extends StatefulWidget {
   State<StudentTodoScreen> createState() => _StudentTodoScreenState();
 }
 
-class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTickerProviderStateMixin {
+class _StudentTodoScreenState extends State<StudentTodoScreen>
+    with SingleTickerProviderStateMixin {
   final StudentRepository _repo = const StudentRepository();
   late TabController _tabController;
   bool _loading = true;
@@ -39,14 +40,34 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
     try {
       final profile = await _repo.fetchStudentProfile();
       final subjects = await _repo.fetchEnrolledSubjects();
-      
+
       // Fetch submissions status
       for (final sub in subjects) {
         final assignments = await _repo.fetchAssignments(sub.id);
-        final filtered = assignments.where((a) => !(a.description ?? '').startsWith('[MATERIAL]')).toList();
+        final filtered = assignments
+            .where((a) => !(a.description ?? '').startsWith('[MATERIAL]'))
+            .toList();
+
+        // Fetch real quizzes from backend and merge them into the UI
+        final quizzes = await _repo.fetchQuizzes(sub.id);
+        for (final q in quizzes) {
+          filtered.add(
+            SubjectAssignment(
+              id: 'quiz_${q.id}',
+              title: q.title,
+              description: q.description,
+              deadline: q.deadline,
+              moduleId: q.moduleId,
+            ),
+          );
+        }
+
         _subjectAssignments[sub.id] = filtered;
         for (final ass in filtered) {
-          final isSubmitted = await _repo.checkSubmission(ass.id);
+          bool isSubmitted = false;
+          if (!ass.id.startsWith('quiz_')) {
+            isSubmitted = await _repo.checkSubmission(ass.id);
+          }
           _submittedAssignments[ass.id] = isSubmitted;
         }
       }
@@ -164,7 +185,10 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
                   labelColor: const Color(0xFF0A5C36),
                   unselectedLabelColor: Colors.black54,
                   indicatorWeight: 3,
-                  labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  labelStyle: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
                   tabs: const [
                     Tab(text: 'Active'),
                     Tab(text: 'Missing'),
@@ -197,14 +221,22 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
   Widget _buildActiveList() {
     final active = _getAssignments(isDone: false, isMissing: false);
     if (active.isEmpty) {
-      return const Center(child: Text('No active assignments. All caught up!', style: TextStyle(color: Colors.grey)));
+      return const Center(
+        child: Text(
+          'No active assignments. All caught up!',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
     }
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
       itemCount: active.length,
       itemBuilder: (context, index) {
         final item = active[index];
-        return _buildAssignmentCard(item['subject'] as StudentSubject, item['assignment'] as SubjectAssignment);
+        return _buildAssignmentCard(
+          item['subject'] as StudentSubject,
+          item['assignment'] as SubjectAssignment,
+        );
       },
     );
   }
@@ -212,14 +244,23 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
   Widget _buildMissingList() {
     final missing = _getAssignments(isDone: false, isMissing: true);
     if (missing.isEmpty) {
-      return const Center(child: Text('No missing assignments. Good job!', style: TextStyle(color: Colors.grey)));
+      return const Center(
+        child: Text(
+          'No missing assignments. Good job!',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
     }
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
       itemCount: missing.length,
       itemBuilder: (context, index) {
         final item = missing[index];
-        return _buildAssignmentCard(item['subject'] as StudentSubject, item['assignment'] as SubjectAssignment, isMissing: true);
+        return _buildAssignmentCard(
+          item['subject'] as StudentSubject,
+          item['assignment'] as SubjectAssignment,
+          isMissing: true,
+        );
       },
     );
   }
@@ -227,19 +268,31 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
   Widget _buildDoneList() {
     final done = _getAssignments(isDone: true, isMissing: false);
     if (done.isEmpty) {
-      return const Center(child: Text('No completed assignments yet. Get started!', style: TextStyle(color: Colors.grey)));
+      return const Center(
+        child: Text(
+          'No completed assignments yet. Get started!',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
     }
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
       itemCount: done.length,
       itemBuilder: (context, index) {
         final item = done[index];
-        return _buildAssignmentCard(item['subject'] as StudentSubject, item['assignment'] as SubjectAssignment, isDone: true);
+        return _buildAssignmentCard(
+          item['subject'] as StudentSubject,
+          item['assignment'] as SubjectAssignment,
+          isDone: true,
+        );
       },
     );
   }
 
-  List<Map<String, dynamic>> _getAssignments({required bool isDone, required bool isMissing}) {
+  List<Map<String, dynamic>> _getAssignments({
+    required bool isDone,
+    required bool isMissing,
+  }) {
     final List<Map<String, dynamic>> results = [];
     final now = DateTime.now();
 
@@ -248,7 +301,8 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
 
       for (final ass in list) {
         final bool submitted = _submittedAssignments[ass.id] ?? false;
-        final bool isPastDeadline = ass.deadline != null && ass.deadline!.isBefore(now);
+        final bool isPastDeadline =
+            ass.deadline != null && ass.deadline!.isBefore(now);
 
         if (isDone && submitted) {
           results.add({'subject': sub, 'assignment': ass});
@@ -262,7 +316,33 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
     return results;
   }
 
-  Widget _buildAssignmentCard(StudentSubject sub, SubjectAssignment ass, {bool isDone = false, bool isMissing = false}) {
+  String _formatDeadline(DateTime? dt) {
+    if (dt == null) return 'No Deadline';
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final m = months[dt.month - 1];
+    final d = dt.day.toString().padLeft(2, '0');
+    return '$m $d';
+  }
+
+  Widget _buildAssignmentCard(
+    StudentSubject sub,
+    SubjectAssignment ass, {
+    bool isDone = false,
+    bool isMissing = false,
+  }) {
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 12),
@@ -290,7 +370,9 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
                   ),
                 ),
                 child: Icon(
-                  ass.id.contains('quiz') ? Icons.quiz_rounded : Icons.edit_note_rounded,
+                  ass.id.contains('quiz')
+                      ? Icons.quiz_rounded
+                      : Icons.edit_note_rounded,
                   color: isMissing ? Colors.red : const Color(0xFF0A5C36),
                   size: 26,
                 ),
@@ -325,7 +407,7 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
 
               // Due Date label
               Text(
-                ass.deadline != null ? 'May 09' : 'May 09', // Static like the design
+                _formatDeadline(ass.deadline),
                 style: const TextStyle(
                   fontSize: 11,
                   color: Colors.black54,
@@ -340,12 +422,25 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
   }
 
   void _handleAssignmentTap(StudentSubject sub, SubjectAssignment ass) async {
-    if (ass.id.contains('quiz')) {
+    if (ass.id.startsWith('quiz_')) {
+      final realQuizId = ass.id.replaceFirst('quiz_', '');
+      final quizzes = await _repo.fetchQuizzes(sub.id);
+      SubjectQuiz? targetQuiz;
+      for (var q in quizzes) {
+        if (q.id == realQuizId) targetQuiz = q;
+      }
+      if (targetQuiz == null) return;
+      if (!mounted) return;
+
       // Open Quiz Screen
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => StudentQuizScreen(subject: sub, assignment: ass),
+          builder: (_) => StudentQuizScreen(
+            subject: sub,
+            assignment: ass,
+            quiz: targetQuiz!,
+          ),
         ),
       );
     } else {
@@ -353,11 +448,11 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => StudentAssignmentDetailScreen(subject: sub, assignment: ass),
+          builder: (_) =>
+              StudentAssignmentDetailScreen(subject: sub, assignment: ass),
         ),
       );
     }
     _loadData(); // Reload submissions
   }
-
 }

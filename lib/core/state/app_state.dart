@@ -4,10 +4,14 @@ import '../../features/auth/domain/models/app_user.dart';
 import '../../features/admin/data/repositories/supabase_admin_repository.dart';
 import '../../features/admin/domain/models/instructor.dart';
 import '../../features/admin/domain/models/student.dart';
+import '../../features/auth/domain/enums/user_role.dart';
+import 'supabase_event_repository.dart';
 
 class AppState extends ChangeNotifier {
   final SupabaseAdminRepository _adminRepository =
       const SupabaseAdminRepository();
+  final SupabaseEventRepository _eventRepository =
+      const SupabaseEventRepository();
 
   bool _isAuthenticated = false;
   AppUser? _currentUser;
@@ -15,11 +19,17 @@ class AppState extends ChangeNotifier {
   bool get isAuthenticated => _isAuthenticated;
   AppUser? get currentUser => _currentUser;
 
-  final ValueNotifier<String?> accessDeniedNotifier = ValueNotifier<String?>(null);
-  final ValueNotifier<List<Map<String, String>>> pendingSubjectRequestsNotifier =
-      ValueNotifier<List<Map<String, String>>>(const []);
-  final ValueNotifier<List<Map<String, String>>> pendingInstructorRequestsNotifier =
-      ValueNotifier<List<Map<String, String>>>(const []);
+  final ValueNotifier<String?> accessDeniedNotifier = ValueNotifier<String?>(
+    null,
+  );
+  final ValueNotifier<List<Map<String, String>>>
+  pendingSubjectRequestsNotifier = ValueNotifier<List<Map<String, String>>>(
+    const [],
+  );
+  final ValueNotifier<List<Map<String, String>>>
+  pendingInstructorRequestsNotifier = ValueNotifier<List<Map<String, String>>>(
+    const [],
+  );
   final ValueNotifier<List<Map<String, String>>> subjectOfferingsNotifier =
       ValueNotifier<List<Map<String, String>>>(const []);
   final ValueNotifier<List<Instructor>> instructorsNotifier =
@@ -217,7 +227,9 @@ class AppState extends ChangeNotifier {
     await loadAdminData();
   }
 
-  Future<List<String>> fetchStudentsEnrolledInSubject(String subjectOfferingId) async {
+  Future<List<String>> fetchStudentsEnrolledInSubject(
+    String subjectOfferingId,
+  ) async {
     return _adminRepository.fetchStudentsEnrolledInSubject(subjectOfferingId);
   }
 
@@ -286,12 +298,12 @@ class AppState extends ChangeNotifier {
 
       pendingSubjectRequestsNotifier.value = subjectRequests;
       pendingInstructorRequestsNotifier.value = instructorRequests;
-      subjectOfferingsNotifier.value =
-          await _adminRepository.fetchSubjectOfferings();
+      subjectOfferingsNotifier.value = await _adminRepository
+          .fetchSubjectOfferings();
       instructorsNotifier.value = await _adminRepository.fetchInstructors();
       studentsNotifier.value = await _adminRepository.fetchStudents();
-      enrollmentCodesNotifier.value =
-          await _adminRepository.fetchEnrollmentCodes();
+      enrollmentCodesNotifier.value = await _adminRepository
+          .fetchEnrollmentCodes();
     } catch (error) {
       debugPrint('Failed to load admin data: $error');
       clearAdminData();
@@ -316,6 +328,7 @@ class AppState extends ChangeNotifier {
     }
     _isAuthenticated = true;
     _currentUser = user;
+    if (user != null) loadEventsAndTasks();
     notifyListeners();
   }
 
@@ -324,12 +337,18 @@ class AppState extends ChangeNotifier {
     _isAuthenticated = false;
     _currentUser = null;
     clearAdminData();
+    _meetings = [];
+    _quizzes = [];
+    _activities = [];
+    _tasks = [];
+    _studentSubjects = [];
     notifyListeners();
   }
 
   void syncAuthState(AppUser? user) {
     _isAuthenticated = user != null;
     _currentUser = user;
+    if (user != null) loadEventsAndTasks();
     notifyListeners();
   }
 
@@ -370,20 +389,7 @@ class AppState extends ChangeNotifier {
   }
 
   // Global announcements list
-  final List<Map<String, String>> _announcements = [
-    {
-      'subject': 'Ethics',
-      'body': "Class, we're online daw until friday. I will just post our lecture here na lng. No online session kc...",
-      'date': 'Today 1:00pm',
-      'fullText': "Good Afternoon! Class, we're online daw until friday. I will just post our lecture here na lng. No online session kc I'll be having dentist appointment bukas."
-    },
-    {
-      'subject': 'Capstone',
-      'body': "Class, we're online daw until friday. I will just post our lecture here na lng. No online session kc...",
-      'date': 'Jan 20 3:01pm',
-      'fullText': "Good Afternoon! Capstone class is online today. Please review the Capstone guidelines posted under modules and begin drafting your abstract. I will be on leave today."
-    }
-  ];
+  final List<Map<String, String>> _announcements = [];
 
   List<Map<String, String>> get announcements => _announcements;
 
@@ -406,8 +412,22 @@ class AppState extends ChangeNotifier {
 
   String _formatAnnouncementDate(DateTime dt) {
     final now = DateTime.now();
-    final isToday = dt.year == now.year && dt.month == now.month && dt.day == now.day;
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final isToday =
+        dt.year == now.year && dt.month == now.month && dt.day == now.day;
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     final m = months[dt.month - 1];
     final hr = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
     final ampm = dt.hour >= 12 ? 'pm' : 'am';
@@ -419,53 +439,301 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  // Global meetings list
-  final List<Map<String, dynamic>> _meetings = [
-    {
-      'id': 'meet_1',
-      'subject': 'Ethics',
-      'title': 'Ethics Online Discussion',
-      'platform': 'Google Meet',
-      'link': 'https://meet.google.com/abc-defg-hij',
-      'date': '2026-06-15',
-      'time': '10:00 AM',
-    },
-    {
-      'id': 'meet_2',
-      'subject': 'Capstone',
-      'title': 'Weekly Capstone Consultation',
-      'platform': 'Zoom',
-      'link': 'https://zoom.us/j/123456789',
-      'date': '2026-06-20',
-      'time': '02:00 PM',
-    }
-  ];
+  // Live Events & Tasks Backend State
+  List<Map<String, dynamic>> _meetings = [];
+  List<Map<String, dynamic>> _quizzes = [];
+  List<Map<String, dynamic>> _activities = [];
+  List<Map<String, dynamic>> _tasks = [];
+
+  // Student's real enrolled subjects
+  List<Map<String, dynamic>> _studentSubjects = [];
+  List<Map<String, dynamic>> get studentSubjects => _studentSubjects;
 
   List<Map<String, dynamic>> get meetings => _meetings;
+  List<Map<String, dynamic>> get quizzes => _quizzes;
+  List<Map<String, dynamic>> get activities => _activities;
+  List<Map<String, dynamic>> get tasks => _tasks;
 
-  void addMeeting({
+  // A combined, unified To-Do list for the UI (Activities, Quizzes, and incomplete Tasks)
+  List<Map<String, dynamic>> get unifiedToDoList {
+    final List<Map<String, dynamic>> list = [];
+
+    // 1. Add class activities & quizzes
+    for (final event in [..._activities, ..._quizzes]) {
+      list.add({
+        'id': event['id'],
+        'title': event['title'],
+        'description': event['description'],
+        'dueDate': event['end_time'] ?? event['start_time'],
+        'type': event['event_type'], // 'activity' or 'quiz'
+        'subject': event['subject_offerings']?['subject_name'] ?? 'Class Event',
+      });
+    }
+
+    // 2. Add pending personal tasks
+    for (final task in _tasks.where((t) => t['is_completed'] != true)) {
+      list.add({
+        'id': task['id'],
+        'title': task['title'],
+        'description': task['description'],
+        'dueDate': task['due_date'],
+        'type': 'task',
+        'subject': 'Personal',
+      });
+    }
+
+    // 3. Sort by closest deadline
+    list.sort((a, b) {
+      if (a['dueDate'] == null) return 1;
+      if (b['dueDate'] == null) return -1;
+      return DateTime.parse(
+        a['dueDate'],
+      ).compareTo(DateTime.parse(b['dueDate']));
+    });
+
+    return list;
+  }
+
+  Future<void> loadEventsAndTasks() async {
+    if (_currentUser == null) return;
+
+    try {
+      // Load Events (Quizzes, Activities, Meetings)
+      final eventsData = await _eventRepository.fetchClassEvents();
+
+      _meetings = eventsData.where((e) => e['event_type'] == 'meeting').map((
+        e,
+      ) {
+        String platform = 'Unknown';
+        String link = '';
+        final desc = e['description']?.toString() ?? '';
+        if (desc.contains(' - ')) {
+          final parts = desc.split(' - ');
+          platform = parts[0];
+          link = parts.sublist(1).join(' - ');
+        } else {
+          platform = desc;
+        }
+
+        String dateStr = '';
+        String timeStr = '';
+        final startStr = e['start_time']?.toString();
+        if (startStr != null) {
+          final dt = DateTime.tryParse(startStr)?.toLocal();
+          if (dt != null) {
+            dateStr =
+                '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+            final hr = dt.hour > 12
+                ? dt.hour - 12
+                : (dt.hour == 0 ? 12 : dt.hour);
+            final ampm = dt.hour >= 12 ? 'PM' : 'AM';
+            timeStr = '$hr:${dt.minute.toString().padLeft(2, '0')} $ampm';
+          }
+        }
+
+        return {
+          'id': e['id'],
+          'subject': e['subject_offerings']?['subject_name'] ?? 'Class Event',
+          'title': e['title'] ?? 'Meeting',
+          'platform': platform,
+          'link': link,
+          'date': dateStr,
+          'time': timeStr,
+          'start_time': e['start_time'],
+        };
+      }).toList();
+      _quizzes = eventsData.where((e) => e['event_type'] == 'quiz').toList();
+      _activities = eventsData
+          .where((e) => e['event_type'] == 'activity')
+          .toList();
+
+      // Load Tasks (Only applicable for students)
+      if (_currentUser!.role.value == 'student') {
+        _tasks = await _eventRepository.fetchStudentTasks(_currentUser!.uid);
+
+        // Fetch real quizzes and assignments created by professors
+        final profQuizzes = await _eventRepository.fetchStudentQuizzes(
+          _currentUser!.uid,
+        );
+        final profAssignments = await _eventRepository.fetchStudentAssignments(
+          _currentUser!.uid,
+        );
+
+        for (final q in profQuizzes) {
+          _quizzes.add({
+            'id': q['id'],
+            'title': q['title'] ?? 'Quiz',
+            'description': q['description'],
+            'end_time': q['deadline'],
+            'event_type': 'quiz',
+            'subject_offerings': q['subject_offerings'],
+          });
+        }
+
+        for (final a in profAssignments) {
+          _activities.add({
+            'id': a['id'],
+            'title': a['title'] ?? 'Assignment',
+            'description': a['description'],
+            'end_time': a['deadline'],
+            'event_type': 'activity',
+            'subject_offerings': a['subject_offerings'],
+          });
+        }
+
+        // Load Live Enrolled Subjects
+        final enrollments = await _eventRepository.fetchStudentSubjects(
+          _currentUser!.uid,
+        );
+        _studentSubjects = enrollments
+            .map((e) => e['subject_offerings'])
+            .where((s) => s != null)
+            .cast<Map<String, dynamic>>()
+            .toList();
+      }
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading events/tasks: $e');
+    }
+  }
+
+  // Generalized method to add any class event
+  Future<void> addClassEvent({
+    required String subjectOfferingId,
+    required String eventType, // 'quiz', 'activity', 'meeting'
+    required String title,
+    String? description,
+    DateTime? startTime,
+    DateTime? endTime,
+  }) async {
+    // Clean up any newlines or weird spacing from the UI string
+    String cleanSubject = subjectOfferingId
+        .replaceAll('\n', ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    String resolvedSubjectId = cleanSubject;
+
+    // If subjectOfferingId is not a UUID, look it up in the database
+    if (!RegExp(
+      r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+    ).hasMatch(cleanSubject)) {
+      final fetchedId = await _eventRepository.getSubjectId(cleanSubject);
+      if (fetchedId != null) {
+        resolvedSubjectId = fetchedId;
+      } else {
+        debugPrint(
+          'Error: Cannot add event. Subject "$cleanSubject" not found in DB.',
+        );
+        return; // Abort instead of hitting DB with an invalid UUID string
+      }
+    }
+
+    try {
+      await _eventRepository.addClassEvent(
+        subjectOfferingId: resolvedSubjectId,
+        eventType: eventType,
+        title: title,
+        description: description,
+        startTime: startTime,
+        endTime: endTime,
+        createdBy: _currentUser?.uid,
+      );
+      await loadEventsAndTasks();
+    } catch (e) {
+      debugPrint('Error adding event: $e');
+    }
+  }
+
+  Future<void> deleteClassEvent(String id) async {
+    try {
+      await _eventRepository.deleteClassEvent(id);
+      await loadEventsAndTasks();
+    } catch (e) {
+      debugPrint('Error deleting event: $e');
+    }
+  }
+
+  // Methods for Student Tasks
+  Future<void> addStudentTask({
+    required String title,
+    String? description,
+    DateTime? dueDate,
+  }) async {
+    if (_currentUser?.uid == null) return;
+    try {
+      await _eventRepository.addStudentTask(
+        studentProfileId: _currentUser!.uid,
+        title: title,
+        description: description,
+        dueDate: dueDate,
+      );
+      await loadEventsAndTasks();
+    } catch (e) {
+      debugPrint('Error adding task: $e');
+    }
+  }
+
+  Future<void> toggleTaskCompletion(String id, bool isCompleted) async {
+    try {
+      await _eventRepository.toggleTaskCompletion(id, isCompleted);
+      await loadEventsAndTasks();
+    } catch (e) {
+      debugPrint('Error toggling task completion: $e');
+    }
+  }
+
+  Future<void> deleteStudentTask(String id) async {
+    try {
+      await _eventRepository.deleteStudentTask(id);
+      await loadEventsAndTasks();
+    } catch (e) {
+      debugPrint('Error deleting task: $e');
+    }
+  }
+
+  // Legacy aliases for backward compatibility with Professor UI
+  Future<void> addMeeting({
     required String subject,
     required String title,
     required String platform,
     required String link,
     required String date,
     required String time,
-  }) {
-    _meetings.insert(0, {
-      'id': 'meet_${DateTime.now().millisecondsSinceEpoch}',
-      'subject': subject,
-      'title': title,
-      'platform': platform,
-      'link': link,
-      'date': date,
-      'time': time,
-    });
-    notifyListeners();
+  }) async {
+    DateTime? startTime;
+    try {
+      final dateParts = date.split('-');
+      if (dateParts.length == 3) {
+        final year = int.parse(dateParts[0]);
+        final month = int.parse(dateParts[1]);
+        final day = int.parse(dateParts[2]);
+
+        int hour = 0;
+        int minute = 0;
+
+        final timeParts = time.split(' ');
+        if (timeParts.length == 2) {
+          final hm = timeParts[0].split(':');
+          hour = int.parse(hm[0]);
+          minute = int.parse(hm[1]);
+          if (timeParts[1].toUpperCase() == 'PM' && hour < 12) hour += 12;
+          if (timeParts[1].toUpperCase() == 'AM' && hour == 12) hour = 0;
+        }
+        startTime = DateTime(year, month, day, hour, minute);
+      }
+    } catch (_) {}
+
+    await addClassEvent(
+      subjectOfferingId: subject,
+      eventType: 'meeting',
+      title: title,
+      description: '$platform - $link',
+      startTime: startTime,
+    );
   }
 
-  void deleteMeeting(String id) {
-    _meetings.removeWhere((m) => m['id'] == id);
-    notifyListeners();
+  Future<void> deleteMeeting(String id) async {
+    await deleteClassEvent(id);
   }
 }
-

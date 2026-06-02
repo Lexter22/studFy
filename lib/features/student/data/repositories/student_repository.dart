@@ -194,4 +194,61 @@ class StudentRepository {
       'submitted_at': DateTime.now().toUtc().toIso8601String(),
     });
   }
+
+  /// Returns a map of date -> list of events (assignments + quizzes with deadlines)
+  Future<Map<DateTime, List<Map<String, String>>>> fetchCalendarEvents() async {
+    final uid = _client.auth.currentUser?.id;
+    if (uid == null) return {};
+
+    try {
+      // Get enrolled subject IDs
+      final enrollRows = await _client
+          .from('subject_enrollments')
+          .select('subject_offering_id')
+          .eq('student_profile_id', uid);
+
+      final subjectIds = (enrollRows as List)
+          .map((r) => r['subject_offering_id']?.toString())
+          .whereType<String>()
+          .toList();
+
+      if (subjectIds.isEmpty) return {};
+
+      final Map<DateTime, List<Map<String, String>>> events = {};
+
+      void addEvent(String? deadlineStr, String title, String type, String subjectId) {
+        if (deadlineStr == null) return;
+        final dt = DateTime.tryParse(deadlineStr);
+        if (dt == null) return;
+        final key = DateTime(dt.toLocal().year, dt.toLocal().month, dt.toLocal().day);
+        events.putIfAbsent(key, () => []).add({'title': title, 'type': type, 'subjectId': subjectId});
+      }
+
+      // Fetch assignment deadlines
+      final assignRows = await _client
+          .from('assignments')
+          .select('id,title,deadline,subject_offering_id')
+          .inFilter('subject_offering_id', subjectIds)
+          .not('deadline', 'is', null);
+
+      for (final r in (assignRows as List)) {
+        addEvent(r['deadline']?.toString(), r['title']?.toString() ?? 'Assignment', 'assignment', r['subject_offering_id']?.toString() ?? '');
+      }
+
+      // Fetch quiz deadlines
+      final quizRows = await _client
+          .from('quizzes')
+          .select('id,title,deadline,subject_offering_id')
+          .inFilter('subject_offering_id', subjectIds)
+          .not('deadline', 'is', null);
+
+      for (final r in (quizRows as List)) {
+        addEvent(r['deadline']?.toString(), r['title']?.toString() ?? 'Quiz', 'quiz', r['subject_offering_id']?.toString() ?? '');
+      }
+
+      return events;
+    } catch (_) {
+      return {};
+    }
+  }
 }

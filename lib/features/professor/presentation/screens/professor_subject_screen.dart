@@ -50,18 +50,6 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      // Auto-enroll all students in the database to this subject
-      try {
-        final allDbStudents = await _repo.fetchAllStudents();
-        for (final s in allDbStudents) {
-          if (s['profileId'] != null) {
-            await _repo.enrollStudent(widget.subject.id, s['profileId']!);
-          }
-        }
-      } catch (e) {
-        debugPrint('Auto-enrollment failed: $e');
-      }
-
       final modules = await _repo.fetchModules(widget.subject.id);
       final quizzes = await _repo.fetchQuizzes(widget.subject.id);
       var assignments = await _repo.fetchAssignments(widget.subject.id);

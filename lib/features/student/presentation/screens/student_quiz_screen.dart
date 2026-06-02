@@ -6,11 +6,13 @@ import '../widgets/student_floating_nav_bar.dart';
 class StudentQuizScreen extends StatefulWidget {
   final StudentSubject subject;
   final SubjectAssignment assignment;
+  final SubjectQuiz quiz;
 
   const StudentQuizScreen({
     super.key,
     required this.subject,
     required this.assignment,
+    required this.quiz,
   });
 
   @override
@@ -25,61 +27,23 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
   bool _isReviewing = false;
 
   // Answers tracked
-  final List<int?> _userAnswers = List.filled(10, null);
+  late List<int?> _userAnswers;
 
-  // Hardcoded premium quiz questions
-  final List<Map<String, dynamic>> _questions = [
-    {
-      'question': 'Managers who do not relate well to peers and other associates usually have a difficult time accomplishing their goals and moving up in the organization.',
-      'options': ['Manager', 'Support', 'Communication', 'Impact'],
-      'correctIndex': 0, // 'Manager'
-    },
-    {
-      'question': 'Which ethical theory focuses on the consequences of actions, aiming for the greatest good for the greatest number?',
-      'options': ['Deontology', 'Utilitarianism', 'Virtue Ethics', 'Egoism'],
-      'correctIndex': 1,
-    },
-    {
-      'question': 'A situation in which a professional has multiple interests, one of which could possibly corrupt the motivation for act in another is called:',
-      'options': ['Conflict of Interest', 'Dual Loyalty', 'Moral Dilemma', 'Whistleblowing'],
-      'correctIndex': 0,
-    },
-    {
-      'question': 'What refers to the rules or principles that define right and wrong conduct within a professional environment?',
-      'options': ['Legal Code', 'Code of Ethics', 'Cultural Norms', 'Company Bylaws'],
-      'correctIndex': 1,
-    },
-    {
-      'question': 'Deontological ethics is most commonly associated with which famous philosopher?',
-      'options': ['Aristotle', 'John Stuart Mill', 'Immanuel Kant', 'Plato'],
-      'correctIndex': 2,
-    },
-    {
-      'question': 'An employee who reports organizational misconduct or illegal activities to external authorities is known as a:',
-      'options': ['Bystander', 'Audit Officer', 'Whistleblower', 'Mediator'],
-      'correctIndex': 2,
-    },
-    {
-      'question': 'Corporate Social Responsibility (CSR) implies that a corporation is accountable to which group?',
-      'options': ['Only Shareholders', 'Only Customers', 'All Stakeholders', 'Government Agencies Only'],
-      'correctIndex': 2,
-    },
-    {
-      'question': 'The study of moral principles that govern a person\'s behavior or the conducting of an activity is known as:',
-      'options': ['Sociology', 'Ethics', 'Psychology', 'Anthropology'],
-      'correctIndex': 1,
-    },
-    {
-      'question': 'Which of the following describes the moral obligation to act in the best interest of another party (e.g., trustee/beneficiary)?',
-      'options': ['Fiduciary Duty', 'Social Contract', 'Utilitarian Contract', 'Liability'],
-      'correctIndex': 0,
-    },
-    {
-      'question': 'Ethics that deals with moral questions about technology, computing, and information networks is:',
-      'options': ['Bioethics', 'Cyberethics', 'Media Ethics', 'Environmental Ethics'],
-      'correctIndex': 1,
-    },
-  ];
+  final List<Map<String, dynamic>> _questions = [];
+
+  @override
+  void initState() {
+    super.initState();
+    for (var q in widget.quiz.questions) {
+      int cIndex = q.options.indexOf(q.correctAnswer);
+      _questions.add({
+        'question': q.question,
+        'options': q.options,
+        'correctIndex': cIndex >= 0 ? cIndex : 0,
+      });
+    }
+    _userAnswers = List.filled(_questions.length, null);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -150,6 +114,14 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
   }
 
   Widget _buildQuizContent() {
+    if (_questions.isEmpty) {
+      return const Center(
+        child: Text(
+          'No questions available for this quiz.',
+          style: TextStyle(fontSize: 16, color: Colors.black54),
+        ),
+      );
+    }
     final int questionNum = _currentQuestionIndex + 1;
     final Map<String, dynamic> qData = _questions[_currentQuestionIndex];
     final String questionText = qData['question'];
@@ -172,7 +144,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
         Align(
           alignment: Alignment.centerRight,
           child: Text(
-            '$questionNum/10',
+            '$questionNum/${_questions.length}',
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -212,8 +184,13 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
                   backgroundColor: Colors.grey[200],
                   foregroundColor: Colors.black87,
                   elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 onPressed: () {
                   setState(() {
@@ -229,7 +206,10 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF0A5C36),
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 14,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -237,17 +217,20 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
               onPressed: () {
                 if (!_isReviewing && _selectedOptionIndex == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please select an option first!')),
+                    const SnackBar(
+                      content: Text('Please select an option first!'),
+                    ),
                   );
                   return;
                 }
 
                 if (_isReviewing) {
                   // Review flow
-                  if (_currentQuestionIndex < 9) {
+                  if (_currentQuestionIndex < _questions.length - 1) {
                     setState(() {
                       _currentQuestionIndex++;
-                      _selectedOptionIndex = _userAnswers[_currentQuestionIndex];
+                      _selectedOptionIndex =
+                          _userAnswers[_currentQuestionIndex];
                     });
                   } else {
                     setState(() {
@@ -262,7 +245,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
                     _score++;
                   }
 
-                  if (_currentQuestionIndex < 9) {
+                  if (_currentQuestionIndex < _questions.length - 1) {
                     setState(() {
                       _currentQuestionIndex++;
                       _selectedOptionIndex = null;
@@ -275,7 +258,9 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
                 }
               },
               child: Text(
-                _currentQuestionIndex == 9 ? (_isReviewing ? 'Finish' : 'Submit') : 'Next',
+                _currentQuestionIndex == _questions.length - 1
+                    ? (_isReviewing ? 'Finish' : 'Submit')
+                    : 'Next',
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -321,9 +306,10 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
 
     // Special match for Screenshot 3 right where 'Manager' is highlighted red
     // Only if reviewing, and user answered incorrectly
-    final bool isManagerIncorrectMatch = _isReviewing && 
-        _currentQuestionIndex == 0 && 
-        index == 0 && 
+    final bool isManagerIncorrectMatch =
+        _isReviewing &&
+        _currentQuestionIndex == 0 &&
+        index == 0 &&
         _userAnswers[0] == 0; // manager selected but incorrect
 
     if (isManagerIncorrectMatch) {
@@ -372,7 +358,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            '$_score/10',
+            '$_score/${_questions.length}',
             style: const TextStyle(
               fontSize: 72,
               fontWeight: FontWeight.w900,
@@ -418,7 +404,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text(
-              'Back to Assignments',
+              'Back to Modules',
               style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
             ),
           ),

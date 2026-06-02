@@ -156,15 +156,6 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Class Code: ${getClassCode(sub.id)}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.black87,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
               ],
             ),
             content: Container(

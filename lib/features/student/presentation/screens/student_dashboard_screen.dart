@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
 import '../../data/repositories/student_repository.dart';
-import '../../domain/models/student_subject.dart';
 import '../widgets/student_floating_nav_bar.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
@@ -16,27 +17,19 @@ class StudentDashboardScreen extends StatefulWidget {
 class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   final StudentRepository _repo = const StudentRepository();
   bool _loading = true;
-  List<StudentSubject> _subjects = [];
   Map<String, dynamic>? _studentProfile;
 
   // Selected date for calendar
   DateTime _calendarDate = DateTime.now();
-  final List<int> _eventDays = [9, 13];
   DateTime? _selectedDate = DateTime.now();
+
+  // Real calendar events from backend: date -> list of {title, type}
+  Map<DateTime, List<Map<String, String>>> _calendarEvents = {};
 
   // Key format: "yyyy-MM-dd" -> List of reminder maps
   Map<String, List<Map<String, String>>>? __customReminders;
   Map<String, List<Map<String, String>>> get _customReminders {
-    final todayKey = '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}';
-    __customReminders ??= {
-      todayKey: [
-        {
-          'title': 'Study for Ethics Quiz',
-          'time': '8:00 PM',
-          'description': 'Review chapters 1-3 on ethical frameworks.',
-        }
-      ]
-    };
+    __customReminders ??= {};
     return __customReminders!;
   }
 
@@ -51,16 +44,16 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               title: Row(
                 children: [
                   const Icon(Icons.alarm_add_rounded, color: Color(0xFF0A5C36)),
                   const SizedBox(width: 8),
                   const Text(
                     'Add Reminder',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -79,8 +72,13 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       decoration: InputDecoration(
                         labelText: 'Reminder Title',
                         labelStyle: const TextStyle(fontSize: 14),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -89,15 +87,23 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       decoration: InputDecoration(
                         labelText: 'Description (Optional)',
                         labelStyle: const TextStyle(fontSize: 14),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Select Time:', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const Text(
+                          'Select Time:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                         TextButton.icon(
                           icon: const Icon(Icons.access_time, size: 18),
                           label: Text(selectedTime.format(context)),
@@ -121,18 +127,24 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0A5C36),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   onPressed: () {
                     if (titleController.text.trim().isEmpty) return;
-                    
-                    final dateKey = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-                    
+
+                    final dateKey =
+                        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
                     setState(() {
                       if (!_customReminders.containsKey(dateKey)) {
                         _customReminders[dateKey] = [];
@@ -143,10 +155,13 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                         'description': descController.text.trim(),
                       });
                     });
-                    
+
                     Navigator.pop(context);
                   },
-                  child: const Text('Save', style: TextStyle(color: Colors.white)),
+                  child: const Text(
+                    'Save',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
             );
@@ -155,7 +170,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       },
     );
   }
-
 
   @override
   void initState() {
@@ -167,16 +181,26 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     setState(() => _loading = true);
     try {
       final profile = await _repo.fetchStudentProfile();
-      final subjects = await _repo.fetchEnrolledSubjects();
+      final events = await _repo.fetchCalendarEvents();
       if (!mounted) return;
       setState(() {
         _studentProfile = profile;
-        _subjects = subjects;
+        _calendarEvents = events;
         _loading = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
+    }
+  }
+
+  String _formatDateTime(String? dt) {
+    if (dt == null) return 'TBA';
+    try {
+      final date = DateTime.parse(dt).toLocal();
+      return '${date.month}/${date.day}/${date.year} at ${date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour)}:${date.minute.toString().padLeft(2, '0')} ${date.hour >= 12 ? 'PM' : 'AM'}';
+    } catch (_) {
+      return 'TBA';
     }
   }
 
@@ -254,38 +278,53 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                 children: [
-
                   // Announcement Section
                   _buildSectionTitle('Announcement'),
                   const SizedBox(height: 10),
-                  ...context.watch<AppState>().announcements.map((ann) => _buildAnnouncementCard(ann)),
+                  if (context.watch<AppState>().announcements.isEmpty)
+                    const Text(
+                      'No announcements yet.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ...context.watch<AppState>().announcements.map(
+                    (ann) => _buildAnnouncementCard(ann),
+                  ),
 
                   const SizedBox(height: 24),
                   // Upcoming Events & Classes Section
                   _buildSectionTitle('Upcoming Events & Classes'),
                   const SizedBox(height: 10),
-                  _buildEventCard(
-                    icon: Icons.videocam_rounded,
-                    title: 'Ethics',
-                    subtitle: 'Monday 3pm - 7pm',
-                  ),
-                  _buildEventCard(
-                    icon: Icons.school_rounded,
-                    title: 'Ethics',
-                    subtitle: 'Monday 3pm - 7pm',
+                  if (context.watch<AppState>().meetings.isEmpty)
+                    const Text(
+                      'No upcoming events.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ...context.watch<AppState>().meetings.map(
+                    (meet) => _buildEventCard(
+                      icon: Icons.videocam_rounded,
+                      title: meet['title'] ?? 'Meeting',
+                      subtitle: _formatDateTime(meet['start_time']),
+                    ),
                   ),
 
                   const SizedBox(height: 24),
                   // Course List Section
                   _buildSectionTitle('Course List'),
                   const SizedBox(height: 10),
-                  _loading
-                      ? const Center(child: CircularProgressIndicator())
-                      : _subjects.isEmpty
-                          ? const Center(child: Text('No courses found.'))
-                          : Column(
-                              children: _subjects.map((sub) => _buildCourseCard(sub)).toList(),
-                            ),
+                  (() {
+                    final studentSubjects = context
+                        .watch<AppState>()
+                        .studentSubjects;
+                    return _loading && studentSubjects.isEmpty
+                        ? const Center(child: CircularProgressIndicator())
+                        : studentSubjects.isEmpty
+                        ? const Center(child: Text('No courses found.'))
+                        : Column(
+                            children: studentSubjects
+                                .map((sub) => _buildCourseCard(sub))
+                                .toList(),
+                          );
+                  })(),
 
                   const SizedBox(height: 24),
                   // Calendar Widget
@@ -300,8 +339,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       ),
     );
   }
-
-
 
   Widget _buildSectionTitle(String title) {
     return Text(
@@ -348,10 +385,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       ann['date']!.split(' ').length > 1
                           ? ann['date']!.split(' ')[1]
                           : '',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey,
-                      ),
+                      style: const TextStyle(fontSize: 11, color: Colors.grey),
                     ),
                   ],
                 ),
@@ -397,7 +431,11 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     );
   }
 
-  Widget _buildEventCard({required IconData icon, required String title, required String subtitle}) {
+  Widget _buildEventCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 10),
@@ -433,10 +471,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.black54,
-                    ),
+                    style: const TextStyle(fontSize: 12, color: Colors.black54),
                   ),
                 ],
               ),
@@ -447,7 +482,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     );
   }
 
-  Widget _buildCourseCard(StudentSubject sub) {
+  Widget _buildCourseCard(Map<String, dynamic> sub) {
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 10),
@@ -455,43 +490,53 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         borderRadius: BorderRadius.circular(12),
         side: const BorderSide(color: Color(0xFFEEEEEE)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0A5C36).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          context.pushNamed(AppRoutes.studentModules);
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0A5C36).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.book_rounded,
+                  color: const Color(0xFF0A5C36),
+                  size: 24,
+                ),
               ),
-              child: const Icon(Icons.book_rounded, color: const Color(0xFF0A5C36), size: 24),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    sub.name,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      sub['subject_name'] ?? 'Unknown Subject',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    sub.professorName,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.black54,
+                    const SizedBox(height: 4),
+                    Text(
+                      sub['course_code'] ?? 'Unknown Course',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black54,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -503,16 +548,33 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     final String yearString = _calendarDate.year.toString();
 
     // Get number of days in month
-    final int daysInMonth = DateTime(_calendarDate.year, _calendarDate.month + 1, 0).day;
+    final int daysInMonth = DateTime(
+      _calendarDate.year,
+      _calendarDate.month + 1,
+      0,
+    ).day;
     // Get day of the week for first day of month (1 = Monday, 7 = Sunday)
-    final int firstWeekday = DateTime(_calendarDate.year, _calendarDate.month, 1).weekday;
-    final int offset = firstWeekday == 7 ? 0 : firstWeekday; // Adjust so Sunday is 0
+    final int firstWeekday = DateTime(
+      _calendarDate.year,
+      _calendarDate.month,
+      1,
+    ).weekday;
+    final int offset = firstWeekday == 7
+        ? 0
+        : firstWeekday; // Adjust so Sunday is 0
 
-    // Get event days dynamically from assignments plus mock event days plus custom reminders
+    // Get event days from real backend data + custom reminders
     final Set<int> dynamicEventDays = {};
-    if (_calendarDate.month == DateTime.now().month && _calendarDate.year == DateTime.now().year) {
-      dynamicEventDays.addAll(_eventDays);
-    }
+
+    // Add days from real backend events (assignments + quizzes)
+    _calendarEvents.forEach((date, events) {
+      if (date.year == _calendarDate.year &&
+          date.month == _calendarDate.month) {
+        dynamicEventDays.add(date.day);
+      }
+    });
+
+    // Add days from custom reminders
     _customReminders.forEach((dateKey, reminders) {
       if (reminders.isNotEmpty) {
         final parts = dateKey.split('-');
@@ -520,7 +582,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           final yr = int.tryParse(parts[0]);
           final mo = int.tryParse(parts[1]);
           final dy = int.tryParse(parts[2]);
-          if (yr == _calendarDate.year && mo == _calendarDate.month && dy != null) {
+          if (yr == _calendarDate.year &&
+              mo == _calendarDate.month &&
+              dy != null) {
             dynamicEventDays.add(dy);
           }
         }
@@ -550,10 +614,18 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.chevron_left_rounded, color: Colors.black87, size: 24),
+                  icon: const Icon(
+                    Icons.chevron_left_rounded,
+                    color: Colors.black87,
+                    size: 24,
+                  ),
                   onPressed: () {
                     setState(() {
-                      _calendarDate = DateTime(_calendarDate.year, _calendarDate.month - 1, 1);
+                      _calendarDate = DateTime(
+                        _calendarDate.year,
+                        _calendarDate.month - 1,
+                        1,
+                      );
                     });
                   },
                 ),
@@ -564,13 +636,27 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       initialValue: _calendarDate.month,
                       onSelected: (int selectedMonth) {
                         setState(() {
-                          _calendarDate = DateTime(_calendarDate.year, selectedMonth, 1);
+                          _calendarDate = DateTime(
+                            _calendarDate.year,
+                            selectedMonth,
+                            1,
+                          );
                         });
                       },
                       itemBuilder: (BuildContext context) {
                         const monthsList = [
-                          'January', 'February', 'March', 'April', 'May', 'June',
-                          'July', 'August', 'September', 'October', 'November', 'December'
+                          'January',
+                          'February',
+                          'March',
+                          'April',
+                          'May',
+                          'June',
+                          'July',
+                          'August',
+                          'September',
+                          'October',
+                          'November',
+                          'December',
                         ];
                         return List.generate(12, (index) {
                           return PopupMenuItem<int>(
@@ -580,7 +666,10 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                         });
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF5F5F7),
                           borderRadius: BorderRadius.circular(12),
@@ -589,10 +678,18 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                           children: [
                             Text(
                               monthName,
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black87,
+                              ),
                             ),
                             const SizedBox(width: 4),
-                            const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Colors.black54),
+                            const Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              size: 18,
+                              color: Colors.black54,
+                            ),
                           ],
                         ),
                       ),
@@ -603,7 +700,11 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       initialValue: _calendarDate.year,
                       onSelected: (int selectedYear) {
                         setState(() {
-                          _calendarDate = DateTime(selectedYear, _calendarDate.month, 1);
+                          _calendarDate = DateTime(
+                            selectedYear,
+                            _calendarDate.month,
+                            1,
+                          );
                         });
                       },
                       itemBuilder: (BuildContext context) {
@@ -617,7 +718,10 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                         });
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF5F5F7),
                           borderRadius: BorderRadius.circular(12),
@@ -626,10 +730,18 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                           children: [
                             Text(
                               yearString,
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black87,
+                              ),
                             ),
                             const SizedBox(width: 4),
-                            const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Colors.black54),
+                            const Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              size: 18,
+                              color: Colors.black54,
+                            ),
                           ],
                         ),
                       ),
@@ -637,10 +749,18 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   ],
                 ),
                 IconButton(
-                  icon: const Icon(Icons.chevron_right_rounded, color: Colors.black87, size: 24),
+                  icon: const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.black87,
+                    size: 24,
+                  ),
                   onPressed: () {
                     setState(() {
-                      _calendarDate = DateTime(_calendarDate.year, _calendarDate.month + 1, 1);
+                      _calendarDate = DateTime(
+                        _calendarDate.year,
+                        _calendarDate.month + 1,
+                        1,
+                      );
                     });
                   },
                 ),
@@ -675,13 +795,15 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   return const SizedBox.shrink();
                 }
 
-                final bool isSelected = _selectedDate != null &&
+                final bool isSelected =
+                    _selectedDate != null &&
                     _selectedDate!.year == _calendarDate.year &&
                     _selectedDate!.month == _calendarDate.month &&
                     _selectedDate!.day == dayNumber;
 
                 final bool isEvent = dynamicEventDays.contains(dayNumber);
-                final bool isToday = now.year == _calendarDate.year &&
+                final bool isToday =
+                    now.year == _calendarDate.year &&
                     now.month == _calendarDate.month &&
                     now.day == dayNumber;
 
@@ -691,7 +813,11 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       if (isSelected) {
                         _selectedDate = null;
                       } else {
-                        _selectedDate = DateTime(_calendarDate.year, _calendarDate.month, dayNumber);
+                        _selectedDate = DateTime(
+                          _calendarDate.year,
+                          _calendarDate.month,
+                          dayNumber,
+                        );
                       }
                     });
                   },
@@ -701,19 +827,24 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       color: isSelected
                           ? const Color(0xFF0A5C36)
                           : isEvent
-                              ? const Color(0xFF0A5C36).withOpacity(0.08)
-                              : Colors.transparent,
+                          ? const Color(0xFF0A5C36).withOpacity(0.08)
+                          : Colors.transparent,
                       shape: BoxShape.circle,
                       border: isToday && !isSelected
-                          ? Border.all(color: const Color(0xFF0A5C36), width: 1.5)
+                          ? Border.all(
+                              color: const Color(0xFF0A5C36),
+                              width: 1.5,
+                            )
                           : null,
                       boxShadow: isSelected
                           ? [
                               BoxShadow(
-                                color: const Color(0xFF0A5C36).withOpacity(0.25),
+                                color: const Color(
+                                  0xFF0A5C36,
+                                ).withOpacity(0.25),
                                 blurRadius: 8,
                                 offset: const Offset(0, 4),
-                              )
+                              ),
                             ]
                           : null,
                     ),
@@ -726,9 +857,11 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                             color: isSelected
                                 ? Colors.white
                                 : isEvent
-                                    ? const Color(0xFF0A5C36)
-                                    : Colors.black87,
-                            fontWeight: (isSelected || isEvent || isToday) ? FontWeight.bold : FontWeight.normal,
+                                ? const Color(0xFF0A5C36)
+                                : Colors.black87,
+                            fontWeight: (isSelected || isEvent || isToday)
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                             fontSize: 13,
                           ),
                         ),
@@ -738,7 +871,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                             width: 4,
                             height: 4,
                             decoration: BoxDecoration(
-                              color: isSelected ? Colors.white : const Color(0xFF0A5C36),
+                              color: isSelected
+                                  ? Colors.white
+                                  : const Color(0xFF0A5C36),
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -763,40 +898,24 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   Widget _buildSelectedDateEvents() {
     if (_selectedDate == null) return const SizedBox.shrink();
 
-    final dateStr = '${_getMonthName(_selectedDate!.month)} ${_selectedDate!.day}, ${_selectedDate!.year}';
-    final dateKey = '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
-    
-    // Check mock events
-    final List<Map<String, String>> mockEvents = [];
-    if (_selectedDate!.year == 2025 && _selectedDate!.month == 9) {
-      if (_selectedDate!.day == 9) {
-        mockEvents.add({
-          'title': 'Ethics Online Lecture & Discussion',
-          'time': '3:00 PM - 7:00 PM',
-          'description': 'Ethics lecture will be posted. Class is requested to view the lecture material.',
-        });
-        mockEvents.add({
-          'title': 'Capstone Abstract Drafting',
-          'time': 'Due by 11:59 PM',
-          'description': 'Draft your project abstract according to the guidelines.',
-        });
-      } else if (_selectedDate!.day == 13) {
-        mockEvents.add({
-          'title': 'Ethics Homework Submission',
-          'time': 'Due by 5:00 PM',
-          'description': 'Submit your assignment on ethical case studies via the modules tab.',
-        });
-        mockEvents.add({
-          'title': 'Capstone Group Meeting',
-          'time': '6:00 PM - 8:00 PM',
-          'description': 'Sync with team members on abstract edits.',
-        });
-      }
-    }
+    final dateStr =
+        '${_getMonthName(_selectedDate!.month)} ${_selectedDate!.day}, ${_selectedDate!.year}';
+    final dateKey =
+        '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
 
+    // Real events from backend
+    final selectedDay = DateTime(
+      _selectedDate!.year,
+      _selectedDate!.month,
+      _selectedDate!.day,
+    );
+    final List<Map<String, String>> backendEvents =
+        _calendarEvents[selectedDay] ?? [];
+
+    // Custom reminders
     final List<Map<String, String>> reminders = _customReminders[dateKey] ?? [];
 
-    final hasContent = mockEvents.isNotEmpty || reminders.isNotEmpty;
+    final hasContent = backendEvents.isNotEmpty || reminders.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -815,7 +934,11 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.alarm_add_rounded, color: Color(0xFF0A5C36), size: 22),
+              icon: const Icon(
+                Icons.alarm_add_rounded,
+                color: Color(0xFF0A5C36),
+                size: 22,
+              ),
               tooltip: 'Add Reminder',
               onPressed: () => _showAddReminderDialog(_selectedDate!),
             ),
@@ -841,7 +964,59 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             ),
           )
         else ...[
-          // Render custom reminders
+          // Backend events (assignments & quizzes)
+          ...backendEvents.map((evt) {
+            final isQuiz = evt['type'] == 'quiz';
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              color: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                  color: isQuiz
+                      ? Colors.blue.withOpacity(0.3)
+                      : Colors.orange.withOpacity(0.3),
+                ),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isQuiz
+                        ? Colors.blue.withOpacity(0.1)
+                        : Colors.orange.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isQuiz ? Icons.quiz_rounded : Icons.assignment_rounded,
+                    color: isQuiz ? Colors.blue : Colors.orange,
+                    size: 20,
+                  ),
+                ),
+                title: Text(
+                  evt['title'] ?? '',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                subtitle: Text(
+                  isQuiz ? 'Quiz Deadline' : 'Assignment Deadline',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isQuiz ? Colors.blue : Colors.orange,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            );
+          }),
+          // Custom reminders
           ...reminders.asMap().entries.map((entry) {
             final idx = entry.key;
             final rem = entry.value;
@@ -854,87 +1029,60 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 side: BorderSide(color: Colors.amber.withOpacity(0.3)),
               ),
               child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: Colors.amber.withOpacity(0.2),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.alarm_on_rounded, color: Colors.amber, size: 20),
+                  child: const Icon(
+                    Icons.alarm_on_rounded,
+                    color: Colors.amber,
+                    size: 20,
+                  ),
                 ),
                 title: Text(
                   rem['title']!,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.brown),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.brown,
+                  ),
                 ),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 2),
                     Text(
                       'Time: ${rem['time']!}',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.amber),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.amber,
+                      ),
                     ),
-                    if (rem['description'] != null && rem['description']!.isNotEmpty) ...[
-                      const SizedBox(height: 2),
+                    if (rem['description'] != null &&
+                        rem['description']!.isNotEmpty)
                       Text(
                         rem['description']!,
-                        style: const TextStyle(fontSize: 11, color: Colors.black54),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.black54,
+                        ),
                       ),
-                    ],
                   ],
                 ),
                 trailing: IconButton(
-                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
-                  onPressed: () {
-                    setState(() {
-                      _customReminders[dateKey]!.removeAt(idx);
-                    });
-                  },
-                ),
-              ),
-            );
-          }),
-          // Render mock events
-          ...mockEvents.map((evt) {
-            return Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              color: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.black.withOpacity(0.05)),
-              ),
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0A5C36).withOpacity(0.1),
-                    shape: BoxShape.circle,
+                  icon: const Icon(
+                    Icons.delete_outline_rounded,
+                    color: Colors.redAccent,
+                    size: 20,
                   ),
-                  child: const Icon(Icons.event_available_rounded, color: Color(0xFF0A5C36), size: 20),
-                ),
-                title: Text(
-                  evt['title']!,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 2),
-                    Text(
-                      'Time: ${evt['time']!}',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF0A5C36)),
-                    ),
-                    if (evt['description'] != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        evt['description']!,
-                        style: const TextStyle(fontSize: 11, color: Colors.black54),
-                      ),
-                    ],
-                  ],
+                  onPressed: () =>
+                      setState(() => _customReminders[dateKey]!.removeAt(idx)),
                 ),
               ),
             );
@@ -992,10 +1140,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               ),
               Text(
                 'Posted: ${ann['date']}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                ),
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
               const Divider(height: 24, thickness: 1),
               const SizedBox(height: 8),
@@ -1038,7 +1183,20 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   }
 
   String _getMonthName(int month) {
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
     return months[month - 1];
   }
 }

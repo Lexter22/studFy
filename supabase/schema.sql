@@ -235,7 +235,19 @@ drop policy if exists "student_profiles_select_own_or_admin" on public.student_p
 create policy "student_profiles_select_own_or_admin"
 on public.student_profiles
 for select
-using (public.is_admin() or profile_id = auth.uid());
+using (
+  public.is_admin() 
+  or profile_id = auth.uid()
+  or exists (
+    select 1
+    from public.subject_enrollments se
+    join public.subject_offerings so on se.subject_offering_id = so.id
+    where se.student_profile_id = student_profiles.profile_id
+      and so.professor_profile_id = auth.uid()
+  )
+);
+
+comment on policy "student_profiles_select_own_or_admin" on public.student_profiles is 'Allows admin, students (own), and professors (enrolled students) to view student profiles';
 
 drop policy if exists "student_profiles_write_admin_only" on public.student_profiles;
 create policy "student_profiles_write_admin_only"
@@ -277,7 +289,16 @@ drop policy if exists "subject_enrollments_select_own_or_admin" on public.subjec
 create policy "subject_enrollments_select_own_or_admin"
 on public.subject_enrollments
 for select
-using (public.is_admin() or student_profile_id = auth.uid());
+using (
+  public.is_admin() 
+  or student_profile_id = auth.uid()
+  or exists (
+    select 1
+    from public.subject_offerings so
+    where so.id = subject_enrollments.subject_offering_id
+      and so.professor_profile_id = auth.uid()
+  )
+);
 
 drop policy if exists "subject_enrollments_write_own_or_admin" on public.subject_enrollments;
 create policy "subject_enrollments_write_own_or_admin"
@@ -285,6 +306,9 @@ on public.subject_enrollments
 for all
 using (public.is_admin() or student_profile_id = auth.uid())
 with check (public.is_admin() or student_profile_id = auth.uid());
+
+comment on policy "subject_enrollments_select_own_or_admin" on public.subject_enrollments is 'Allows admin, students (own), and professors (their subjects) to view enrollments';
+comment on policy "subject_enrollments_write_own_or_admin" on public.subject_enrollments is 'Allows admin and students (own) to modify enrollments';
 
 drop policy if exists "requests_select_own_or_admin" on public.requests;
 create policy "requests_select_own_or_admin"
