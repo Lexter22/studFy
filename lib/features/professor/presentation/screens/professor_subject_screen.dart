@@ -448,41 +448,29 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 24),
 
-                        // Questions
+                        // Questions Header
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              children: [
-                                const Text('Questions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87)),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.authPrimary.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    '${questions.length}',
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.authPrimary),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            TextButton.icon(
-                              onPressed: () => setS(() => questions.add({'question': '', 'options': ['', '', '', ''], 'correct_answer': ''})),
-                              icon: const Icon(Icons.add_circle_outline, size: 18),
-                              label: const Text('Add Question', style: TextStyle(fontWeight: FontWeight.bold)),
-                              style: TextButton.styleFrom(
-                                foregroundColor: AppColors.authPrimary,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            const Text('Questions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87)),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.authPrimary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${questions.length}',
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.authPrimary),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
+
+                        // Questions list
                         if (questions.isEmpty)
                           Container(
                             width: double.infinity,
@@ -493,6 +481,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                               border: Border.all(color: Colors.grey.shade200),
                             ),
                             child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(Icons.quiz_outlined, size: 36, color: Colors.grey.shade400),
                                 const SizedBox(height: 8),
@@ -504,29 +493,47 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                             ),
                           )
                         else
-                          ...questions.asMap().entries.map((e) => _QuestionTile(
-                            index: e.key,
-                            data: e.value,
-                            onDelete: () => setS(() => questions.removeAt(e.key)),
-                            onChanged: (updated) => setS(() => questions[e.key] = updated),
-                          )),
+                          Column(
+                            children: questions.asMap().entries.map((e) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _QuestionTile(
+                                index: e.key,
+                                data: e.value,
+                                onDelete: () => setS(() => questions.removeAt(e.key)),
+                                onChanged: (updated) => setS(() => questions[e.key] = updated),
+                              ),
+                            )).toList(),
+                          ),
                       ],
                     ),
                   ),
                 ),
                 const SizedBox(height: 20),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.grey.shade600,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    OutlinedButton.icon(
+                      onPressed: () => setS(() => questions.add({'question': '', 'options': ['', '', '', ''], 'correct_answer': ''})),
+                      icon: const Icon(Icons.add_circle_outline, size: 18),
+                      label: const Text('Add Question', style: TextStyle(fontWeight: FontWeight.bold)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.authPrimary,
+                        side: const BorderSide(color: AppColors.authPrimary, width: 1.5),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       ),
-                      child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
                     ),
+                    Row(
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.grey.shade600,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
+                        ),
                     const SizedBox(width: 12),
                     ElevatedButton(
                       onPressed: () async {
@@ -567,10 +574,12 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                 ),
               ],
             ),
-          ),
+          ],
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 
   void _confirmDeleteQuiz(SubjectQuiz quiz) {
@@ -1824,8 +1833,12 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Module ${i + 1} - ${m.title}',
-                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87)),
+                          Text(
+                            m.title.toLowerCase().startsWith('module')
+                                ? m.title
+                                : 'Module ${i + 1} - ${m.title}',
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87),
+                          ),
                           IconButton(
                             icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
                             padding: EdgeInsets.zero, constraints: const BoxConstraints(),
@@ -2444,7 +2457,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                   ],
                 ),
                 const SizedBox(height: 20),
-                Expanded(
+                Flexible(
                   child: SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2580,71 +2593,82 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 20),
-
-                        // Questions header
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                const Text('Questions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87)),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.authPrimary.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    '${questions.length}',
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.authPrimary),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            TextButton.icon(
-                              onPressed: () => setS(() => questions.add({'question': '', 'options': ['', '', '', ''], 'correct_answer': ''})),
-                              icon: const Icon(Icons.add_circle_outline, size: 18),
-                              label: const Text('Add Question', style: TextStyle(fontWeight: FontWeight.bold)),
-                              style: TextButton.styleFrom(
-                                foregroundColor: AppColors.authPrimary,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        if (questions.isEmpty)
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 24),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey.shade200),
-                            ),
-                            child: Column(
-                              children: [
-                                Icon(Icons.quiz_outlined, size: 36, color: Colors.grey.shade400),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'No questions added yet.',
-                                  style: TextStyle(color: Colors.grey.shade500, fontSize: 13, fontWeight: FontWeight.w500),
-                                ),
-                              ],
-                            ),
-                          )
-                        else
-                          ...questions.asMap().entries.map((e) => _QuestionTile(
-                            index: e.key,
-                            data: e.value,
-                            onDelete: () => setS(() => questions.removeAt(e.key)),
-                            onChanged: (updated) => setS(() => questions[e.key] = updated),
-                          )),
                       ],
                     ),
                   ),
+                ),
+                const SizedBox(height: 20),
+
+                // Sticky/Pinned Questions Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Text('Questions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87)),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.authPrimary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '${questions.length}',
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.authPrimary),
+                          ),
+                        ),
+                      ],
+                    ),
+                    TextButton.icon(
+                      onPressed: () => setS(() => questions.add({'question': '', 'options': ['', '', '', ''], 'correct_answer': ''})),
+                      icon: const Icon(Icons.add_circle_outline, size: 18),
+                      label: const Text('Add Question', style: TextStyle(fontWeight: FontWeight.bold)),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.authPrimary,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Scrollable Questions tiles list
+                Expanded(
+                  child: questions.isEmpty
+                      ? Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 24),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.quiz_outlined, size: 36, color: Colors.grey.shade400),
+                              const SizedBox(height: 8),
+                              Text(
+                                'No questions added yet.',
+                                style: TextStyle(color: Colors.grey.shade500, fontSize: 13, fontWeight: FontWeight.w500),
+                              ),
+                            ],
+                          ),
+                        )
+                      : SingleChildScrollView(
+                          child: Column(
+                            children: questions.asMap().entries.map((e) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _QuestionTile(
+                                index: e.key,
+                                data: e.value,
+                                onDelete: () => setS(() => questions.removeAt(e.key)),
+                                onChanged: (updated) => setS(() => questions[e.key] = updated),
+                              ),
+                            )).toList(),
+                          ),
+                        ),
                 ),
                 const SizedBox(height: 20),
                 Row(

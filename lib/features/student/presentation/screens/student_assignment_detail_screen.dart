@@ -89,10 +89,6 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-                    onPressed: () => Navigator.pop(context),
-                  ),
                   const SizedBox(width: 8),
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -461,6 +457,28 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
                           ),
                         ),
                       ],
+                      const SizedBox(height: 24),
+                      Center(
+                        child: OutlinedButton.icon(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.arrow_back_rounded, size: 18, color: Color(0xFF0A5C36)),
+                          label: const Text(
+                            'Back to To Do\'s',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF0A5C36),
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFF0A5C36), width: 1.5),
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),

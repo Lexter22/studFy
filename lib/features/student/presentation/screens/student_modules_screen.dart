@@ -280,8 +280,10 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Module ${i + 1} - ${m.title}',
+                 Text(
+                  m.title.toLowerCase().startsWith('module')
+                      ? m.title
+                      : 'Module ${i + 1} - ${m.title}',
                   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0A5C36)),
                 ),
                 if (m.description != null && m.description!.isNotEmpty) ...[

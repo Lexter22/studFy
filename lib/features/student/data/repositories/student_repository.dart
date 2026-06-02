@@ -251,4 +251,35 @@ class StudentRepository {
       return {};
     }
   }
+
+  Future<bool> checkQuizSubmission(String quizId) async {
+    final uid = _client.auth.currentUser?.id;
+    if (uid == null) return false;
+    try {
+      final rows = await _client
+          .from('quiz_answers')
+          .select('id')
+          .eq('quiz_id', quizId)
+          .eq('student_profile_id', uid)
+          .limit(1);
+      return (rows as List).isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> submitQuizScore(String quizId, int score) async {
+    final uid = _client.auth.currentUser?.id;
+    if (uid == null) return;
+    try {
+      await _client.from('quiz_answers').insert({
+        'quiz_id': quizId,
+        'student_profile_id': uid,
+        'score': score,
+        'submitted_at': DateTime.now().toUtc().toIso8601String(),
+      });
+    } catch (_) {
+      // Ignore
+    }
+  }
 }

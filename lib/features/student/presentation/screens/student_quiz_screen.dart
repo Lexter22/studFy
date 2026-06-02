@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../data/repositories/student_repository.dart';
 import '../../domain/models/student_subject.dart';
 import '../../../professor/domain/models/professor_subject.dart';
 import '../widgets/student_floating_nav_bar.dart';
@@ -20,6 +21,7 @@ class StudentQuizScreen extends StatefulWidget {
 }
 
 class _StudentQuizScreenState extends State<StudentQuizScreen> {
+  final StudentRepository _repo = const StudentRepository();
   int _currentQuestionIndex = 0;
   int? _selectedOptionIndex;
   int _score = 0;
@@ -61,10 +63,6 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-                    onPressed: () => Navigator.pop(context),
-                  ),
                   const SizedBox(width: 8),
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -105,9 +103,9 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: _showResult && !_isReviewing
-                      ? _buildResultScreen()
-                      : _buildQuizContent(),
+                  child: _isReviewing
+                      ? _buildReviewContent()
+                      : (_showResult ? _buildResultScreen() : _buildQuizContent()),
                 ),
               ],
             ),
@@ -259,6 +257,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
                     setState(() {
                       _showResult = true;
                     });
+                    _repo.submitQuizScore(widget.quiz.id, _score);
                   }
                 }
               },
@@ -275,6 +274,63 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
             ),
           ],
         ),
+        const SizedBox(height: 24),
+        if (!_isReviewing)
+          Center(
+            child: TextButton.icon(
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Exit Quiz?'),
+                    content: const Text('Are you sure you want to exit? Your current progress will not be saved.'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          Navigator.pop(context);
+                        },
+                        child: const Text('Exit', style: TextStyle(color: Colors.red)),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              icon: const Icon(Icons.close_rounded, size: 16, color: Colors.grey),
+              label: const Text(
+                'Exit Quiz',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          )
+        else
+          Center(
+            child: TextButton.icon(
+              onPressed: () {
+                setState(() {
+                  _isReviewing = false;
+                  _showResult = true;
+                });
+              },
+              icon: const Icon(Icons.arrow_back_rounded, size: 16, color: Colors.grey),
+              label: const Text(
+                'Exit Review',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -485,17 +541,17 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
                 height: 50,
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                    side: const BorderSide(color: Color(0xFF0A5C36), width: 1.5),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25),
                     ),
                   ),
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.arrow_back_rounded, size: 18, color: Colors.black54),
+                  icon: const Icon(Icons.arrow_back_rounded, size: 18, color: Color(0xFF0A5C36)),
                   label: const Text(
                     'Back to To Do\'s',
                     style: TextStyle(
-                      color: Colors.black87,
+                      color: Color(0xFF0A5C36),
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
@@ -506,6 +562,183 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildReviewContent() {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Quiz Review',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0A5C36),
+              ),
+            ),
+            Text(
+              'Score: $_score/${_questions.length}',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0A5C36),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        ..._questions.asMap().entries.map((entry) {
+          final int qIndex = entry.key;
+          final Map<String, dynamic> qData = entry.value;
+          final String questionText = qData['question'];
+          final List<String> options = List<String>.from(qData['options']);
+          final int correctIndex = qData['correctIndex'];
+          final int? userAns = _userAnswers[qIndex];
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 24),
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+              border: Border.all(color: Colors.grey.shade100),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Question Header
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0A5C36).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'Q${qIndex + 1}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0A5C36),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        questionText,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                // Options list
+                ...options.asMap().entries.map((optEntry) {
+                  final int optIndex = optEntry.key;
+                  final String optText = optEntry.value;
+
+                  Color cardBgColor = Colors.white;
+                  Color borderColor = const Color(0xFFE0E0E0);
+                  Color textColor = Colors.black87;
+                  IconData? icon;
+                  Color? iconColor;
+
+                  if (optIndex == correctIndex) {
+                    // Correct answer (Green)
+                    cardBgColor = const Color(0xFFE2F0D9);
+                    borderColor = const Color(0xFF0A5C36);
+                    textColor = const Color(0xFF0A5C36);
+                    icon = Icons.check_circle_rounded;
+                    iconColor = const Color(0xFF0A5C36);
+                  } else if (userAns == optIndex) {
+                    // User's wrong answer (Red)
+                    cardBgColor = const Color(0xFFFCE4D6);
+                    borderColor = Colors.redAccent;
+                    textColor = Colors.red;
+                    icon = Icons.cancel_rounded;
+                    iconColor = Colors.red;
+                  }
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    decoration: BoxDecoration(
+                      color: cardBgColor,
+                      border: Border.all(color: borderColor, width: 1.5),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            optText,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: textColor,
+                            ),
+                          ),
+                        ),
+                        if (icon != null) ...[
+                          const SizedBox(width: 8),
+                          Icon(icon, color: iconColor, size: 18),
+                        ],
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ],
+            ),
+          );
+        }).toList(),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0A5C36),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(25),
+              ),
+            ),
+            onPressed: () {
+              setState(() {
+                _isReviewing = false;
+                _showResult = true;
+              });
+            },
+            icon: const Icon(Icons.arrow_back_rounded, size: 18, color: Colors.white),
+            label: const Text(
+              'Back to Results',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 

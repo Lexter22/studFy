@@ -65,7 +65,10 @@ class _StudentTodoScreenState extends State<StudentTodoScreen>
         _subjectAssignments[sub.id] = filtered;
         for (final ass in filtered) {
           bool isSubmitted = false;
-          if (!ass.id.startsWith('quiz_')) {
+          if (ass.id.startsWith('quiz_')) {
+            final realQuizId = ass.id.replaceFirst('quiz_', '');
+            isSubmitted = await _repo.checkQuizSubmission(realQuizId);
+          } else {
             isSubmitted = await _repo.checkSubmission(ass.id);
           }
           _submittedAssignments[ass.id] = isSubmitted;
@@ -313,6 +316,16 @@ class _StudentTodoScreenState extends State<StudentTodoScreen>
         }
       }
     }
+
+    results.sort((a, b) {
+      final ad = (a['assignment'] as SubjectAssignment).deadline;
+      final bd = (b['assignment'] as SubjectAssignment).deadline;
+      if (ad == null && bd == null) return 0;
+      if (ad == null) return 1;
+      if (bd == null) return -1;
+      return ad.compareTo(bd);
+    });
+
     return results;
   }
 
