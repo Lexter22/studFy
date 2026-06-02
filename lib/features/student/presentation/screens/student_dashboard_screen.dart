@@ -336,9 +336,49 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   _buildSectionTitle('Announcement'),
                   const SizedBox(height: 10),
                   if (context.watch<AppState>().announcements.isEmpty)
-                    const Text(
-                      'No announcements yet.',
-                      style: TextStyle(color: Colors.grey),
+                    Card(
+                      elevation: 0,
+                      margin: const EdgeInsets.only(bottom: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: const BorderSide(color: Color(0xFFEEEEEE)),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0A5C36).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.campaign_outlined, color: Color(0xFF0A5C36), size: 24),
+                            ),
+                            const SizedBox(width: 14),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'No announcements yet',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  SizedBox(height: 2),
+                                  Text(
+                                    'Check back later for updates from your professors.',
+                                    style: TextStyle(fontSize: 11, color: Colors.black54),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ...context.watch<AppState>().announcements.map(
                     (ann) => _buildAnnouncementCard(ann),
@@ -349,9 +389,49 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   _buildSectionTitle('Upcoming Events & Classes'),
                   const SizedBox(height: 10),
                   if (context.watch<AppState>().meetings.isEmpty)
-                    const Text(
-                      'No upcoming events.',
-                      style: TextStyle(color: Colors.grey),
+                    Card(
+                      elevation: 0,
+                      margin: const EdgeInsets.only(bottom: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: const BorderSide(color: Color(0xFFEEEEEE)),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0A5C36).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.event_busy_outlined, color: Color(0xFF0A5C36), size: 24),
+                            ),
+                            const SizedBox(width: 14),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'No upcoming events',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  SizedBox(height: 2),
+                                  Text(
+                                    'Any upcoming virtual classes or events will appear here.',
+                                    style: TextStyle(fontSize: 11, color: Colors.black54),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ...context.watch<AppState>().meetings.map(
                     (meet) => _buildEventCard(
@@ -362,8 +442,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   ),
 
                   const SizedBox(height: 24),
-                  // Course List Section
-                  _buildSectionTitle('Course List'),
+                  // My Class Section
+                  _buildSectionTitle('My Class'),
                   const SizedBox(height: 10),
                   (() {
                     final studentSubjects = context
