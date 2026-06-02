@@ -548,94 +548,99 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: const [
-              Icon(Icons.add_rounded, color: AppColors.adminPrimary),
-              SizedBox(width: 8),
-              Text('Add New Subject', style: TextStyle(fontWeight: FontWeight.bold)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          actionsPadding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+          title: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.adminPrimary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.add_rounded, color: AppColors.adminPrimary, size: 28),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Add New Subject',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 20,
+                  color: AppColors.adminPrimary,
+                  letterSpacing: 0.5,
+                ),
+              ),
             ],
           ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
+                const SizedBox(height: 8),
+                _buildModernTextField(
                   controller: subjectNameCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Subject Name',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  ),
+                  labelText: 'Subject Name',
+                  prefixIcon: Icons.book_outlined,
                 ),
                 const SizedBox(height: 12),
-                TextField(
+                _buildModernTextField(
                   controller: courseCodeCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Course Code (e.g. BSIT)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  ),
+                  labelText: 'Course Code (e.g. BSIT)',
+                  prefixIcon: Icons.school_outlined,
                 ),
                 const SizedBox(height: 12),
-                TextField(
+                _buildModernTextField(
                   controller: sectionCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Section (e.g. 2-A)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  ),
+                  labelText: 'Section (e.g. 2-A)',
+                  prefixIcon: Icons.class_outlined,
                 ),
                 const SizedBox(height: 12),
-                TextField(
+                _buildModernTextField(
                   controller: yearLevelCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Year Level (1-4)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  ),
+                  labelText: 'Year Level (1-4)',
+                  prefixIcon: Icons.format_list_numbered_rounded,
                   keyboardType: TextInputType.number,
                 ),
                 const SizedBox(height: 12),
-                TextField(
+                _buildModernTextField(
                   controller: semesterCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Semester (1 or 2)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  ),
+                  labelText: 'Semester (1 or 2)',
+                  prefixIcon: Icons.calendar_today_outlined,
                   keyboardType: TextInputType.number,
                 ),
                 const SizedBox(height: 12),
-                TextField(
+                _buildModernTextField(
                   controller: roomCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Room (Optional)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  ),
+                  labelText: 'Room (Optional)',
+                  prefixIcon: Icons.meeting_room_outlined,
                 ),
                 const SizedBox(height: 12),
-                TextField(
+                _buildModernTextField(
                   controller: scheduleCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Schedule (Optional)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  ),
+                  labelText: 'Schedule (Optional)',
+                  prefixIcon: Icons.schedule_outlined,
                 ),
               ],
             ),
           ),
           actions: [
             TextButton(
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
               onPressed: isLoading ? null : () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.adminPrimary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                elevation: 0,
               ),
               onPressed: isLoading
                   ? null
@@ -673,9 +678,37 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                     },
               child: isLoading
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('Create', style: TextStyle(color: Colors.white)),
+                  : const Text('Create', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernTextField({
+    required TextEditingController controller,
+    required String labelText,
+    required IconData prefixIcon,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: labelText,
+        labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+        prefixIcon: Icon(prefixIcon, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+        filled: true,
+        fillColor: const Color(0xFFF5F6F9),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.adminPrimary, width: 1.5),
         ),
       ),
     );

@@ -5,6 +5,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/state/app_state.dart';
 import '../../data/repositories/professor_repository.dart';
 import '../../domain/models/professor_subject.dart';
+import '../../../../core/widgets/app_dialog.dart';
 import '../widgets/professor_floating_nav_bar.dart';
 import 'professor_subject_screen.dart';
 import 'assignment_detail_screen.dart';
@@ -53,16 +54,62 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: Row(
+            Widget buildDialogField({
+              required TextEditingController controller,
+              required String label,
+              required String hint,
+              required IconData prefixIcon,
+            }) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.alarm_add_rounded, color: AppColors.authPrimary),
-                  const SizedBox(width: 8),
-                  const Text(
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: controller,
+                    decoration: InputDecoration(
+                      hintText: hint,
+                      hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                      prefixIcon: Icon(prefixIcon, color: AppColors.authPrimary, size: 18),
+                      filled: true,
+                      fillColor: const Color(0xFFF5F6F9),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.authPrimary, width: 1.5),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              title: Row(
+                children: const [
+                  Icon(Icons.alarm_add_rounded, color: AppColors.authPrimary),
+                  SizedBox(width: 8),
+                  Text(
                     'Add Reminder',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
+                      color: AppColors.authPrimary,
                     ),
                   ),
                 ],
@@ -74,37 +121,32 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                   children: [
                     Text(
                       'For: ${_getMonthName(date.month)} ${date.day}, ${date.year}',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 13, fontWeight: FontWeight.w500),
                     ),
                     const SizedBox(height: 16),
-                    TextField(
+                    buildDialogField(
                       controller: titleController,
-                      decoration: InputDecoration(
-                        labelText: 'Reminder Title',
-                        labelStyle: const TextStyle(fontSize: 14),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: descController,
-                      decoration: InputDecoration(
-                        labelText: 'Description (Optional)',
-                        labelStyle: const TextStyle(fontSize: 14),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      ),
+                      label: 'Reminder Title',
+                      hint: 'e.g., Prepare Lecture Notes',
+                      prefixIcon: Icons.title_rounded,
                     ),
                     const SizedBox(height: 16),
+                    buildDialogField(
+                      controller: descController,
+                      label: 'Description',
+                      hint: 'e.g., Read chapter 4 before class (optional)',
+                      prefixIcon: Icons.description_outlined,
+                    ),
+                    const SizedBox(height: 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Select Time:', style: TextStyle(fontWeight: FontWeight.bold)),
-                        TextButton.icon(
-                          icon: const Icon(Icons.access_time, size: 18),
-                          label: Text(selectedTime.format(context)),
-                          onPressed: () async {
+                        const Text(
+                          'Select Time:',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                        ),
+                        InkWell(
+                          onTap: () async {
                             final TimeOfDay? time = await showTimePicker(
                               context: context,
                               initialTime: selectedTime,
@@ -115,6 +157,29 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                               });
                             }
                           },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF5F6F9),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.access_time_rounded, size: 16, color: AppColors.authPrimary),
+                                const SizedBox(width: 8),
+                                Text(
+                                  selectedTime.format(context),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -124,18 +189,29 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey.shade600,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.authPrimary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
                   ),
                   onPressed: () {
-                    if (titleController.text.trim().isEmpty) return;
-                    
+                    if (titleController.text.trim().isEmpty) {
+                      AppDialog.result(context, type: DialogType.error, message: 'Please enter a reminder title.');
+                      return;
+                    }
+
                     final dateKey = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-                    
+
                     setState(() {
                       if (!_customReminders.containsKey(dateKey)) {
                         _customReminders[dateKey] = [];
@@ -146,10 +222,10 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                         'description': descController.text.trim(),
                       });
                     });
-                    
+
                     Navigator.pop(context);
                   },
-                  child: const Text('Save', style: TextStyle(color: Colors.white)),
+                  child: const Text('Save', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ],
             );

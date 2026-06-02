@@ -605,15 +605,15 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (_isEditing) ...[
-                      _buildEditField('Subject Name', _subjectNameCtrl),
-                      const SizedBox(height: 8),
-                      _buildEditField('Course & Section (e.g. BSIT 1-1)', _courseSectionCtrl),
-                      const SizedBox(height: 8),
+                      _buildEditField('Subject Name', _subjectNameCtrl, Icons.book_outlined),
+                      const SizedBox(height: 12),
+                      _buildEditField('Course & Section (e.g. BSIT 1-1)', _courseSectionCtrl, Icons.school_outlined),
+                      const SizedBox(height: 12),
                       Row(
                         children: [
-                          Expanded(child: _buildEditField('Schedule', _scheduleCtrl)),
-                          const SizedBox(width: 8),
-                          Expanded(child: _buildEditField('Room', _roomCtrl)),
+                          Expanded(child: _buildEditField('Schedule', _scheduleCtrl, Icons.schedule_outlined)),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildEditField('Room', _roomCtrl, Icons.meeting_room_outlined)),
                         ],
                       ),
                     ] else ...[
@@ -749,14 +749,24 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
     );
   }
 
-  Widget _buildEditField(String label, TextEditingController controller) {
+  Widget _buildEditField(String label, TextEditingController controller, IconData icon) {
     return TextField(
       controller: controller,
       decoration: InputDecoration(
         labelText: label,
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+        prefixIcon: Icon(icon, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+        filled: true,
+        fillColor: const Color(0xFFF5F6F9),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.adminPrimary, width: 1.5),
+        ),
       ),
       style: const TextStyle(fontSize: 14),
     );
@@ -765,11 +775,11 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
   Widget _buildActionButton(String label, Color color, IconData icon, VoidCallback onTap) {
     return ElevatedButton.icon(
       onPressed: onTap,
-      icon: Icon(icon, size: 16, color: Colors.white),
+      icon: Icon(icon, size: 15, color: Colors.white),
       label: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         elevation: 0,
       ),

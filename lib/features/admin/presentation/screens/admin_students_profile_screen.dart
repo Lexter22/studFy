@@ -351,11 +351,11 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (_isEditing) ...[
-                      _buildEditField('Full Name', _nameController),
-                      const SizedBox(height: 8),
-                      _buildEditField('Course (e.g. BSIT)', _courseController),
-                      const SizedBox(height: 8),
-                      _buildEditField('Year & Section (e.g. 1-1)', _yearSectionController),
+                      _buildEditField('Full Name', _nameController, Icons.person_outline_rounded),
+                      const SizedBox(height: 12),
+                      _buildEditField('Course (e.g. BSIT)', _courseController, Icons.school_outlined),
+                      const SizedBox(height: 12),
+                      _buildEditField('Year & Section (e.g. 1-1)', _yearSectionController, Icons.class_outlined),
                     ] else ...[
                       Text(
                         _currentStudent!.name,
@@ -395,10 +395,9 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
                             child: Text(
                               'Section ${_currentStudent!.yearSection}',
                               style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87),
                             ),
                           ),
                         ],
@@ -431,14 +430,24 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
     );
   }
 
-  Widget _buildEditField(String label, TextEditingController controller) {
+  Widget _buildEditField(String label, TextEditingController controller, IconData icon) {
     return TextField(
       controller: controller,
       decoration: InputDecoration(
         labelText: label,
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+        prefixIcon: Icon(icon, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+        filled: true,
+        fillColor: const Color(0xFFF5F6F9),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.adminPrimary, width: 1.5),
+        ),
       ),
       style: const TextStyle(fontSize: 14),
     );
@@ -447,11 +456,11 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
   Widget _buildActionButton(String label, Color color, IconData icon, VoidCallback onTap) {
     return ElevatedButton.icon(
       onPressed: onTap,
-      icon: Icon(icon, size: 16, color: Colors.white),
+      icon: Icon(icon, size: 15, color: Colors.white),
       label: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         elevation: 0,
       ),

@@ -35,6 +35,9 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
   List<Map<String, String>> _students = [];
   bool _loading = true;
 
+  final ScrollController _meetingsScrollController = ScrollController();
+  final ScrollController _gradesScrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
@@ -44,6 +47,8 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
 
   @override
   void dispose() {
+    _meetingsScrollController.dispose();
+    _gradesScrollController.dispose();
     super.dispose();
   }
 
@@ -268,7 +273,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
     final titleCtrl = TextEditingController();
     final descCtrl = TextEditingController();
     DateTime? deadline;
-    String? selectedModuleId;
+    String? selectedModuleId = _modules.isNotEmpty ? _modules.first.id : null;
     final questions = <Map<String, dynamic>>[];
 
     showDialog(
@@ -353,11 +358,33 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                         const SizedBox(height: 16),
 
                         // Module picker
-                        if (_modules.isNotEmpty) ...[
+                        if (_modules.isEmpty) ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.amber.shade200),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.warning_amber_rounded, color: Colors.amber.shade800),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'No modules found. You must create a module first.',
+                                    style: TextStyle(color: Colors.amber.shade900, fontSize: 13, fontWeight: FontWeight.w500),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ] else ...[
                           DropdownButtonFormField<String>(
                             value: selectedModuleId,
                             decoration: InputDecoration(
-                              labelText: 'Assign to Module (optional)',
+                              labelText: 'Assign to Module',
                               labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
                               filled: true,
                               fillColor: Colors.grey.shade50,
@@ -371,10 +398,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                                 borderSide: const BorderSide(color: AppColors.authPrimary, width: 2),
                               ),
                             ),
-                            items: [
-                              const DropdownMenuItem(value: null, child: Text('None')),
-                              ..._modules.map((m) => DropdownMenuItem(value: m.id, child: Text(m.title))),
-                            ],
+                            items: _modules.map((m) => DropdownMenuItem(value: m.id, child: Text(m.title))).toList(),
                             onChanged: (v) => setS(() => selectedModuleId = v),
                           ),
                           const SizedBox(height: 16),
@@ -506,7 +530,14 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                     const SizedBox(width: 12),
                     ElevatedButton(
                       onPressed: () async {
-                        if (titleCtrl.text.trim().isEmpty) return;
+                        if (titleCtrl.text.trim().isEmpty) {
+                          AppDialog.result(ctx, type: DialogType.error, message: 'Please enter a quiz title.');
+                          return;
+                        }
+                        if (selectedModuleId == null) {
+                          AppDialog.result(ctx, type: DialogType.error, message: 'Please select a module. Assigning to a module is required.');
+                          return;
+                        }
                         Navigator.pop(ctx);
                         try {
                           await _repo.createQuiz(
@@ -560,7 +591,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
     final titleCtrl = TextEditingController();
     final descCtrl = TextEditingController();
     DateTime? deadline;
-    String? selectedModuleId;
+    String? selectedModuleId = _modules.isNotEmpty ? _modules.first.id : null;
     String? fileUrl;
     String? fileName;
     bool uploading = false;
@@ -641,11 +672,34 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  if (_modules.isNotEmpty) ...[
+                  // Module picker
+                  if (_modules.isEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.amber.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.warning_amber_rounded, color: Colors.amber.shade800),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'No modules found. You must create a module first.',
+                              style: TextStyle(color: Colors.amber.shade900, fontSize: 13, fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ] else ...[
                     DropdownButtonFormField<String>(
                       value: selectedModuleId,
                       decoration: InputDecoration(
-                        labelText: 'Assign to Module (optional)',
+                        labelText: 'Assign to Module',
                         labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
                         filled: true,
                         fillColor: Colors.grey.shade50,
@@ -659,10 +713,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                           borderSide: const BorderSide(color: AppColors.authPrimary, width: 2),
                         ),
                       ),
-                      items: [
-                        const DropdownMenuItem(value: null, child: Text('None')),
-                        ..._modules.map((m) => DropdownMenuItem(value: m.id, child: Text(m.title))),
-                      ],
+                      items: _modules.map((m) => DropdownMenuItem(value: m.id, child: Text(m.title))).toList(),
                       onChanged: (v) => setS(() => selectedModuleId = v),
                     ),
                     const SizedBox(height: 16),
@@ -806,7 +857,14 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                       const SizedBox(width: 12),
                       ElevatedButton(
                         onPressed: uploading ? null : () async {
-                          if (titleCtrl.text.trim().isEmpty) return;
+                          if (titleCtrl.text.trim().isEmpty) {
+                            AppDialog.result(ctx, type: DialogType.error, message: 'Please enter an assignment title.');
+                            return;
+                          }
+                          if (selectedModuleId == null) {
+                            AppDialog.result(ctx, type: DialogType.error, message: 'Please select a module. Assigning to a module is required.');
+                            return;
+                          }
                           Navigator.pop(ctx);
                           try {
                             await _repo.createAssignment(
@@ -867,7 +925,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
   void _showAddMaterialDialog() {
     final titleCtrl = TextEditingController();
     final descCtrl = TextEditingController();
-    String? selectedModuleId;
+    String? selectedModuleId = _modules.isNotEmpty ? _modules.first.id : null;
     String? fileUrl;
     String? fileName;
     bool uploading = false;
@@ -948,11 +1006,34 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  if (_modules.isNotEmpty) ...[
+                  // Module picker
+                  if (_modules.isEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.amber.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.warning_amber_rounded, color: Colors.amber.shade800),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'No modules found. You must create a module first.',
+                              style: TextStyle(color: Colors.amber.shade900, fontSize: 13, fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ] else ...[
                     DropdownButtonFormField<String>(
                       value: selectedModuleId,
                       decoration: InputDecoration(
-                        labelText: 'Assign to Module (optional)',
+                        labelText: 'Assign to Module',
                         labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
                         filled: true,
                         fillColor: Colors.grey.shade50,
@@ -966,10 +1047,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                           borderSide: const BorderSide(color: AppColors.authPrimary, width: 2),
                         ),
                       ),
-                      items: [
-                        const DropdownMenuItem(value: null, child: Text('None')),
-                        ..._modules.map((m) => DropdownMenuItem(value: m.id, child: Text(m.title))),
-                      ],
+                      items: _modules.map((m) => DropdownMenuItem(value: m.id, child: Text(m.title))).toList(),
                       onChanged: (v) => setS(() => selectedModuleId = v),
                     ),
                     const SizedBox(height: 20),
@@ -1073,6 +1151,10 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                         onPressed: uploading ? null : () async {
                           if (titleCtrl.text.trim().isEmpty) {
                             AppDialog.result(ctx, type: DialogType.error, message: 'Title is required.');
+                            return;
+                          }
+                          if (selectedModuleId == null) {
+                            AppDialog.result(ctx, type: DialogType.error, message: 'Please select a module. Assigning to a module is required.');
                             return;
                           }
                           if (fileUrl == null) {
@@ -1661,8 +1743,10 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
           ConstrainedBox(
             constraints: const BoxConstraints(maxHeight: 200),
             child: Scrollbar(
+              controller: _meetingsScrollController,
               thumbVisibility: true,
               child: ListView.builder(
+                controller: _meetingsScrollController,
                 shrinkWrap: true,
                 padding: const EdgeInsets.only(right: 8),
                 itemCount: subjectMeetings.length,
@@ -2406,11 +2490,33 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                         const SizedBox(height: 16),
 
                         // Module picker
-                        if (_modules.isNotEmpty) ...[
+                        if (_modules.isEmpty) ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.amber.shade200),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.warning_amber_rounded, color: Colors.amber.shade800),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'No modules found. You must create a module first.',
+                                    style: TextStyle(color: Colors.amber.shade900, fontSize: 13, fontWeight: FontWeight.w500),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ] else ...[
                           DropdownButtonFormField<String>(
                             value: selectedModuleId,
                             decoration: InputDecoration(
-                              labelText: 'Module (optional)',
+                              labelText: 'Module',
                               labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
                               filled: true,
                               fillColor: Colors.grey.shade50,
@@ -2424,10 +2530,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                                 borderSide: const BorderSide(color: AppColors.authPrimary, width: 2),
                               ),
                             ),
-                            items: [
-                              const DropdownMenuItem(value: null, child: Text('None')),
-                              ..._modules.map((m) => DropdownMenuItem(value: m.id, child: Text(m.title))),
-                            ],
+                            items: _modules.map((m) => DropdownMenuItem(value: m.id, child: Text(m.title))).toList(),
                             onChanged: (v) => setS(() => selectedModuleId = v),
                           ),
                           const SizedBox(height: 16),
@@ -2559,7 +2662,14 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                     const SizedBox(width: 12),
                     ElevatedButton(
                       onPressed: () async {
-                        if (titleCtrl.text.trim().isEmpty) return;
+                        if (titleCtrl.text.trim().isEmpty) {
+                          AppDialog.result(ctx, type: DialogType.error, message: 'Please enter a quiz title.');
+                          return;
+                        }
+                        if (selectedModuleId == null) {
+                          AppDialog.result(ctx, type: DialogType.error, message: 'Please select a module. Assigning to a module is required.');
+                          return;
+                        }
                         Navigator.pop(ctx);
                         try {
                           await _repo.updateQuiz(
@@ -2768,8 +2878,10 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
           ConstrainedBox(
             constraints: const BoxConstraints(maxHeight: 120),
             child: Scrollbar(
+              controller: _gradesScrollController,
               thumbVisibility: true,
               child: ListView.builder(
+                controller: _gradesScrollController,
                 shrinkWrap: true,
                 itemCount: _students.length,
                 itemBuilder: (ctx, i) {

@@ -371,11 +371,11 @@ class _ProfessorModulesScreenState extends State<ProfessorModulesScreen> {
                 sub.name,
                 style: const TextStyle(
                   fontWeight: FontWeight.w900,
-                  fontSize: 16,
+                  fontSize: 14,
                   color: Color(0xFF0D47A1),
                 ),
                 textAlign: TextAlign.center,
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 6),

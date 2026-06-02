@@ -534,75 +534,86 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: const [
-              Icon(Icons.person_add_alt_1_rounded, color: AppColors.adminPrimary),
-              SizedBox(width: 8),
-              Text('Add New Instructor', style: TextStyle(fontWeight: FontWeight.bold)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          actionsPadding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+          title: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.adminPrimary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.person_add_alt_1_rounded, color: AppColors.adminPrimary, size: 28),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Add New Instructor',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 20,
+                  color: AppColors.adminPrimary,
+                  letterSpacing: 0.5,
+                ),
+              ),
             ],
           ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
+                const SizedBox(height: 8),
+                _buildModernTextField(
                   controller: emailCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Email Address',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  ),
+                  labelText: 'Email Address',
+                  prefixIcon: Icons.email_outlined,
                   keyboardType: TextInputType.emailAddress,
                 ),
                 const SizedBox(height: 12),
-                TextField(
+                _buildModernTextField(
                   controller: firstNameCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'First Name',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  ),
+                  labelText: 'First Name',
+                  prefixIcon: Icons.person_outline_rounded,
                 ),
                 const SizedBox(height: 12),
-                TextField(
+                _buildModernTextField(
                   controller: lastNameCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Last Name',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  ),
+                  labelText: 'Last Name',
+                  prefixIcon: Icons.person_outline_rounded,
                 ),
                 const SizedBox(height: 12),
-                TextField(
+                _buildModernTextField(
                   controller: deptCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Department (e.g. BSIT)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  ),
+                  labelText: 'Department (e.g. BSIT)',
+                  prefixIcon: Icons.school_outlined,
                 ),
                 const SizedBox(height: 12),
-                TextField(
+                _buildModernTextField(
                   controller: instructorIdCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Instructor ID (Optional)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  ),
+                  labelText: 'Instructor ID (Optional)',
+                  prefixIcon: Icons.badge_outlined,
                 ),
               ],
             ),
           ),
           actions: [
             TextButton(
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
               onPressed: isLoading ? null : () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.adminPrimary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                elevation: 0,
               ),
               onPressed: isLoading
                   ? null
@@ -638,9 +649,37 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
                     },
               child: isLoading
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('Create', style: TextStyle(color: Colors.white)),
+                  : const Text('Create', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernTextField({
+    required TextEditingController controller,
+    required String labelText,
+    required IconData prefixIcon,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: labelText,
+        labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+        prefixIcon: Icon(prefixIcon, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+        filled: true,
+        fillColor: const Color(0xFFF5F6F9),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.adminPrimary, width: 1.5),
         ),
       ),
     );

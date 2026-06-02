@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../domain/models/auth_exception.dart' as app_auth;
 
 import '../../../../core/constants/app_colors.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/widgets/studfy_header.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/services/error_telemetry.dart';
@@ -36,7 +37,29 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     _emailController.addListener(_validateInputs);
     _passwordController.addListener(_validateInputs);
+    _loadSavedCredentials();
   }
+
+  Future<void> _loadSavedCredentials() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final email = prefs.getString('remembered_email') ?? '';
+      final password = prefs.getString('remembered_password') ?? '';
+      final rememberMe = prefs.getBool('remember_me') ?? false;
+
+      if (rememberMe && mounted) {
+        setState(() {
+          _emailController.text = email;
+          _passwordController.text = password;
+          _rememberMe = true;
+          _isButtonEnabled = email.isNotEmpty && password.isNotEmpty;
+        });
+      }
+    } catch (e) {
+      // Ignore
+    }
+  }
+
 
   void _validateInputs() {
     final bool isNotEmpty = _emailController.text.isNotEmpty && _passwordController.text.isNotEmpty;
@@ -64,6 +87,21 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
+
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        if (_rememberMe) {
+          await prefs.setString('remembered_email', _emailController.text.trim());
+          await prefs.setString('remembered_password', _passwordController.text);
+          await prefs.setBool('remember_me', true);
+        } else {
+          await prefs.remove('remembered_email');
+          await prefs.remove('remembered_password');
+          await prefs.setBool('remember_me', false);
+        }
+      } catch (e) {
+        // SharedPreferences error should not block successful login flow
+      }
 
       if (!mounted) return;
 
@@ -148,6 +186,7 @@ Widget build(BuildContext context) {
                             }
                             return null;
                           },
+                          textInputAction: TextInputAction.next,
                         ),
                         const SizedBox(height: 16),
                         _buildTextField(
@@ -158,6 +197,12 @@ Widget build(BuildContext context) {
                             if (value == null || value.isEmpty) return 'Required';
                             if (value.length < 6) return 'Too short';
                             return null;
+                          },
+                          textInputAction: TextInputAction.done,
+                          onFieldSubmitted: (_) {
+                            if (_isButtonEnabled) {
+                              _handleLogin();
+                            }
                           },
                         ),
                         const SizedBox(height: 12),
@@ -296,11 +341,15 @@ Widget build(BuildContext context) {
     required bool isPassword,
     required TextEditingController controller,
     String? Function(String?)? validator,
+    TextInputAction? textInputAction,
+    void Function(String)? onFieldSubmitted,
   }) {
     return TextFormField(
       controller: controller,
       obscureText: isPassword ? _obscurePassword : false,
       validator: validator,
+      textInputAction: textInputAction,
+      onFieldSubmitted: onFieldSubmitted,
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
