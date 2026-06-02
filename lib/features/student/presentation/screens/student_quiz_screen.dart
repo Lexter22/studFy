@@ -59,9 +59,13 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  const SizedBox(width: 8),
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -79,6 +83,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
                       ),
                     ],
                   ),
+                  const Spacer(),
                   Text(
                     widget.subject.name.toUpperCase(),
                     style: const TextStyle(
@@ -351,65 +356,180 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
   }
 
   Widget _buildResultScreen() {
-    // We mock "9/10 Nice Try!" by default, but let's show the actual user score!
-    // To match screenshot 3 exactly, we say "$_score/10" and "Nice Try!"
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            '$_score/${_questions.length}',
-            style: const TextStyle(
-              fontSize: 72,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF0A5C36),
-            ),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'Nice Try!',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF0A5C36),
-            ),
-          ),
-          const SizedBox(height: 32),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0A5C36),
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+    final double percent = _questions.isNotEmpty ? (_score / _questions.length) : 0;
+    final int percentInt = (percent * 100).round();
+    
+    String feedbackMessage;
+    IconData feedbackIcon;
+    Color feedbackColor;
+    
+    if (percent >= 0.8) {
+      feedbackMessage = 'Excellent Job!';
+      feedbackIcon = Icons.emoji_events_rounded;
+      feedbackColor = const Color(0xFF0A5C36);
+    } else if (percent >= 0.5) {
+      feedbackMessage = 'Good Effort!';
+      feedbackIcon = Icons.thumb_up_alt_rounded;
+      feedbackColor = Colors.amber.shade800;
+    } else {
+      feedbackMessage = 'Nice Try!';
+      feedbackIcon = Icons.stars_rounded;
+      feedbackColor = Colors.orange.shade800;
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Center(
+        child: Container(
+          width: double.infinity,
+          constraints: const BoxConstraints(maxWidth: 400),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
               ),
-            ),
-            onPressed: () {
-              setState(() {
-                _isReviewing = true;
-                _currentQuestionIndex = 0;
-                _selectedOptionIndex = _userAnswers[0];
-              });
-            },
-            child: const Text(
-              'Review Quiz',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
+            ],
+            border: Border.all(color: Colors.grey.shade100),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: feedbackColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  feedbackIcon,
+                  color: feedbackColor,
+                  size: 56,
+                ),
               ),
-            ),
+              const SizedBox(height: 24),
+              Text(
+                '$_score/${_questions.length}',
+                style: TextStyle(
+                  fontSize: 56,
+                  fontWeight: FontWeight.w900,
+                  color: feedbackColor,
+                  letterSpacing: -1,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                feedbackMessage,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'You scored $percentInt% on this quiz.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildStatColumn('Total Questions', '${_questions.length}', Colors.blue.shade700),
+                  _buildStatColumn('Correct Answers', '$_score', const Color(0xFF0A5C36)),
+                  _buildStatColumn('Incorrect', '${_questions.length - _score}', Colors.red.shade700),
+                ],
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0A5C36),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isReviewing = true;
+                      _currentQuestionIndex = 0;
+                      _selectedOptionIndex = _userAnswers[0];
+                    });
+                  },
+                  icon: const Icon(Icons.rate_review_rounded, size: 20, color: Colors.white),
+                  label: const Text(
+                    'Review Quiz Answers',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.arrow_back_rounded, size: 18, color: Colors.black54),
+                  label: const Text(
+                    'Back to To Do\'s',
+                    style: TextStyle(
+                      color: Colors.black87,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Back to Modules',
-              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildStatColumn(String label, String val, Color valColor) {
+    return Column(
+      children: [
+        Text(
+          val,
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            color: valColor,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey.shade500,
+          ),
+        ),
+      ],
     );
   }
 }

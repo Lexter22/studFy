@@ -358,46 +358,88 @@ class _StudentTodoScreenState extends State<StudentTodoScreen>
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Icon Container matching Screenshot 2 style (edit/clipboard icon)
+              // Icon Container with subtle color-coding
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.transparent,
+                  color: isMissing
+                      ? Colors.red.shade50
+                      : (ass.id.contains('quiz')
+                          ? Colors.orange.shade50
+                          : const Color(0xFF0A5C36).withOpacity(0.05)),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: isMissing ? Colors.red : const Color(0xFF0A5C36),
-                    width: 2,
+                    color: isMissing
+                        ? Colors.red.shade200
+                        : (ass.id.contains('quiz')
+                            ? Colors.orange.shade300
+                            : const Color(0xFF0A5C36).withOpacity(0.2)),
+                    width: 1.5,
                   ),
                 ),
                 child: Icon(
                   ass.id.contains('quiz')
                       ? Icons.quiz_rounded
-                      : Icons.edit_note_rounded,
-                  color: isMissing ? Colors.red : const Color(0xFF0A5C36),
-                  size: 26,
+                      : Icons.assignment_rounded,
+                  color: isMissing
+                      ? Colors.red
+                      : (ass.id.contains('quiz')
+                          ? Colors.orange.shade800
+                          : const Color(0xFF0A5C36)),
+                  size: 24,
                 ),
               ),
               const SizedBox(width: 16),
 
-              // Title and Subject
+              // Title, Subject, and Badge Tag
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      sub.name,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: isMissing ? Colors.red : const Color(0xFF0A5C36),
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          sub.name,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: isMissing ? Colors.red : Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isMissing
+                                ? Colors.red.shade50
+                                : (ass.id.contains('quiz')
+                                    ? Colors.orange.shade50
+                                    : const Color(0xFF0A5C36).withOpacity(0.1)),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            isMissing
+                                ? 'Missing'
+                                : (ass.id.contains('quiz') ? 'Quiz' : 'Assignment'),
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              color: isMissing
+                                  ? Colors.red.shade700
+                                  : (ass.id.contains('quiz')
+                                      ? Colors.orange.shade800
+                                      : const Color(0xFF0A5C36)),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 4),
                     Text(
                       ass.title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: Colors.black87,
+                        color: Colors.grey.shade700,
                         fontWeight: FontWeight.w500,
                       ),
                     ),

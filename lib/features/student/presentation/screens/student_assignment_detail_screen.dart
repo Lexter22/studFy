@@ -64,6 +64,13 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
     } catch (_) {
       if (mounted) setState(() => _submitting = false);
     }
+  }  String _formatDeadline(DateTime? deadline) {
+    if (deadline == null) return 'No deadline';
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final hour = deadline.hour > 12 ? deadline.hour - 12 : (deadline.hour == 0 ? 12 : deadline.hour);
+    final ampm = deadline.hour >= 12 ? 'PM' : 'AM';
+    final minute = deadline.minute.toString().padLeft(2, '0');
+    return '${months[deadline.month - 1]} ${deadline.day}, ${deadline.year} at $hour:$minute $ampm';
   }
 
   @override
@@ -80,9 +87,13 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  const SizedBox(width: 8),
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -100,6 +111,7 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
                       ),
                     ],
                   ),
+                  const Spacer(),
                   Text(
                     widget.subject.name.toUpperCase(),
                     style: const TextStyle(
@@ -124,125 +136,331 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
                     children: [
-                      // Assignment Title e.g., "Activity 1: PPT"
+                      // Context Row (Course Name & Due Date Badge)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0A5C36).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              widget.subject.courseCode,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF0A5C36),
+                              ),
+                            ),
+                          ),
+                          if (widget.assignment.deadline != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.shade50,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: Colors.amber.shade200),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.alarm_rounded, size: 14, color: Colors.amber.shade800),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _formatDeadline(widget.assignment.deadline),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.amber.shade900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Assignment Title
                       Text(
                         widget.assignment.title,
                         style: const TextStyle(
-                          fontSize: 22,
+                          fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF0A5C36),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
 
-                      // Divider
-                      Container(
-                        height: 1,
-                        color: Colors.grey[200],
+                      // Instructions Section Header
+                      Row(
+                        children: [
+                          const Icon(Icons.subject_rounded, color: Colors.black54, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'INSTRUCTIONS',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade600,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
 
-                      // Instructions text
-                      Text(
-                        widget.assignment.description ?? 'Make a power point presentation about dilemma',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          color: Colors.black87,
-                          height: 1.6,
-                        ),
-                      ),
-                      const SizedBox(height: 48),
-
-                      // File upload card with "Add" and "Submit"
+                      // Instructions card
                       Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: Colors.black12),
-                          borderRadius: BorderRadius.circular(16),
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade200),
                         ),
-                        padding: const EdgeInsets.all(20),
                         child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (_selectedFile != null) ...[
-                              Row(
-                                children: [
-                                  const Icon(Icons.insert_drive_file_rounded, color: Color(0xFF0A5C36), size: 28),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      _selectedFile!,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
-                                    ),
-                                  ),
-                                  if (!_submitted)
-                                    IconButton(
-                                      icon: const Icon(Icons.close, color: Colors.red),
-                                      onPressed: () => setState(() => _selectedFile = null),
-                                    ),
-                                ],
+                            Text(
+                              widget.assignment.description ?? 'No instructions provided.',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.black87,
+                                height: 1.6,
                               ),
-                              const SizedBox(height: 20),
-                            ],
-
-                            // Add Button
-                            if (!_submitted)
-                              SizedBox(
-                                width: double.infinity,
-                                height: 50,
-                                child: OutlinedButton(
-                                  style: OutlinedButton.styleFrom(
-                                    side: const BorderSide(color: Color(0xFF0A5C36), width: 1.5),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(25),
+                            ),
+                            if (widget.assignment.fileUrl != null) ...[
+                              const SizedBox(height: 16),
+                              const Divider(),
+                              const SizedBox(height: 10),
+                              // Teacher attachment file
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.grey.shade200),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.picture_as_pdf_rounded, color: Colors.red, size: 28),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            widget.assignment.fileName ?? 'attachment.pdf',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13,
+                                              color: Colors.black87,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const Text(
+                                            'Reference Material',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
+                                    TextButton.icon(
+                                      onPressed: () {},
+                                      icon: const Icon(Icons.download_rounded, size: 16),
+                                      label: const Text('View', style: TextStyle(fontSize: 12)),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: const Color(0xFF0A5C36),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+
+                      // Submission Section Header
+                      Row(
+                        children: [
+                          const Icon(Icons.upload_file_rounded, color: Colors.black54, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'MY SUBMISSION',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade600,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Submission Container
+                      if (_selectedFile == null && !_submitted)
+                        InkWell(
+                          onTap: () {
+                            setState(() {
+                              _selectedFile = 'presentation.pptx';
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0A5C36).withOpacity(0.02),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: const Color(0xFF0A5C36).withOpacity(0.25),
+                                width: 1.5,
+                                style: BorderStyle.solid,
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF0A5C36).withOpacity(0.08),
+                                    shape: BoxShape.circle,
                                   ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _selectedFile = 'presentation.pptx';
-                                    });
-                                  },
-                                  child: const Text(
-                                    'Add File',
-                                    style: TextStyle(
-                                      color: Color(0xFF0A5C36),
+                                  child: const Icon(
+                                    Icons.cloud_upload_outlined,
+                                    color: Color(0xFF0A5C36),
+                                    size: 32,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                const Text(
+                                  'Upload your submission file',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF0A5C36),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Tap here to browse file (PPTX, PDF, DOCX, ZIP)',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      else ...[
+                        // File card
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey.shade200),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.02),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0A5C36).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(
+                                  Icons.insert_drive_file_rounded,
+                                  color: Color(0xFF0A5C36),
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _selectedFile!,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: Colors.black87,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      _submitted ? 'Submitted successfully' : 'Ready to submit',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: _submitted ? Colors.green.shade700 : Colors.amber.shade700,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (!_submitted)
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                                  onPressed: () => setState(() => _selectedFile = null),
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        // Submit Button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _submitted ? Colors.grey.shade400 : const Color(0xFF0A5C36),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(26),
+                              ),
+                            ),
+                            onPressed: _submitted || _submitting || _selectedFile == null
+                                ? null
+                                : _handleSubmit,
+                            child: _submitting
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                  )
+                                : Text(
+                                    _submitted ? 'Submitted' : 'Submit Assignment',
+                                    style: const TextStyle(
+                                      color: Colors.white,
                                       fontSize: 15,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                ),
-                              ),
-
-                            if (!_submitted) const SizedBox(height: 12),
-
-                            // Submit Button
-                            SizedBox(
-                              width: double.infinity,
-                              height: 50,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: _submitted ? Colors.grey : const Color(0xFF0A5C36),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(25),
-                                  ),
-                                ),
-                                onPressed: _submitted || _submitting || _selectedFile == null
-                                    ? null
-                                    : _handleSubmit,
-                                child: _submitting
-                                    ? const CircularProgressIndicator(color: Colors.white)
-                                    : Text(
-                                        _submitted ? 'Submitted' : 'Submit',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -259,8 +477,6 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
       ),
     );
   }
-
-
 
   Widget _buildSuccessOverlay() {
     return Positioned.fill(
