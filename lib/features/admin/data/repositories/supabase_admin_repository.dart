@@ -524,4 +524,28 @@ class SupabaseAdminRepository {
     final cleanValue = value?.trim() ?? '';
     return cleanValue.isEmpty ? fallback : cleanValue;
   }
+
+  /// Bulk import students via Edge Function.
+  /// [students] is a list of maps with keys: name, email, course, yearSection, studentNumber (optional).
+  /// Returns the full response including summary and per-row results.
+  Future<Map<String, dynamic>> bulkImportStudents(
+    List<Map<String, String>> students,
+  ) async {
+    final response = await _client.functions.invoke(
+      'bulk-import-students',
+      body: {'students': students},
+    );
+
+    if (_functionFailed(response.status, response.data)) {
+      throw app_auth.AuthException(
+        code: 'function-error',
+        message: _functionError(response.data, 'Bulk import failed.'),
+      );
+    }
+
+    if (response.data is Map) {
+      return Map<String, dynamic>.from(response.data as Map);
+    }
+    return {'summary': {'total': 0, 'created': 0, 'skipped': 0, 'errors': 0}, 'results': []};
+  }
 }

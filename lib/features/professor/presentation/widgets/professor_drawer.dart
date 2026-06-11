@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
+import '../../../../core/widgets/app_dialog.dart';
 import '../../../../features/auth/domain/services/auth_service.dart';
 
 class ProfessorDrawer extends StatelessWidget {
@@ -55,12 +56,21 @@ class ProfessorDrawer extends StatelessWidget {
             leading: const Icon(Icons.logout, color: Colors.black54),
             title: const Text('Logout', style: TextStyle(color: Colors.black87)),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            onTap: () async {
+            onTap: () {
               Navigator.pop(context);
-              await const AuthService().signOut();
-              if (!context.mounted) return;
-              context.read<AppState>().logout();
-              context.goNamed(AppRoutes.login);
+              AppDialog.confirm(
+                context,
+                title: 'Logout',
+                message: 'Are you sure you want to logout?',
+                type: DialogType.info,
+                confirmLabel: 'Logout',
+                onConfirm: () async {
+                  await const AuthService().signOut();
+                  if (!context.mounted) return;
+                  context.read<AppState>().logout();
+                  context.goNamed(AppRoutes.login);
+                },
+              );
             },
           ),
           const SizedBox(height: 16),

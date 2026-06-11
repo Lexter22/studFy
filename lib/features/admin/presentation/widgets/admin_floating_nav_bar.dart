@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
+import '../../../../core/widgets/app_dialog.dart';
 import '../../../auth/domain/services/auth_service.dart';
 
 class AdminFloatingNavBar extends StatefulWidget {
@@ -120,13 +121,18 @@ class _AdminFloatingNavBarState extends State<AdminFloatingNavBar> {
   }
 
   Future<void> _handleLogout() async {
-    await _authService.signOut();
-
-    if (!mounted) {
-      return;
-    }
-
-    context.read<AppState>().logout();
-    context.goNamed(AppRoutes.login);
+    AppDialog.confirm(
+      context,
+      title: 'Logout',
+      message: 'Are you sure you want to logout?',
+      type: DialogType.info,
+      confirmLabel: 'Logout',
+      onConfirm: () async {
+        await _authService.signOut();
+        if (!mounted) return;
+        context.read<AppState>().logout();
+        context.goNamed(AppRoutes.login);
+      },
+    );
   }
 }

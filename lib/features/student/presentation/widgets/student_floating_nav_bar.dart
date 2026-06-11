@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
+import '../../../../core/widgets/app_dialog.dart';
 import '../../../auth/domain/services/auth_service.dart';
 
 class StudentFloatingNavBar extends StatefulWidget {
@@ -124,13 +125,18 @@ class _StudentFloatingNavBarState extends State<StudentFloatingNavBar> {
   }
 
   Future<void> _handleLogout() async {
-    await _authService.signOut();
-
-    if (!mounted) {
-      return;
-    }
-
-    context.read<AppState>().logout();
-    context.goNamed(AppRoutes.login);
+    AppDialog.confirm(
+      context,
+      title: 'Logout',
+      message: 'Are you sure you want to logout?',
+      type: DialogType.info,
+      confirmLabel: 'Logout',
+      onConfirm: () async {
+        await _authService.signOut();
+        if (!mounted) return;
+        context.read<AppState>().logout();
+        context.goNamed(AppRoutes.login);
+      },
+    );
   }
 }

@@ -309,6 +309,17 @@ class AppState extends ChangeNotifier {
     enrollmentCodesNotifier.value = const [];
   }
 
+  /// Bulk import students from a list of parsed rows (e.g. from Excel).
+  /// Each map should have: name, email, course, yearSection, studentNumber (optional).
+  /// Returns the summary and per-row results from the Edge Function.
+  Future<Map<String, dynamic>> bulkImportStudents(
+    List<Map<String, String>> students,
+  ) async {
+    final result = await _adminRepository.bulkImportStudents(students);
+    await loadAdminData();
+    return result;
+  }
+
   void login([AppUser? user]) {
     if (_isAuthenticated) {
       _currentUser = user ?? _currentUser;
