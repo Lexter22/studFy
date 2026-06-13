@@ -19,7 +19,12 @@ import '../../features/auth/presentation/screens/account_creation_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/verify_email_screen.dart';
 import '../../features/professor/presentation/screens/professor_dashboard_screen.dart';
+import '../../features/professor/presentation/screens/professor_classes_screen.dart';
+import '../../features/professor/presentation/screens/professor_modules_screen.dart';
+import '../../features/professor/presentation/screens/professor_assignments_screen.dart';
 import '../../features/student/presentation/screens/student_dashboard_screen.dart';
+import '../../features/student/presentation/screens/student_todo_screen.dart';
+import '../../features/student/presentation/screens/student_modules_screen.dart';
 import '../state/app_state.dart';
 
 abstract class AppRoutes {
@@ -38,7 +43,12 @@ abstract class AppRoutes {
   static const adminSubjects = 'admin-subjects';
   static const adminSubjectsProfile = 'admin-subjects-profile';
   static const professorDashboard = 'professor-dashboard';
+  static const professorClasses = 'professor-classes';
+  static const professorModules = 'professor-modules';
+  static const professorAssignments = 'professor-assignments';
   static const studentDashboard = 'student-dashboard';
+  static const studentTodo = 'student-todo';
+  static const studentModules = 'student-modules';
 
   static String pathForRole(UserRole role) {
     switch (role) {
@@ -168,10 +178,16 @@ GoRouter createAppRouter(AppState appState) {
         path: '/admin/instructors/profile',
         name: AppRoutes.adminInstructorProfile,
         pageBuilder: (context, state) {
-          final extraData = state.extra as Map<String, dynamic>;
-          final Instructor instructor = extraData['instructor'] as Instructor;
-          final String? request = extraData['request'] as String?;
-          
+          final extra = state.extra;
+          final extraData = extra is Map<String, dynamic> ? extra : <String, dynamic>{};
+          final instructor = extraData['instructor'];
+          final String? request = extraData['request']?.toString();
+
+          // Guard: if extra is missing or malformed, bounce back to instructors list
+          if (instructor is! Instructor) {
+            return _seamlessPage(state.pageKey, const AdminInstructorScreen());
+          }
+
           return _seamlessPage(
             state.pageKey,
             AdminInstructorProfileScreen(
@@ -215,15 +231,26 @@ GoRouter createAppRouter(AppState appState) {
         path: '/admin/subjects/profile',
         name: AppRoutes.adminSubjectsProfile,
         pageBuilder: (context, state) {
-          final extra = state.extra as Map<String, dynamic>;
+          final extra = state.extra;
+          final extraData = extra is Map<String, dynamic> ? extra : <String, dynamic>{};
+
+          final subjectName = extraData['subjectName']?.toString() ?? '';
+          final courseSection = extraData['courseSection']?.toString() ?? '';
+          final professor = extraData['professor']?.toString() ?? '';
+
+          // Guard: if required fields are missing, bounce back to subjects list
+          if (subjectName.isEmpty) {
+            return _seamlessPage(state.pageKey, const AdminSubjectsScreen());
+          }
+
           return _seamlessPage(
             state.pageKey,
             AdminSubjectsProfileScreen(
-              subjectId: extra['subjectId'] as String?,
-              subjectName: extra['subjectName'] as String,
-              courseSection: extra['courseSection'] as String,
-              professor: extra['professor'] as String,
-              pendingRequest: extra['pendingRequest'] as String?,
+              subjectId: extraData['subjectId']?.toString(),
+              subjectName: subjectName,
+              courseSection: courseSection,
+              professor: professor,
+              pendingRequest: extraData['pendingRequest']?.toString(),
             ),
           );
         },
@@ -234,10 +261,35 @@ GoRouter createAppRouter(AppState appState) {
         pageBuilder: (context, state) => _seamlessPage(state.pageKey, const ProfessorDashboardScreen()),
       ),
       GoRoute(
+        path: '/professor/classes',
+        name: AppRoutes.professorClasses,
+        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const ProfessorClassesScreen()),
+      ),
+      GoRoute(
+        path: '/professor/modules',
+        name: AppRoutes.professorModules,
+        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const ProfessorModulesScreen()),
+      ),
+      GoRoute(
+        path: '/professor/assignments',
+        name: AppRoutes.professorAssignments,
+        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const ProfessorAssignmentsScreen()),
+      ),
+      GoRoute(
         path: '/student/dashboard',
         name: AppRoutes.studentDashboard,
         pageBuilder: (context, state) => _seamlessPage(state.pageKey, const StudentDashboardScreen()),
       ),
+      GoRoute(
+        path: '/student/todo',
+        name: AppRoutes.studentTodo,
+        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const StudentTodoScreen()),
+      ),
+      GoRoute(
+        path: '/student/modules',
+        name: AppRoutes.studentModules,
+        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const StudentModulesScreen()),
+      ),
     ],
   );
-}
+}

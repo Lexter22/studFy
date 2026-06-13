@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/router/app_router.dart';
+import '../../../../core/widgets/app_dialog.dart';
 import '../../../../core/state/app_state.dart';
 import '../../../auth/domain/enums/user_role.dart';
-import '../../../auth/domain/services/auth_service.dart';
+import '../widgets/admin_floating_nav_bar.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AdminRoleManagerScreen extends StatefulWidget {
   const AdminRoleManagerScreen({super.key});
@@ -15,191 +15,377 @@ class AdminRoleManagerScreen extends StatefulWidget {
   State<AdminRoleManagerScreen> createState() => _AdminRoleManagerScreenState();
 }
 
-class _AdminRoleManagerScreenState extends State<AdminRoleManagerScreen> {
-  final AuthService _authService = const AuthService();
-  final TextEditingController _uidController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _displayNameController = TextEditingController();
-  UserRole _selectedRole = UserRole.student;
+class _AdminRoleManagerScreenState extends State<AdminRoleManagerScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  final TextEditingController _searchController = TextEditingController();
+  
+  // Categorized users
+  final Map<String, List<Map<String, dynamic>>> _categorizedUsers = {
+    'student': [],
+    'professor': [],
+    'admin': [],
+    'unknown': [],
+  };
+
+  // Pagination states for each category
+  final Map<String, int> _currentPage = {
+    'student': 1,
+    'professor': 1,
+    'admin': 1,
+    'unknown': 1,
+  };
+
+  final Map<String, bool> _hasMore = {
+    'student': true,
+    'professor': true,
+    'admin': true,
+    'unknown': true,
+  };
+
+  bool _loading = false;
   bool _isSaving = false;
+  final int _pageSize = 10;
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(_handleTabChange);
+    _searchController.addListener(_handleSearchChanged);
+    _fetchPage();
+  }
 
   @override
   void dispose() {
-    _uidController.dispose();
-    _emailController.dispose();
-    _displayNameController.dispose();
+    _tabController.removeListener(_handleTabChange);
+    _tabController.dispose();
+    _searchController.removeListener(_handleSearchChanged);
+    _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _saveRole() async {
-    final uid = _uidController.text.trim();
-    final email = _emailController.text.trim();
-    final displayName = _displayNameController.text.trim();
-
-    if (uid.isEmpty || email.isEmpty || displayName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('UID, email, and name are required.')),
-      );
-      return;
-    }
-
-    setState(() => _isSaving = true);
-    try {
-      await _authService.upsertUserProfile(
-        uid: uid,
-        email: email,
-        displayName: displayName,
-        role: _selectedRole,
-      );
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('User role saved.')));
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to save role: $error')));
-    } finally {
-      if (mounted) {
-        setState(() => _isSaving = false);
-      }
+  void _handleTabChange() {
+    if (_tabController.indexIsChanging) return;
+    final currentRole = _getActiveRole();
+    if (_categorizedUsers[currentRole]!.isEmpty && _hasMore[currentRole]!) {
+      _fetchPage();
     }
   }
 
-  Future<void> _logout() async {
-    await _authService.signOut();
-    if (!mounted) {
-      return;
+  void _handleSearchChanged() {
+    setState(() {
+      _searchQuery = _searchController.text.trim();
+    });
+    _resetAndFetch();
+  }
+
+  String _getActiveRole() {
+    switch (_tabController.index) {
+      case 0:
+        return 'student';
+      case 1:
+        return 'professor';
+      case 2:
+        return 'admin';
+      default:
+        return 'unknown';
     }
-    context.read<AppState>().logout();
-    context.goNamed(AppRoutes.login);
+  }
+
+  void _resetAndFetch() {
+    final currentRole = _getActiveRole();
+    setState(() {
+      _categorizedUsers[currentRole] = [];
+      _currentPage[currentRole] = 1;
+      _hasMore[currentRole] = true;
+    });
+    _fetchPage();
+  }
+
+  Future<void> _fetchPage() async {
+    final currentRole = _getActiveRole();
+    if (_loading || !_hasMore[currentRole]!) return;
+
+    setState(() => _loading = true);
+
+    try {
+      final page = _currentPage[currentRole]!;
+      final from = (page - 1) * _pageSize;
+      final to = from + _pageSize - 1;
+
+      var query = Supabase.instance.client
+          .from('profiles')
+          .select('id, email, display_name, role');
+
+      if (currentRole == 'unknown') {
+        query = query.filter('role', 'is', null);
+      } else {
+        query = query.eq('role', currentRole);
+      }
+
+      if (_searchQuery.isNotEmpty) {
+        query = query.or('display_name.ilike.%$_searchQuery%,email.ilike.%$_searchQuery%');
+      }
+
+      final List<dynamic> response = await query
+          .range(from, to)
+          .order('display_name', ascending: true);
+
+      final newUsers = response.whereType<Map>().map((r) => Map<String, dynamic>.from(r)).toList();
+
+      setState(() {
+        _categorizedUsers[currentRole]!.addAll(newUsers);
+        _currentPage[currentRole] = page + 1;
+        _loading = false;
+        if (newUsers.length < _pageSize) {
+          _hasMore[currentRole] = false;
+        }
+      });
+    } catch (e) {
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load users: $e')),
+      );
+    }
+  }
+
+  Future<void> _updateUserRole(String uid, UserRole newRole, String displayName, String email) async {
+    setState(() => _isSaving = true);
+    try {
+      // 1. Update the profiles table
+      await Supabase.instance.client
+          .from('profiles')
+          .update({'role': newRole.value})
+          .eq('id', uid);
+
+      // 2. Ensure corresponding profile tables exist
+      if (newRole == UserRole.student) {
+        final studentProfile = await Supabase.instance.client
+            .from('student_profiles')
+            .select('profile_id')
+            .eq('profile_id', uid)
+            .maybeSingle();
+
+        if (studentProfile == null) {
+          await Supabase.instance.client.from('student_profiles').insert({
+            'profile_id': uid,
+            'student_number': 'STUD-${uid.substring(0, min(uid.length, 8)).toUpperCase()}',
+            'course_code': 'BSIT',
+            'year_section': 'BSIT 3-1',
+          });
+        }
+      } else if (newRole == UserRole.professor) {
+        final instructorProfile = await Supabase.instance.client
+            .from('instructor_profiles')
+            .select('profile_id')
+            .eq('profile_id', uid)
+            .maybeSingle();
+
+        if (instructorProfile == null) {
+          await Supabase.instance.client.from('instructor_profiles').insert({
+            'profile_id': uid,
+            'instructor_id': 'PROF-${uid.substring(0, min(uid.length, 8)).toUpperCase()}',
+            'department': 'CS/IT',
+          });
+        }
+      }
+
+      if (context.mounted) {
+        AppDialog.result(
+          context,
+          type: DialogType.success,
+          message: 'User role successfully updated!',
+        );
+      }
+
+      // Refresh list
+      _resetAndFetch();
+    } catch (e) {
+      if (context.mounted) {
+        AppDialog.result(
+          context,
+          type: DialogType.error,
+          message: 'Failed to update role: $e',
+        );
+      }
+    } finally {
+      setState(() => _isSaving = false);
+    }
+  }
+
+  int min(int a, int b) => a < b ? a : b;
+
+  void _showChangeRoleDialog(Map<String, dynamic> user) {
+    UserRole currentSelected = UserRoleX.fromString(user['role'] as String?);
+    final TextEditingController passwordController = TextEditingController();
+    bool isLocalSaving = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Row(
+                children: const [
+                  Icon(Icons.manage_accounts_rounded, color: AppColors.adminPrimary),
+                  SizedBox(width: 8),
+                  Text('Change User Role', style: TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'User: ${user['display_name'] ?? 'Unknown'}',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Email: ${user['email'] ?? ''}',
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<UserRole>(
+                      value: currentSelected == UserRole.unknown ? UserRole.student : currentSelected,
+                      decoration: InputDecoration(
+                        labelText: 'New Role',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: UserRole.student, child: Text('Student')),
+                        DropdownMenuItem(value: UserRole.professor, child: Text('Professor')),
+                        DropdownMenuItem(value: UserRole.admin, child: Text('Admin')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() {
+                            currentSelected = val;
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: passwordController,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: 'Your Admin Password',
+                        hintText: 'Enter password to authorize',
+                        prefixIcon: const Icon(Icons.lock_outline_rounded),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isLocalSaving ? null : () => Navigator.pop(context),
+                  child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.adminPrimary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: isLocalSaving ? null : () async {
+                    final enteredPassword = passwordController.text.trim();
+                    if (enteredPassword.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please enter your password to authorize.')),
+                      );
+                      return;
+                    }
+
+                    setDialogState(() {
+                      isLocalSaving = true;
+                    });
+
+                    try {
+                      final adminEmail = Supabase.instance.client.auth.currentUser?.email;
+                      if (adminEmail == null) {
+                        throw Exception('Admin email not found. Please log in again.');
+                      }
+
+                      // Re-authenticate current admin
+                      await Supabase.instance.client.auth.signInWithPassword(
+                        email: adminEmail,
+                        password: enteredPassword,
+                      );
+
+                      // If successful, proceed with update
+                      await _updateUserRole(
+                        user['id'] as String,
+                        currentSelected,
+                        user['display_name'] as String? ?? '',
+                        user['email'] as String? ?? '',
+                      );
+
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                      }
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Authorization failed: Incorrect password')),
+                      );
+                    } finally {
+                      setDialogState(() {
+                        isLocalSaving = false;
+                      });
+                    }
+                  },
+                  child: isLocalSaving
+                      ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('Save Changes', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.adminPageBackground,
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Assign Role to Existing User',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.adminPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    _buildInputField('Account UID', _uidController),
-                    const SizedBox(height: 12),
-                    _buildInputField('Email', _emailController),
-                    const SizedBox(height: 12),
-                    _buildInputField('Display Name', _displayNameController),
-                    const SizedBox(height: 12),
-                    _buildRoleDropdown(),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: _isSaving ? null : _saveRole,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.adminPrimary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: _isSaving
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Text(
-                                'Save Role',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Use this only for accounts that already exist in the authentication provider. The UID must match the account user.',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 12,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ],
-                ),
+      appBar: AppBar(
+        backgroundColor: AppColors.adminPrimary,
+        elevation: 0,
+        toolbarHeight: 70,
+        title: const Row(
+          children: [
+            Icon(Icons.school, color: Colors.white, size: 28),
+            SizedBox(width: 8),
+            Text(
+              'STUDFY',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      height: 70,
-      width: double.infinity,
-      color: AppColors.adminPrimary,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.school, color: Colors.white, size: 28),
-              Text(
-                'STUDFY',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              const Text(
+          ],
+        ),
+        actions: const [
+          Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
                 'Admin 1',
                 style: TextStyle(
                   color: Colors.white,
@@ -207,104 +393,200 @@ class _AdminRoleManagerScreenState extends State<AdminRoleManagerScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(width: 12),
-              IconButton(
-                onPressed: _logout,
-                icon: const Icon(Icons.logout, color: Colors.white),
-                tooltip: 'Logout',
+            ),
+          ),
+        ],
+        automaticallyImplyLeading: false,
+      ),
+      body: Stack(
+        children: [
+          Column(
+            children: [
+              // Search & Filter Panel
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search by name or email...',
+                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () => _searchController.clear(),
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: const Color(0xFFF5F6F9),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+              ),
+              // Role Tabs
+              Container(
+                color: Colors.white,
+                child: TabBar(
+                  controller: _tabController,
+                  indicatorColor: AppColors.adminPrimary,
+                  labelColor: AppColors.adminPrimary,
+                  unselectedLabelColor: Colors.grey,
+                  labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  tabs: const [
+                    Tab(text: 'STUDENTS'),
+                    Tab(text: 'PROFESSORS'),
+                    Tab(text: 'ADMINS'),
+                    Tab(text: 'UNASSIGNED'),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildUserList('student'),
+                    _buildUserList('professor'),
+                    _buildUserList('admin'),
+                    _buildUserList('unknown'),
+                  ],
+                ),
               ),
             ],
           ),
+          const AdminFloatingNavBar(currentIndex: 2),
         ],
       ),
     );
   }
 
-  Widget _buildInputField(String label, TextEditingController controller) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            hintText: 'Enter $label',
-            hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
-            filled: true,
-            fillColor: const Color(0xFFF9F9F9),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Colors.black12),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Colors.black12),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: AppColors.adminPrimary),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 12,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+  Widget _buildUserList(String roleKey) {
+    final list = _categorizedUsers[roleKey]!;
+    
+    if (_loading && list.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-  Widget _buildRoleDropdown() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Role',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 6),
-        DropdownButtonFormField<UserRole>(
-          value: _selectedRole,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: const Color(0xFFF9F9F9),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Colors.black12),
+    if (list.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.people_outline, size: 64, color: Colors.grey.shade400),
+            const SizedBox(height: 16),
+            Text(
+              'No users found in this category',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Colors.black12),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14),
-          ),
-          items: const [
-            DropdownMenuItem(value: UserRole.admin, child: Text('Admin')),
-            DropdownMenuItem(
-              value: UserRole.professor,
-              child: Text('Professor'),
-            ),
-            DropdownMenuItem(value: UserRole.student, child: Text('Student')),
           ],
-          onChanged: (value) {
-            if (value != null) {
-              setState(() => _selectedRole = value);
-            }
-          },
         ),
-      ],
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+      itemCount: list.length + 1,
+      itemBuilder: (context, index) {
+        if (index == list.length) {
+          // Pagination controls
+          if (_hasMore[roleKey]!) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.adminPrimary),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  ),
+                  onPressed: _fetchPage,
+                  child: _loading
+                      ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.adminPrimary),
+                        )
+                      : const Text('Load More', style: TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            );
+          } else {
+            return const SizedBox.shrink();
+          }
+        }
+
+        final user = list[index];
+        final String displayName = user['display_name'] ?? 'Unknown User';
+        final String email = user['email'] ?? '';
+        final String uid = user['id'] ?? '';
+        final String initials = displayName.isNotEmpty
+            ? displayName.trim().split(' ').map((e) => e[0]).take(2).join('').toUpperCase()
+            : 'U';
+
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.grey.shade200),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: AppColors.adminPrimary.withOpacity(0.1),
+                  child: Text(
+                    initials,
+                    style: const TextStyle(
+                      color: AppColors.adminPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        displayName,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        email,
+                        style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'UID: $uid',
+                        style: TextStyle(color: Colors.grey.shade400, fontSize: 11, fontFamily: 'monospace'),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.adminPrimary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    elevation: 0,
+                  ),
+                  onPressed: () => _showChangeRoleDialog(user),
+                  child: const Text('Change Role', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

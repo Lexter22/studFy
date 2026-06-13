@@ -9,7 +9,7 @@ import '../../../auth/domain/models/auth_exception.dart';
 import '../../../auth/domain/services/auth_service.dart';
 import '../../domain/models/instructor.dart';
 import '../../../../core/widgets/app_dialog.dart';
-import '../widgets/admin_drawer.dart';
+import '../widgets/admin_floating_nav_bar.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -121,17 +121,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
           ),
         ],
+        automaticallyImplyLeading: false,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      drawer: const AdminDrawer(),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.only(
-          left: 16.0,
-          right: 16.0,
-          top: 16.0,
-          bottom: 40.0,
-        ),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.only(
+              left: 16.0,
+              right: 16.0,
+              top: 16.0,
+              bottom: 100.0,
+            ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -174,8 +176,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           return _buildFixedList(
                             pendingRequests.map((request) {
                               final requestId = request['id'] ?? '';
-                              final name = request['name']!;
-                              final status = request['status']!;
+                              final name = request['name'] ?? '';
+                              final status = request['status'] ?? '';
                               return _buildActionListItem(
                                 requestId,
                                 name,
@@ -211,8 +213,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           }
                           return _buildFixedList(
                             pendingRequests.map((request) {
-                              final name = request['name']!;
-                              final status = request['status']!;
+                              final name = request['name'] ?? '';
+                              final status = request['status'] ?? '';
                               return _buildSimpleListItem(
                                 name,
                                 status,
@@ -262,10 +264,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         ),
                       ),
                     ],
-        ),
-      ),
-    );
-  }
+                  ),
+                ),
+                const AdminFloatingNavBar(currentIndex: 2),
+              ],
+            ),
+          );
+        }
 
   // --- OVERVIEW WIDGETS ---
   Widget _buildOverviewCards(AppState appState) {

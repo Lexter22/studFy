@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
+import '../../../../core/widgets/app_dialog.dart';
 import '../../../auth/domain/services/auth_service.dart';
 
 class AdminDrawer extends StatelessWidget {
@@ -102,13 +103,22 @@ class AdminDrawer extends StatelessWidget {
               title: 'Logout',
               iconColor: const Color(0xFF800000),
               textColor: const Color(0xFF800000),
-              onTap: () async {
-                final authService = const AuthService();
-                await authService.signOut();
-                if (context.mounted) {
-                  context.read<AppState>().logout();
-                  context.goNamed(AppRoutes.login);
-                }
+              onTap: () {
+                AppDialog.confirm(
+                  context,
+                  title: 'Logout',
+                  message: 'Are you sure you want to logout?',
+                  type: DialogType.info,
+                  confirmLabel: 'Logout',
+                  onConfirm: () async {
+                    final authService = const AuthService();
+                    await authService.signOut();
+                    if (context.mounted) {
+                      context.read<AppState>().logout();
+                      context.goNamed(AppRoutes.login);
+                    }
+                  },
+                );
               },
             ),
             const SizedBox(height: 24),

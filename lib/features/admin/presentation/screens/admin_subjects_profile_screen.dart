@@ -6,7 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
 import '../../../../core/widgets/app_dialog.dart';
-import '../widgets/admin_drawer.dart';
+import '../widgets/admin_floating_nav_bar.dart';
 import '../../domain/models/student.dart';
 
 class AdminSubjectsProfileScreen extends StatefulWidget {
@@ -69,7 +69,6 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
     setState(() => _isLoadingEnrolled = true);
     try {
       final allStudents = context.read<AppState>().students;
-      // Fetch all enrollments for this subject
       final rows = await context.read<AppState>().fetchStudentsEnrolledInSubject(widget.subjectId!);
       setState(() {
         _enrolledStudentIds = rows;
@@ -116,12 +115,16 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        title: const Text('Delete Subject'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete Subject', style: TextStyle(fontWeight: FontWeight.bold)),
         content: Text('Delete "${widget.subjectName}"? This cannot be undone.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
             onPressed: () async {
               Navigator.pop(dialogCtx);
               try {
@@ -141,47 +144,96 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
   }
 
   void _showAssignProfessorDialog() {
-    final instructors = context.read<AppState>().instructors;
-    if (instructors.isEmpty) {
-      AppDialog.alert(context, title: 'Notice', message: 'No instructors available.');
+    if (widget.subjectId == null) {
+      AppDialog.alert(context, title: 'Notice', message: 'Cannot assign a professor to a pending subject. Please create the subject first.');
       return;
     }
+    final instructors = context.read<AppState>().instructors;
+    if (instructors.isEmpty) {
+      AppDialog.alert(context, title: 'Notice', message: 'No instructors available. Please add an instructor first.');
+      return;
+    }
+
+    String searchQuery = '';
+
     showDialog(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        title: const Text('Assign Professor'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: instructors.length,
-            itemBuilder: (ctx, index) {
-              final instructor = instructors[index];
-              return ListTile(
-                title: Text(instructor.name),
-                subtitle: Text(instructor.course),
-                onTap: () async {
-                  Navigator.pop(dialogCtx);
-                  try {
-                    await context.read<AppState>().assignProfessorToSubject(
-                      subjectId: widget.subjectId!,
-                      profileId: instructor.profileId,
-                    );
-                    if (!mounted) return;
-                    setState(() => _professorNameCtrl.text = instructor.name);
-                    await AppDialog.result(context, type: DialogType.success, message: 'Professor assigned successfully.');
-                  } catch (e) {
-                    if (!mounted) return;
-                    await AppDialog.alert(context, title: 'Error', message: e.toString());
-                  }
-                },
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Cancel')),
-        ],
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) {
+          final filtered = instructors
+              .where((i) => i.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+                  i.course.toLowerCase().contains(searchQuery.toLowerCase()))
+              .toList();
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Text('Assign Professor', style: TextStyle(fontWeight: FontWeight.bold)),
+            content: SizedBox(
+              width: 450,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Search by name or department...',
+                      prefixIcon: const Icon(Icons.search, size: 18),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      isDense: true,
+                    ),
+                    onChanged: (val) => setDialogState(() => searchQuery = val),
+                  ),
+                  const SizedBox(height: 12),
+                  if (filtered.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text('No instructors found.', style: TextStyle(color: Colors.grey)),
+                    )
+                  else
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: filtered.length,
+                        itemBuilder: (ctx, index) {
+                          final instructor = filtered[index];
+                          return ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            leading: CircleAvatar(
+                              backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                              child: const Icon(Icons.person, color: AppColors.adminPrimary, size: 20),
+                            ),
+                            title: Text(instructor.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                            subtitle: Text(instructor.course, style: const TextStyle(fontSize: 12)),
+                            onTap: () async {
+                              Navigator.pop(dialogCtx);
+                              try {
+                                await context.read<AppState>().assignProfessorToSubject(
+                                  subjectId: widget.subjectId!,
+                                  profileId: instructor.profileId,
+                                );
+                                if (!mounted) return;
+                                setState(() => _professorNameCtrl.text = instructor.name);
+                                await AppDialog.result(context, type: DialogType.success, message: '${instructor.name} has been assigned as professor.');
+                              } catch (e) {
+                                if (!mounted) return;
+                                await AppDialog.alert(context, title: 'Error', message: e.toString());
+                              }
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -192,50 +244,194 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
       AppDialog.alert(context, title: 'Notice', message: 'No students available.');
       return;
     }
+
+    String searchQuery = '';
+    String? selectedSection;
+
+    final uniqueSections = allStudents
+        .map((s) => s.yearSection.trim())
+        .where((s) => s.isNotEmpty)
+        .toSet()
+        .toList();
+    uniqueSections.sort();
+
     showDialog(
       context: context,
       builder: (dialogCtx) => StatefulBuilder(
-        builder: (dialogCtx, setDialogState) => AlertDialog(
-          title: const Text('Enroll Students'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: allStudents.length,
-              itemBuilder: (ctx, index) {
-                final student = allStudents[index];
-                final isEnrolled = _enrolledStudentIds.contains(student.profileId);
-                return ListTile(
-                  title: Text(student.name),
-                  subtitle: Text('${student.course} ${student.yearSection}'),
-                  trailing: isEnrolled
-                      ? const Icon(Icons.check_circle, color: Colors.green)
-                      : const Icon(Icons.add_circle_outline, color: Colors.grey),
-                  onTap: () async {
-                    if (isEnrolled) {
-                      await context.read<AppState>().unenrollStudentFromSubject(
-                        studentProfileId: student.profileId,
-                        subjectOfferingId: widget.subjectId!,
-                      );
-                      setDialogState(() => _enrolledStudentIds.remove(student.profileId));
-                    } else {
-                      await context.read<AppState>().enrollStudentInSubject(
-                        studentProfileId: student.profileId,
-                        subjectOfferingId: widget.subjectId!,
-                      );
-                      setDialogState(() => _enrolledStudentIds.add(student.profileId));
-                    }
-                    if (!mounted) return;
-                    await _loadEnrolledStudents();
-                  },
-                );
-              },
+        builder: (dialogCtx, setDialogState) {
+          final filteredStudents = allStudents.where((student) {
+            final nameMatch = student.name.toLowerCase().contains(searchQuery.toLowerCase());
+            final courseMatch = student.course.toLowerCase().contains(searchQuery.toLowerCase());
+            final sectionMatch = student.yearSection.toLowerCase().contains(searchQuery.toLowerCase());
+            return nameMatch || courseMatch || sectionMatch;
+          }).toList();
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Text('Enroll Students', style: TextStyle(fontWeight: FontWeight.bold)),
+            content: SizedBox(
+              width: 500,
+              height: 500,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Search student by name or section...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                    onChanged: (val) {
+                      setDialogState(() {
+                        searchQuery = val;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
+                  if (uniqueSections.isNotEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.adminPrimary.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.adminPrimary.withOpacity(0.1)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Bulk Section Enrollment',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.adminPrimary),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: DropdownButtonFormField<String>(
+                                  value: selectedSection,
+                                  decoration: InputDecoration(
+                                    hintText: 'Select Section',
+                                    isDense: true,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                    fillColor: Colors.white,
+                                    filled: true,
+                                  ),
+                                  items: uniqueSections.map((sec) {
+                                    return DropdownMenuItem(value: sec, child: Text(sec, style: const TextStyle(fontSize: 13)));
+                                  }).toList(),
+                                  onChanged: (val) {
+                                    setDialogState(() {
+                                      selectedSection = val;
+                                    });
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.adminPrimary,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                ),
+                                onPressed: selectedSection == null
+                                    ? null
+                                    : () async {
+                                        final studentsInSection = allStudents
+                                            .where((s) => s.yearSection == selectedSection)
+                                            .toList();
+                                        
+                                        for (final s in studentsInSection) {
+                                          if (!_enrolledStudentIds.contains(s.profileId)) {
+                                            await context.read<AppState>().enrollStudentInSubject(
+                                              studentProfileId: s.profileId,
+                                              subjectOfferingId: widget.subjectId!,
+                                            );
+                                            setDialogState(() {
+                                              _enrolledStudentIds.add(s.profileId);
+                                            });
+                                          }
+                                        }
+                                        await _loadEnrolledStudents();
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('Enrolled all students from $selectedSection')),
+                                          );
+                                        }
+                                      },
+                                icon: const Icon(Icons.group_add_rounded, size: 16),
+                                label: const Text('Enroll All', style: TextStyle(fontSize: 12)),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  const Divider(),
+                  Expanded(
+                    child: filteredStudents.isEmpty
+                        ? const Center(child: Text('No students found.'))
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: filteredStudents.length,
+                            itemBuilder: (ctx, index) {
+                              final student = filteredStudents[index];
+                              final isEnrolled = _enrolledStudentIds.contains(student.profileId);
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: CircleAvatar(
+                                  backgroundColor: Colors.grey.shade100,
+                                  child: const Icon(Icons.person, color: Colors.grey),
+                                ),
+                                title: Text(student.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                subtitle: Text('${student.course} - ${student.yearSection}', style: const TextStyle(fontSize: 12)),
+                                trailing: IconButton(
+                                  icon: Icon(
+                                    isEnrolled ? Icons.check_circle : Icons.add_circle_outline,
+                                    color: isEnrolled ? Colors.green : Colors.grey,
+                                  ),
+                                  onPressed: () async {
+                                    if (isEnrolled) {
+                                      await context.read<AppState>().unenrollStudentFromSubject(
+                                        studentProfileId: student.profileId,
+                                        subjectOfferingId: widget.subjectId!,
+                                      );
+                                      setDialogState(() {
+                                        _enrolledStudentIds.remove(student.profileId);
+                                      });
+                                    } else {
+                                      await context.read<AppState>().enrollStudentInSubject(
+                                        studentProfileId: student.profileId,
+                                        subjectOfferingId: widget.subjectId!,
+                                      );
+                                      setDialogState(() {
+                                        _enrolledStudentIds.add(student.profileId);
+                                      });
+                                    }
+                                    await _loadEnrolledStudents();
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Close')),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: const Text('Close', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -263,230 +459,423 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
             ),
           ),
         ],
-        iconTheme: const IconThemeData(color: Colors.white),
+        automaticallyImplyLeading: false,
       ),
-      drawer: const AdminDrawer(),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (widget.pendingRequest != null && !_isRequestHandled) ...[
-              _buildPendingRequestBanner(),
-              const SizedBox(height: 16),
-            ],
-
-            // ── Subject Info ──────────────────────────────────────────────
-            _buildSectionTitle('Subject Information'),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.black12)),
-              child: Column(
-                children: [
-                  _buildField('Subject Name', _subjectNameCtrl, enabled: _isEditing),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(child: _buildField('Professor', _professorNameCtrl, enabled: false)),
-                      if (widget.subjectId != null) ...[
-                        const SizedBox(width: 8),
-                        _buildBtn('Assign', const Color(0xFF1E63D2), Icons.person_add, _showAssignProfessorDialog),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  _buildField('Course & Section', _courseSectionCtrl, enabled: _isEditing),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(child: _buildField('Schedule', _scheduleCtrl, enabled: _isEditing)),
-                      const SizedBox(width: 8),
-                      Expanded(child: _buildField('Room', _roomCtrl, enabled: _isEditing)),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      if (_isEditing) ...[
-                        _buildBtn('Discard', Colors.grey, Icons.close, () => setState(() => _isEditing = false)),
-                        const SizedBox(width: 8),
-                        _buildBtn('Save', const Color(0xFF1E63D2), Icons.save, () => _saveEdits()),
-                      ] else ...[
-                        _buildBtn('Delete', const Color(0xFF801E1E), Icons.delete, _showDeleteDialog),
-                        const SizedBox(width: 8),
-                        _buildBtn('Edit', const Color(0xFF1E63D2), Icons.edit, () => setState(() => _isEditing = true)),
-                      ],
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // ── Enrolled Students ─────────────────────────────────────────
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildSectionTitle('Enrolled Students (${_enrolledStudents.length})'),
-                if (widget.subjectId != null)
-                  ElevatedButton.icon(
-                    onPressed: _showEnrollStudentDialog,
-                    icon: const Icon(Icons.person_add, size: 16),
-                    label: const Text('Enroll / Manage'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.adminPrimary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      elevation: 0,
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 8),
-
-            // Search
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    height: 40,
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.black12)),
-                    child: TextField(
-                      controller: _studentSearchCtrl,
-                      onChanged: (_) => _filterEnrolled(),
-                      decoration: const InputDecoration(
-                        hintText: 'Search student name...',
-                        hintStyle: TextStyle(fontSize: 13, color: Colors.grey),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12),
-                        border: InputBorder.none,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(onPressed: () { _studentSearchCtrl.clear(); _filterEnrolled(); }, icon: const Icon(Icons.filter_alt_off, color: Colors.black54)),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            _buildEnrolledStudentsTable(),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEnrolledStudentsTable() {
-    if (_isLoadingEnrolled) return const Center(child: CircularProgressIndicator());
-
-    return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.black12)),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
+      body: Stack(
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: const Color(0xFFF4F4F4),
-            child: const Row(
-              children: [
-                Expanded(flex: 3, child: Text('Name', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                Expanded(flex: 2, child: Text('Course', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                Expanded(flex: 2, child: Text('Year & Section', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                SizedBox(width: 40),
-              ],
-            ),
-          ),
-          if (_filteredEnrolled.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(20),
-              child: Text('No students enrolled yet.', style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
-            )
-          else
-            ..._filteredEnrolled.asMap().entries.map((entry) {
-              final isEven = entry.key % 2 == 0;
-              final student = entry.value;
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                color: isEven ? Colors.white : const Color(0xFFF9F9F9),
-                child: Row(
+          SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(flex: 3, child: Text(student.name, style: const TextStyle(fontSize: 13))),
-                    Expanded(flex: 2, child: Text(student.course, style: const TextStyle(fontSize: 13, color: Colors.black54))),
-                    Expanded(flex: 2, child: Text(student.yearSection, style: const TextStyle(fontSize: 13, color: Colors.black54))),
-                    IconButton(
-                      icon: const Icon(Icons.person, size: 18, color: Colors.blue),
-                      tooltip: 'View Profile',
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      onPressed: () => context.pushNamed(
-                        AppRoutes.adminStudentsProfile,
-                        pathParameters: {'profileId': student.profileId},
-                        extra: {'student': student},
-                      ),
+                    _buildBackButton(),
+                    const SizedBox(height: 12),
+                    if (widget.pendingRequest != null && !_isRequestHandled) ...[
+                      _buildPendingRequestBanner(),
+                      const SizedBox(height: 16),
+                    ],
+
+                    _buildSectionTitle('Subject Information'),
+                    _buildProfileCard(),
+                    const SizedBox(height: 28),
+
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 16,
+                      runSpacing: 12,
+                      children: [
+                        _buildSectionTitle('Enrolled Students (${_enrolledStudents.length})'),
+                        if (widget.subjectId != null)
+                          ElevatedButton.icon(
+                            onPressed: _showEnrollStudentDialog,
+                            icon: const Icon(Icons.person_add_rounded, size: 16, color: Colors.white),
+                            label: const Text('Enroll / Manage', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.adminPrimary,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              elevation: 0,
+                            ),
+                          ),
+                      ],
                     ),
+                    const SizedBox(height: 12),
+
+                    // Search panel
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: TextField(
+                              controller: _studentSearchCtrl,
+                              onChanged: (_) => _filterEnrolled(),
+                              decoration: const InputDecoration(
+                                hintText: 'Search student name...',
+                                hintStyle: TextStyle(fontSize: 13, color: Colors.grey),
+                                prefixIcon: Icon(Icons.search_rounded, size: 18, color: Colors.grey),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                border: InputBorder.none,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: () {
+                            _studentSearchCtrl.clear();
+                            _filterEnrolled();
+                          },
+                          icon: const Icon(Icons.filter_alt_off_rounded, color: Colors.black54),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    _buildEnrolledStudentsList(),
                   ],
                 ),
-              );
-            }),
+              ),
+            ),
+          ),
+          const AdminFloatingNavBar(currentIndex: 3),
         ],
       ),
     );
   }
 
+  Widget _buildBackButton() {
+    return TextButton.icon(
+      onPressed: () => context.pop(),
+      icon: const Icon(Icons.arrow_back_rounded, color: AppColors.adminPrimary, size: 18),
+      label: const Text('Back to Directory', style: TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold)),
+      style: TextButton.styleFrom(padding: EdgeInsets.zero),
+    );
+  }
+
   Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF800000))),
+    return Text(
+      title,
+      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.adminPrimary),
     );
   }
 
-  Widget _buildField(String hint, TextEditingController controller, {bool enabled = true}) {
+  Widget _buildProfileCard() {
     return Container(
-      height: 40,
+      width: double.infinity,
       decoration: BoxDecoration(
-        color: enabled ? Colors.white : const Color(0xFFF9F9F9),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: Colors.black12),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade200),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: TextField(
-        controller: controller,
-        enabled: enabled,
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
-          border: InputBorder.none,
-          isDense: true,
-          contentPadding: const EdgeInsets.symmetric(vertical: 10),
-        ),
-        style: TextStyle(fontSize: 13, color: enabled ? Colors.black87 : Colors.black54),
-      ),
-    );
-  }
-
-  Widget _buildBtn(String label, Color color, IconData icon, VoidCallback onTap) {
-    return Material(
-      color: color,
-      borderRadius: BorderRadius.circular(6),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(6),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, color: Colors.white, size: 16),
-              const SizedBox(width: 6),
-              Text(label, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+              CircleAvatar(
+                radius: 36,
+                backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                child: const Icon(
+                  Icons.book_rounded,
+                  color: AppColors.adminPrimary,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (_isEditing) ...[
+                      _buildEditField('Subject Name', _subjectNameCtrl),
+                      const SizedBox(height: 8),
+                      _buildEditField('Course & Section (e.g. BSIT 1-1)', _courseSectionCtrl),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(child: _buildEditField('Schedule', _scheduleCtrl)),
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildEditField('Room', _roomCtrl)),
+                        ],
+                      ),
+                    ] else ...[
+                      Text(
+                        _subjectNameCtrl.text,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF5F6F9),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: Text(
+                              _courseSectionCtrl.text,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF5F6F9),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.person_outline_rounded, size: 12, color: Colors.grey),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _professorNameCtrl.text.isNotEmpty ? _professorNameCtrl.text : 'Unassigned Professor',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (_scheduleCtrl.text.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF5F6F9),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey.shade200),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.access_time_rounded, size: 12, color: Colors.grey),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _scheduleCtrl.text,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (_roomCtrl.text.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF5F6F9),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey.shade200),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.meeting_room_rounded, size: 12, color: Colors.grey),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Room ${_roomCtrl.text}',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ],
           ),
-        ),
+          const SizedBox(height: 20),
+          const Divider(),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (_isEditing) ...[
+                _buildActionButton('Cancel', Colors.grey.shade600, Icons.close_rounded, () => setState(() => _isEditing = false)),
+                const SizedBox(width: 8),
+                _buildActionButton('Save Changes', Colors.green, Icons.save_rounded, () => _saveEdits()),
+              ] else ...[
+                _buildActionButton('Delete Subject', const Color(0xFF8B0000), Icons.delete_rounded, _showDeleteDialog),
+                if (widget.subjectId != null) ...[
+                  const SizedBox(width: 8),
+                  _buildActionButton('Assign Professor', const Color(0xFF1E63D2), Icons.person_add_rounded, _showAssignProfessorDialog),
+                ],
+                const SizedBox(width: 8),
+                _buildActionButton('Edit Details', const Color(0xFF2B67E1), Icons.edit_rounded, () => setState(() => _isEditing = true)),
+              ],
+            ],
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildEditField(String label, TextEditingController controller) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      style: const TextStyle(fontSize: 14),
+    );
+  }
+
+  Widget _buildActionButton(String label, Color color, IconData icon, VoidCallback onTap) {
+    return ElevatedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 16, color: Colors.white),
+      label: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        elevation: 0,
+      ),
+    );
+  }
+
+  Widget _buildEnrolledStudentsList() {
+    if (_isLoadingEnrolled) {
+      return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
+    }
+
+    if (_filteredEnrolled.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.people_outline_rounded, size: 48, color: Colors.grey.shade300),
+            const SizedBox(height: 12),
+            Text(
+              'No enrolled students found',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: _filteredEnrolled.map((student) {
+        final initials = student.name.isNotEmpty
+            ? student.name.trim().split(' ').map((e) => e[0]).take(2).join('').toUpperCase()
+            : 'S';
+
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.grey.shade200),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                  child: Text(
+                    initials,
+                    style: const TextStyle(
+                      color: AppColors.adminPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        student.name,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF5F6F9),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: Text(
+                              '${student.course} ${student.yearSection}',
+                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                  tooltip: 'View Profile',
+                  onPressed: () => context.pushNamed(
+                    AppRoutes.adminStudentsProfile,
+                    pathParameters: {'profileId': student.profileId},
+                    extra: {'student': student},
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -494,7 +883,11 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFFFFF3E0), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.orange.shade200)),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF3E0),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
       child: Row(
         children: [
           const Icon(Icons.info_outline, color: Colors.orange),
@@ -522,7 +915,12 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                 },
               );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(horizontal: 20)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+            ),
             child: const Text('Done'),
           ),
         ],

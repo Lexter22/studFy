@@ -45,6 +45,16 @@ class _StudfyAppViewState extends State<_StudfyAppView> {
     _router = createAppRouter(appState);
 
     _authSubscription = authService.authStateChanges().listen((user) {
+      // If a user was returned but has unknown role, they were rejected by
+      // _withRole (no profile / not approved). Show access denied message.
+      if (user != null && user.role == UserRole.unknown) {
+        appState.syncAuthState(null);
+        appState.accessDeniedNotifier.value =
+            'Your account is not registered in the system. '
+            'Please contact your administrator.';
+        return;
+      }
+
       appState.syncAuthState(user);
 
       if (user == null) {

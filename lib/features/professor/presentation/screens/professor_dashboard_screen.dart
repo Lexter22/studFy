@@ -1,31 +1,201 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
-import '../../../../features/auth/domain/services/auth_service.dart';
-import '../../../../features/auth/domain/enums/user_role.dart';
+import '../../data/repositories/professor_repository.dart';
+import '../../domain/models/professor_subject.dart';
+import '../widgets/professor_floating_nav_bar.dart';
+import 'professor_subject_screen.dart';
+import 'assignment_detail_screen.dart';
 
 class ProfessorDashboardScreen extends StatefulWidget {
   const ProfessorDashboardScreen({super.key});
 
   @override
-  State<ProfessorDashboardScreen> createState() =>
-      _ProfessorDashboardScreenState();
+  State<ProfessorDashboardScreen> createState() => _ProfessorDashboardScreenState();
 }
 
 class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
-  final AuthService _authService = const AuthService();
+  final _repo = const ProfessorRepository();
 
-  Future<void> _logout() async {
-    await _authService.signOut();
-    if (!mounted) {
-      return;
+  List<ProfessorSubject> _subjects = [];
+  List<Map<String, dynamic>> _dashboardAssignments = [];
+  bool _loading = true;
+
+  // Selected date for calendar starting at June 2026
+  DateTime _calendarDate = DateTime(2026, 6, 1);
+  final List<int> _eventDays = [9, 13];
+  DateTime? _selectedDate = DateTime(2026, 6, 11);
+
+  // Key format: "yyyy-MM-dd" -> List of reminder maps
+  Map<String, List<Map<String, String>>>? __customReminders;
+  Map<String, List<Map<String, String>>> get _customReminders {
+    __customReminders ??= {
+      '2026-06-11': [
+        {
+          'title': 'Submit Ethics Grades',
+          'time': '11:00 AM',
+          'description': 'Submit the final grades for Ethics block 1 to the registrar.',
+        }
+      ]
+    };
+    return __customReminders!;
+  }
+
+  void _showAddReminderDialog(DateTime date) {
+    final titleController = TextEditingController();
+    final descController = TextEditingController();
+    TimeOfDay selectedTime = TimeOfDay.now();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Row(
+                children: [
+                  const Icon(Icons.alarm_add_rounded, color: AppColors.authPrimary),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Add Reminder',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'For: ${_getMonthName(date.month)} ${date.day}, ${date.year}',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: titleController,
+                      decoration: InputDecoration(
+                        labelText: 'Reminder Title',
+                        labelStyle: const TextStyle(fontSize: 14),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: descController,
+                      decoration: InputDecoration(
+                        labelText: 'Description (Optional)',
+                        labelStyle: const TextStyle(fontSize: 14),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Select Time:', style: TextStyle(fontWeight: FontWeight.bold)),
+                        TextButton.icon(
+                          icon: const Icon(Icons.access_time, size: 18),
+                          label: Text(selectedTime.format(context)),
+                          onPressed: () async {
+                            final TimeOfDay? time = await showTimePicker(
+                              context: context,
+                              initialTime: selectedTime,
+                            );
+                            if (time != null) {
+                              setDialogState(() {
+                                selectedTime = time;
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.authPrimary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () {
+                    if (titleController.text.trim().isEmpty) return;
+                    
+                    final dateKey = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+                    
+                    setState(() {
+                      if (!_customReminders.containsKey(dateKey)) {
+                        _customReminders[dateKey] = [];
+                      }
+                      _customReminders[dateKey]!.add({
+                        'title': titleController.text.trim(),
+                        'time': selectedTime.format(context),
+                        'description': descController.text.trim(),
+                      });
+                    });
+                    
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Save', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final subjects = await _repo.fetchMySubjects();
+      final List<Map<String, dynamic>> loadedAssignments = [];
+      
+      for (final sub in subjects) {
+        final assignments = await _repo.fetchAssignments(sub.id);
+        for (final a in assignments) {
+          // Skip materials
+          if ((a.description ?? '').startsWith('[MATERIAL]')) continue;
+          
+          final submissionCount = await _repo.fetchAssignmentSubmissionCount(a.id);
+          loadedAssignments.add({
+            'subject': sub,
+            'assignment': a,
+            'submissionCount': submissionCount,
+          });
+        }
+      }
+      
+      if (mounted) {
+        setState(() {
+          _subjects = subjects;
+          _dashboardAssignments = loadedAssignments;
+          _loading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
     }
-    context.read<AppState>().logout();
-    context.goNamed(AppRoutes.login);
   }
 
   @override
@@ -33,26 +203,843 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
     final user = context.watch<AppState>().currentUser;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Professor Dashboard'),
-        backgroundColor: AppColors.authPrimary,
-        foregroundColor: Colors.white,
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'Welcome, Professor',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+      backgroundColor: const Color(0xFFF9F9F9),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(90),
+        child: AppBar(
+          backgroundColor: AppColors.authPrimary,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          flexibleSpace: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.school, color: Colors.white, size: 28),
+                      SizedBox(height: 2),
+                      Text(
+                        'STUDFY',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    user?.displayName ?? 'profname',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 10),
-            Text(user?.email ?? ''),
-            const SizedBox(height: 6),
-            Text('Current Role: ${user?.role.value ?? 'unknown'}'),
-            const SizedBox(height: 24),
-            ElevatedButton(onPressed: _logout, child: const Text('Logout')),
+          ),
+        ),
+      ),
+      body: Stack(
+        children: [
+          SafeArea(
+            child: RefreshIndicator(
+              onRefresh: _load,
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                      children: [
+                        _buildAssignmentSection(),
+                        const SizedBox(height: 24),
+                        _buildClassesSection(_subjects),
+                        const SizedBox(height: 24),
+                        _buildCalendarWidget(),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+            ),
+          ),
+          const ProfessorFloatingNavBar(currentIndex: 2),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAssignmentSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Assignment',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.authPrimary,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F5F5),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.black.withOpacity(0.05)),
+          ),
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            children: [
+              // Header Row
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                child: Row(
+                  children: const [
+                    Expanded(flex: 3, child: Text('Class', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF1D4E8F)))),
+                    Expanded(flex: 3, child: Text('Assignment', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF1D4E8F)))),
+                    Expanded(flex: 2, child: Text('Progress', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF1D4E8F)))),
+                    Expanded(flex: 2, child: Text('Due Date', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF1D4E8F)))),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (_dashboardAssignments.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Text(
+                      'No assignments found.',
+                      style: TextStyle(color: Colors.grey, fontSize: 14),
+                    ),
+                  ),
+                )
+              else
+                ..._dashboardAssignments.map((item) {
+                  final ProfessorSubject sub = item['subject'];
+                  final SubjectAssignment a = item['assignment'];
+                  final int subCount = item['submissionCount'];
+                  final int totalStudents = sub.studentCount > 0 ? sub.studentCount : 1;
+                  final double progressVal = subCount / totalStudents;
+                  
+                  final String dueDateStr = a.deadline != null 
+                      ? '${a.deadline!.month.toString().padLeft(2, '0')}/${a.deadline!.day.toString().padLeft(2, '0')}/${a.deadline!.year}'
+                      : 'No Deadline';
+                      
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _buildAssignmentRow(
+                      '${sub.courseCode} ${sub.yearLevel}-${sub.section}',
+                      sub.name,
+                      a.title,
+                      '$subCount/${sub.studentCount}',
+                      progressVal.clamp(0.0, 1.0),
+                      dueDateStr,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AssignmentDetailScreen(
+                              assignment: a,
+                              subjectName: sub.name,
+                              totalStudents: sub.studentCount,
+                            ),
+                          ),
+                        ).then((_) => _load());
+                      },
+                    ),
+                  );
+                }),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAssignmentRow(
+    String classCode,
+    String title,
+    String subtitle,
+    String progressText,
+    double progressValue,
+    String dueDate, {
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFF3F3F3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Text(
+                      classCode,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF2C3E50)),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        progressText,
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87),
+                      ),
+                      const SizedBox(height: 4),
+                      SizedBox(
+                        width: 70,
+                        height: 6,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(3),
+                          child: LinearProgressIndicator(
+                            value: progressValue,
+                            backgroundColor: const Color(0xFFE0E0E0),
+                            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF2ECC71)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    dueDate,
+                    style: const TextStyle(color: Colors.black87, fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildClassesSection(List<ProfessorSubject> subjects) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'My Classes',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.authPrimary,
+          ),
+        ),
+        const SizedBox(height: 10),
+        if (subjects.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text(
+                'No classes assigned.',
+                style: TextStyle(color: Colors.grey, fontSize: 14),
+              ),
+            ),
+          )
+        else
+          Column(
+            children: subjects.map((sub) => _buildClassCard(sub)).toList(),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildClassCard(ProfessorSubject sub) {
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.black.withOpacity(0.05)),
+      ),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => ProfessorSubjectScreen(subject: sub)),
+          ).then((_) => _load());
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: 120,
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '${sub.courseCode} ${sub.yearLevel} - ${sub.section}',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.people_alt, size: 16, color: Color(0xFF1D4E8F)),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${sub.studentCount}',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1D4E8F)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                width: 1,
+                color: Colors.grey.shade300,
+                margin: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                  alignment: Alignment.center,
+                  child: Text(
+                    sub.name,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCalendarWidget() {
+    final String monthName = _getMonthName(_calendarDate.month);
+    final String yearString = _calendarDate.year.toString();
+
+    // Get number of days in month
+    final int daysInMonth = DateTime(_calendarDate.year, _calendarDate.month + 1, 0).day;
+    // Get day of the week for first day of month (1 = Monday, 7 = Sunday)
+    final int firstWeekday = DateTime(_calendarDate.year, _calendarDate.month, 1).weekday;
+    final int offset = firstWeekday == 7 ? 0 : firstWeekday; // Adjust so Sunday is 0
+
+    // Get event days dynamically from assignments plus custom reminders
+    final Set<int> dynamicEventDays = {};
+    for (final item in _dashboardAssignments) {
+      final a = item['assignment'] as SubjectAssignment;
+      if (a.deadline != null && a.deadline!.year == _calendarDate.year && a.deadline!.month == _calendarDate.month) {
+        dynamicEventDays.add(a.deadline!.day);
+      }
+    }
+    _customReminders.forEach((dateKey, reminders) {
+      if (reminders.isNotEmpty) {
+        final parts = dateKey.split('-');
+        if (parts.length == 3) {
+          final yr = int.tryParse(parts[0]);
+          final mo = int.tryParse(parts[1]);
+          final dy = int.tryParse(parts[2]);
+          if (yr == _calendarDate.year && mo == _calendarDate.month && dy != null) {
+            dynamicEventDays.add(dy);
+          }
+        }
+      }
+    });
+
+    final DateTime now = DateTime.now();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        border: Border.all(color: const Color(0xFFF3F3F3)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left_rounded, color: Colors.black87, size: 24),
+                  onPressed: () {
+                    setState(() {
+                      _calendarDate = DateTime(_calendarDate.year, _calendarDate.month - 1, 1);
+                    });
+                  },
+                ),
+                Row(
+                  children: [
+                    PopupMenuButton<int>(
+                      tooltip: 'Select Month',
+                      initialValue: _calendarDate.month,
+                      onSelected: (int selectedMonth) {
+                        setState(() {
+                          _calendarDate = DateTime(_calendarDate.year, selectedMonth, 1);
+                        });
+                      },
+                      itemBuilder: (BuildContext context) {
+                        const monthsList = [
+                          'January', 'February', 'March', 'April', 'May', 'June',
+                          'July', 'August', 'September', 'October', 'November', 'December'
+                        ];
+                        return List.generate(12, (index) {
+                          return PopupMenuItem<int>(
+                            value: index + 1,
+                            child: Text(monthsList[index]),
+                          );
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5F5F7),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              monthName,
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Colors.black54),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    PopupMenuButton<int>(
+                      tooltip: 'Select Year',
+                      initialValue: _calendarDate.year,
+                      onSelected: (int selectedYear) {
+                        setState(() {
+                          _calendarDate = DateTime(selectedYear, _calendarDate.month, 1);
+                        });
+                      },
+                      itemBuilder: (BuildContext context) {
+                        final currentYear = DateTime.now().year;
+                        return List.generate(11, (index) {
+                          final yr = (currentYear - 5) + index;
+                          return PopupMenuItem<int>(
+                            value: yr,
+                            child: Text(yr.toString()),
+                          );
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5F5F7),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              yearString,
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Colors.black54),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right_rounded, color: Colors.black87, size: 24),
+                  onPressed: () {
+                    setState(() {
+                      _calendarDate = DateTime(_calendarDate.year, _calendarDate.month + 1, 1);
+                    });
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _DayName('Su'),
+                _DayName('Mo'),
+                _DayName('Tu'),
+                _DayName('We'),
+                _DayName('Th'),
+                _DayName('Fr'),
+                _DayName('Sa'),
+              ],
+            ),
+            const SizedBox(height: 12),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: 42,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 7,
+                mainAxisSpacing: 6,
+                crossAxisSpacing: 6,
+              ),
+              itemBuilder: (context, index) {
+                final int dayNumber = index - offset + 1;
+                if (dayNumber <= 0) {
+                  return const SizedBox.shrink();
+                }
+
+                final bool isSelected = _selectedDate != null &&
+                    _selectedDate!.year == _calendarDate.year &&
+                    _selectedDate!.month == _calendarDate.month &&
+                    _selectedDate!.day == dayNumber;
+
+                final bool isEvent = dynamicEventDays.contains(dayNumber);
+                final bool isToday = now.year == _calendarDate.year &&
+                    now.month == _calendarDate.month &&
+                    now.day == dayNumber;
+
+                if (dayNumber > daysInMonth) {
+                  final nextMonthDay = dayNumber - daysInMonth;
+                  return Center(
+                    child: Text(
+                      nextMonthDay.toString(),
+                      style: const TextStyle(
+                        color: Colors.black26,
+                        fontSize: 13,
+                      ),
+                    ),
+                  );
+                }
+
+                return InkWell(
+                  onTap: () {
+                    setState(() {
+                      if (isSelected) {
+                        _selectedDate = null;
+                      } else {
+                        _selectedDate = DateTime(_calendarDate.year, _calendarDate.month, dayNumber);
+                      }
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.authPrimary
+                          : isEvent
+                              ? AppColors.authPrimary.withOpacity(0.08)
+                              : Colors.transparent,
+                      shape: BoxShape.circle,
+                      border: isToday && !isSelected
+                          ? Border.all(color: AppColors.authPrimary, width: 1.5)
+                          : null,
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: AppColors.authPrimary.withOpacity(0.25),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              )
+                            ]
+                          : null,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          dayNumber.toString(),
+                          style: TextStyle(
+                            color: isSelected
+                                ? Colors.white
+                                : isEvent
+                                    ? AppColors.authPrimary
+                                    : Colors.black87,
+                            fontWeight: (isSelected || isEvent || isToday) ? FontWeight.bold : FontWeight.normal,
+                            fontSize: 13,
+                          ),
+                        ),
+                        if (isEvent) ...[
+                          const SizedBox(height: 2),
+                          Container(
+                            width: 4,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: isSelected ? Colors.white : AppColors.authPrimary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ] else
+                          const SizedBox(height: 6),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+            if (_selectedDate != null) ...[
+              const Divider(height: 40, thickness: 1, color: Color(0xFFF1F1F1)),
+              _buildSelectedDateEvents(),
+            ],
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectedDateEvents() {
+    if (_selectedDate == null) return const SizedBox.shrink();
+
+    final dateStr = '${_getMonthName(_selectedDate!.month)} ${_selectedDate!.day}, ${_selectedDate!.year}';
+    final dateKey = '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
+    
+    // Filter real assignments
+    final List<Map<String, dynamic>> dueAssignments = _dashboardAssignments.where((item) {
+      final a = item['assignment'] as SubjectAssignment;
+      if (a.deadline == null) return false;
+      return a.deadline!.year == _selectedDate!.year &&
+          a.deadline!.month == _selectedDate!.month &&
+          a.deadline!.day == _selectedDate!.day;
+    }).toList();
+
+    final List<Map<String, String>> reminders = _customReminders[dateKey] ?? [];
+
+    final hasContent = dueAssignments.isNotEmpty || reminders.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                'Schedule for $dateStr',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1D4E8F),
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.alarm_add_rounded, color: AppColors.authPrimary, size: 22),
+              tooltip: 'Add Reminder',
+              onPressed: () => _showAddReminderDialog(_selectedDate!),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (!hasContent)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                Icon(Icons.event_note_rounded, color: Colors.black26, size: 20),
+                SizedBox(width: 8),
+                Text(
+                  'No events or reminders scheduled.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.black45,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
+          )
+        else ...[
+          // Render custom reminders
+          ...reminders.asMap().entries.map((entry) {
+            final idx = entry.key;
+            final rem = entry.value;
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              color: const Color(0xFFFFFDE7),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.amber.withOpacity(0.3)),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.alarm_on_rounded, color: Colors.amber, size: 20),
+                ),
+                title: Text(
+                  rem['title']!,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.brown),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 2),
+                    Text(
+                      'Time: ${rem['time']!}',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.amber),
+                    ),
+                    if (rem['description'] != null && rem['description']!.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        rem['description']!,
+                        style: const TextStyle(fontSize: 11, color: Colors.black54),
+                      ),
+                    ],
+                  ],
+                ),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+                  onPressed: () {
+                    setState(() {
+                      _customReminders[dateKey]!.removeAt(idx);
+                    });
+                  },
+                ),
+              ),
+            );
+          }),
+          // Render real assignments due
+          ...dueAssignments.map((item) {
+            final a = item['assignment'] as SubjectAssignment;
+            final sub = item['subject'] as ProfessorSubject;
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              color: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.black.withOpacity(0.05)),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.assignment_late_rounded, color: Colors.red, size: 20),
+                ),
+                title: Text(
+                  a.title,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text(
+                  'Due for Class: ${sub.name} (${sub.courseCode} ${sub.yearLevel}-${sub.section})',
+                  style: const TextStyle(fontSize: 11, color: Colors.black54),
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded, size: 18, color: Colors.black38),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AssignmentDetailScreen(
+                        assignment: a,
+                        subjectName: sub.name,
+                        totalStudents: sub.studentCount,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          }),
+        ],
+      ],
+    );
+  }
+
+  String _getMonthName(int month) {
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    return months[month - 1];
+  }
+}
+
+class _DayName extends StatelessWidget {
+  final String name;
+  const _DayName(this.name);
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isWeekend = name == 'Su' || name == 'Sa';
+    return SizedBox(
+      width: 32,
+      child: Text(
+        name,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: isWeekend ? Colors.redAccent.withOpacity(0.8) : Colors.black54,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
         ),
       ),
     );
