@@ -33,6 +33,7 @@ class AuthService {
     return _client.auth.signInWithOAuth(
       OAuthProvider.google,
       redirectTo: redirectTo,
+      queryParams: {'prompt': 'select_account'},
     );
   }
 

@@ -247,7 +247,23 @@ Widget build(BuildContext context) {
                         SocialLoginButton(
                           label: 'Continue with Google',
                           assetPath: 'assets/images/google.png',
-                          onTap: () {},
+                          onTap: () async {
+                            try {
+                              await _authService.signInWithGoogle();
+                            } catch (error, stackTrace) {
+                              await ErrorTelemetry.captureException(
+                                error,
+                                stackTrace,
+                                operation: 'auth.google_signin',
+                              );
+                              if (!mounted) return;
+                              AppDialog.alert(
+                                context,
+                                title: 'Google Sign-In Failed',
+                                message: 'Unable to sign in with Google. Please try again.',
+                              );
+                            }
+                          },
                         ),
                         
                         // --- NEW CODE START ---
