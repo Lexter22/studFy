@@ -8,12 +8,12 @@ Future<void> main() async {
 
   const supabaseUrl = String.fromEnvironment(
     'SUPABASE_URL',
-    defaultValue: 'https://mkneaeisrwxnbahephay.supabase.co',
+    defaultValue: 'https://zhlrzzhwumcxtstuybdb.supabase.co',
   );
   const supabaseAnonKey = String.fromEnvironment(
     'SUPABASE_ANON_KEY',
     defaultValue:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1rbmVhZWlzcnd4bmJhaGVwaGF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NjYwODIsImV4cCI6MjA5NTU0MjA4Mn0.RMsvnzbqNB1d5KsdJZ61oaRL5RpfDlQVKhm9OpQhpSc',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpobHJ6emh3dW1jeHRzdHV5YmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NjQxNjksImV4cCI6MjA5MjI0MDE2OX0.hk8O5-WU5iXcHPDGXxLr3bBoKj4A9pcjKO2hWsAbt34',
   );
 
   await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
