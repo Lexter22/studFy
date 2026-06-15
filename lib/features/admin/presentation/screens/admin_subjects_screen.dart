@@ -283,7 +283,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
               ),
             ),
           ),
-          const AdminFloatingNavBar(currentIndex: 3),
+          const AdminFloatingNavBar(currentIndex: 4),
         ],
       ),
     );
@@ -548,94 +548,220 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: const [
-              Icon(Icons.add_rounded, color: AppColors.adminPrimary),
-              SizedBox(width: 8),
-              Text('Add New Subject', style: TextStyle(fontWeight: FontWeight.bold)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.adminPrimary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.add_rounded, color: AppColors.adminPrimary, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Add New Subject',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.adminPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Enter the details of the subject offering, year level, and schedule.',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.normal),
+              ),
+              const SizedBox(height: 12),
+              const Divider(height: 1),
             ],
           ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: subjectNameCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Subject Name',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          content: Container(
+            width: 460,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: subjectNameCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'Subject Name',
+                      labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                      floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
+                      prefixIcon: Icon(Icons.book_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      filled: true,
+                      fillColor: const Color(0xFFF8F9FC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: courseCodeCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Course Code (e.g. BSIT)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: courseCodeCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'Course Code (e.g. BSIT)',
+                      labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                      floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
+                      prefixIcon: Icon(Icons.school_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      filled: true,
+                      fillColor: const Color(0xFFF8F9FC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: sectionCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Section (e.g. 2-A)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: sectionCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'Section (e.g. 2-A)',
+                      labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                      floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
+                      prefixIcon: Icon(Icons.class_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      filled: true,
+                      fillColor: const Color(0xFFF8F9FC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: yearLevelCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Year Level (1-4)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: yearLevelCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'Year Level (1-4)',
+                      labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                      floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
+                      prefixIcon: Icon(Icons.format_list_numbered, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      filled: true,
+                      fillColor: const Color(0xFFF8F9FC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
+                      ),
+                    ),
+                    keyboardType: TextInputType.number,
                   ),
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: semesterCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Semester (1 or 2)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: semesterCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'Semester (1 or 2)',
+                      labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                      floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
+                      prefixIcon: Icon(Icons.calendar_today_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      filled: true,
+                      fillColor: const Color(0xFFF8F9FC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
+                      ),
+                    ),
+                    keyboardType: TextInputType.number,
                   ),
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: roomCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Room (Optional)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: roomCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'Room (Optional)',
+                      labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                      floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
+                      prefixIcon: Icon(Icons.meeting_room_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      filled: true,
+                      fillColor: const Color(0xFFF8F9FC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: scheduleCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Schedule (Optional)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: scheduleCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'Schedule (Optional)',
+                      labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                      floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
+                      prefixIcon: Icon(Icons.access_time_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      filled: true,
+                      fillColor: const Color(0xFFF8F9FC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                ],
+              ),
             ),
           ),
           actions: [
             TextButton(
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
               onPressed: isLoading ? null : () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+              child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
             ),
+            const SizedBox(width: 8),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.adminPrimary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: isLoading
                   ? null
@@ -672,8 +798,8 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                       }
                     },
               child: isLoading
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('Create', style: TextStyle(color: Colors.white)),
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                  : const Text('Create Subject', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),

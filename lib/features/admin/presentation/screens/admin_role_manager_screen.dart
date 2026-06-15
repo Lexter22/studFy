@@ -457,7 +457,7 @@ class _AdminRoleManagerScreenState extends State<AdminRoleManagerScreen> with Si
               ),
             ],
           ),
-          const AdminFloatingNavBar(currentIndex: 2),
+          const AdminFloatingNavBar(currentIndex: 1),
         ],
       ),
     );

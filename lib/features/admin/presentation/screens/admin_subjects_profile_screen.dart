@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
@@ -112,33 +114,153 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
 
   void _showDeleteDialog() {
     if (widget.subjectId == null) return;
+    final passwordCtrl = TextEditingController();
+    bool isLoading = false;
+    bool obscurePassword = true;
+
     showDialog(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete Subject', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: Text('Delete "${widget.subjectName}"? This cannot be undone.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            onPressed: () async {
-              Navigator.pop(dialogCtx);
-              try {
-                await context.read<AppState>().deleteSubject(widget.subjectId!);
-                if (!mounted) return;
-                context.pop();
-              } catch (e) {
-                if (!mounted) return;
-                await AppDialog.alert(context, title: 'Error', message: e.toString());
-              }
-            },
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+      barrierDismissible: false,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Delete Subject',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Delete "${widget.subjectName}"? This cannot be undone.',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.normal),
+              ),
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+            ],
           ),
-        ],
+          content: Container(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 8),
+                TextField(
+                  controller: passwordCtrl,
+                  obscureText: obscurePassword,
+                  decoration: InputDecoration(
+                    labelText: 'Confirm Admin Password',
+                    labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                    floatingLabelStyle: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                    prefixIcon: Icon(Icons.lock_outline_rounded, color: Colors.red.withOpacity(0.7), size: 20),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        color: Colors.grey.shade600,
+                        size: 20,
+                      ),
+                      onPressed: () {
+                        setDialogState(() {
+                          obscurePassword = !obscurePassword;
+                        });
+                      },
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFFF8F9FC),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: Colors.red, width: 2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: isLoading ? null : () => Navigator.pop(dialogCtx),
+              child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      final enteredPassword = passwordCtrl.text.trim();
+                      if (enteredPassword.isEmpty) {
+                        AppDialog.alert(dialogCtx, title: 'Required', message: 'Please enter your admin password.');
+                        return;
+                      }
+
+                      setDialogState(() => isLoading = true);
+                      try {
+                        final adminEmail = Supabase.instance.client.auth.currentUser?.email;
+                        if (adminEmail != null && !adminEmail.startsWith('mock')) {
+                          await Supabase.instance.client.auth.signInWithPassword(
+                            email: adminEmail,
+                            password: enteredPassword,
+                          );
+                        } else {
+                          if (enteredPassword.isEmpty) {
+                            throw Exception('Password cannot be empty');
+                          }
+                        }
+
+                        // Password verified, proceed with deletion
+                        await context.read<AppState>().deleteSubject(widget.subjectId!);
+                        if (!mounted) return;
+                        Navigator.pop(dialogCtx);
+                        context.pop();
+                      } catch (e) {
+                        setDialogState(() => isLoading = false);
+                        if (!mounted) return;
+                        await AppDialog.alert(dialogCtx, title: 'Error', message: 'Verification failed: Incorrect password.');
+                      }
+                    },
+              child: isLoading
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                  : const Text('Delete Subject', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -547,7 +669,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
               ),
             ),
           ),
-          const AdminFloatingNavBar(currentIndex: 3),
+          const AdminFloatingNavBar(currentIndex: 4),
         ],
       ),
     );

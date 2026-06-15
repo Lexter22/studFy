@@ -235,38 +235,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         },
                       ),
 
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: ElevatedButton.icon(
-                          onPressed: () =>
-                              context.goNamed(AppRoutes.adminRoleManager),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.adminPrimary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          icon: const Icon(
-                            Icons.manage_accounts,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                          label: const Text(
-                            'Assign User Roles',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
+
                     ],
                   ),
                 ),
-                const AdminFloatingNavBar(currentIndex: 2),
+                const AdminFloatingNavBar(currentIndex: 0),
               ],
             ),
           );

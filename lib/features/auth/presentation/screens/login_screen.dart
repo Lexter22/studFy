@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/models/auth_exception.dart' as app_auth;
 
 import '../../../../core/constants/app_colors.dart';
@@ -36,6 +37,26 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     _emailController.addListener(_validateInputs);
     _passwordController.addListener(_validateInputs);
+    _loadSavedCredentials();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedEmail = prefs.getString('remember_email') ?? '';
+      final savedPassword = prefs.getString('remember_password') ?? '';
+      final savedRememberMe = prefs.getBool('remember_me') ?? false;
+
+      if (savedRememberMe && mounted) {
+        setState(() {
+          _emailController.text = savedEmail;
+          _passwordController.text = savedPassword;
+          _rememberMe = true;
+        });
+      }
+    } catch (e) {
+      // Ignore reading errors
+    }
   }
 
   void _validateInputs() {
@@ -73,6 +94,22 @@ class _LoginScreenState extends State<LoginScreen> {
         context.read<AppState>().logout();
         AppDialog.alert(context, title: 'Access Denied', message: 'No role assigned. Please contact the administrator.');
         return;
+      }
+
+      // Save or clear credentials based on "Remember me" checkbox
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        if (_rememberMe) {
+          await prefs.setString('remember_email', _emailController.text.trim());
+          await prefs.setString('remember_password', _passwordController.text);
+          await prefs.setBool('remember_me', true);
+        } else {
+          await prefs.remove('remember_email');
+          await prefs.remove('remember_password');
+          await prefs.setBool('remember_me', false);
+        }
+      } catch (e) {
+        // Ignore writing errors
       }
 
       context.read<AppState>().login(user);
