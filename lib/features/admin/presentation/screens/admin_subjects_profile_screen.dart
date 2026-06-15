@@ -328,17 +328,35 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                             subtitle: Text(instructor.course, style: const TextStyle(fontSize: 12)),
                             onTap: () async {
                               Navigator.pop(dialogCtx);
-                              try {
-                                await context.read<AppState>().assignProfessorToSubject(
-                                  subjectId: widget.subjectId!,
-                                  profileId: instructor.profileId,
+                              final currentProfessor = _professorNameCtrl.text.trim();
+                              final newProfessor = instructor.name;
+
+                              Future<void> executeAssign() async {
+                                try {
+                                  await context.read<AppState>().assignProfessorToSubject(
+                                    subjectId: widget.subjectId!,
+                                    profileId: instructor.profileId,
+                                  );
+                                  if (!mounted) return;
+                                  setState(() => _professorNameCtrl.text = instructor.name);
+                                  await AppDialog.result(context, type: DialogType.success, message: '${instructor.name} has been assigned as professor.');
+                                } catch (e) {
+                                  if (!mounted) return;
+                                  await AppDialog.alert(context, title: 'Error', message: e.toString());
+                                }
+                              }
+
+                              if (currentProfessor.isNotEmpty && currentProfessor != newProfessor) {
+                                AppDialog.confirm(
+                                  context,
+                                  title: 'Reassign Professor',
+                                  message: 'This subject is currently assigned to $currentProfessor. Are you sure you want to reassign it to $newProfessor?',
+                                  confirmLabel: 'Reassign',
+                                  type: DialogType.warning,
+                                  onConfirm: executeAssign,
                                 );
-                                if (!mounted) return;
-                                setState(() => _professorNameCtrl.text = instructor.name);
-                                await AppDialog.result(context, type: DialogType.success, message: '${instructor.name} has been assigned as professor.');
-                              } catch (e) {
-                                if (!mounted) return;
-                                await AppDialog.alert(context, title: 'Error', message: e.toString());
+                              } else {
+                                await executeAssign();
                               }
                             },
                           );
@@ -522,13 +540,23 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                                   ),
                                   onPressed: () async {
                                     if (isEnrolled) {
-                                      await context.read<AppState>().unenrollStudentFromSubject(
-                                        studentProfileId: student.profileId,
-                                        subjectOfferingId: widget.subjectId!,
+                                      AppDialog.confirm(
+                                        context,
+                                        title: 'Remove Student',
+                                        message: 'Are you sure you want to remove ${student.name} from ${_subjectNameCtrl.text}?',
+                                        confirmLabel: 'Remove',
+                                        type: DialogType.warning,
+                                        onConfirm: () async {
+                                          await context.read<AppState>().unenrollStudentFromSubject(
+                                            studentProfileId: student.profileId,
+                                            subjectOfferingId: widget.subjectId!,
+                                          );
+                                          setDialogState(() {
+                                            _enrolledStudentIds.remove(student.profileId);
+                                          });
+                                          await _loadEnrolledStudents();
+                                        },
                                       );
-                                      setDialogState(() {
-                                        _enrolledStudentIds.remove(student.profileId);
-                                      });
                                     } else {
                                       await context.read<AppState>().enrollStudentInSubject(
                                         studentProfileId: student.profileId,
@@ -537,8 +565,8 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                                       setDialogState(() {
                                         _enrolledStudentIds.add(student.profileId);
                                       });
+                                      await _loadEnrolledStudents();
                                     }
-                                    await _loadEnrolledStudents();
                                   },
                                 ),
                               );
