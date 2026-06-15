@@ -405,6 +405,23 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                               initialDate: deadline ?? DateTime.now().add(const Duration(days: 7)),
                               firstDate: DateTime.now(),
                               lastDate: DateTime.now().add(const Duration(days: 365)),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: AppColors.authPrimary,
+                                      onPrimary: Colors.white,
+                                      onSurface: Colors.black87,
+                                    ),
+                                    textButtonTheme: TextButtonThemeData(
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: AppColors.authPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
                             );
                             if (picked != null) setS(() => deadline = picked);
                           },
@@ -693,6 +710,23 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                         initialDate: DateTime.now().add(const Duration(days: 7)),
                         firstDate: DateTime.now(),
                         lastDate: DateTime.now().add(const Duration(days: 365)),
+                        builder: (context, child) {
+                          return Theme(
+                            data: Theme.of(context).copyWith(
+                              colorScheme: const ColorScheme.light(
+                                primary: AppColors.authPrimary,
+                                onPrimary: Colors.white,
+                                onSurface: Colors.black87,
+                              ),
+                              textButtonTheme: TextButtonThemeData(
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppColors.authPrimary,
+                                ),
+                              ),
+                            ),
+                            child: child!,
+                          );
+                        },
                       );
                       if (picked != null) setS(() => deadline = picked);
                     },
@@ -1501,6 +1535,23 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                       initialDate: announcementDate,
                       firstDate: DateTime.now().subtract(const Duration(days: 365)),
                       lastDate: DateTime.now().add(const Duration(days: 365)),
+                      builder: (context, child) {
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: const ColorScheme.light(
+                              primary: AppColors.authPrimary,
+                              onPrimary: Colors.white,
+                              onSurface: Colors.black87,
+                            ),
+                            textButtonTheme: TextButtonThemeData(
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppColors.authPrimary,
+                              ),
+                            ),
+                          ),
+                          child: child!,
+                        );
+                      },
                     );
                     if (picked != null) {
                       setS(() => announcementDate = picked);
@@ -2445,6 +2496,23 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                               initialDate: deadline ?? DateTime.now().add(const Duration(days: 7)),
                               firstDate: DateTime.now(),
                               lastDate: DateTime.now().add(const Duration(days: 365)),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: AppColors.authPrimary,
+                                      onPrimary: Colors.white,
+                                      onSurface: Colors.black87,
+                                    ),
+                                    textButtonTheme: TextButtonThemeData(
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: AppColors.authPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
                             );
                             if (picked != null) setS(() => deadline = picked);
                           },
