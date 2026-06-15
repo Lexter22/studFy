@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/state/app_state.dart';
@@ -98,6 +99,49 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
   }
 
 
+
+  void _verifyPasswordAndExecute(String actionDescription, Future<void> Function() action) {
+    final user = context.read<AppState>().currentUser;
+    if (user == null) {
+      AppDialog.result(context, type: DialogType.error, message: 'User session not found.');
+      return;
+    }
+
+    AppDialog.password(
+      context,
+      title: 'Confirm Password',
+      message: 'Please enter your password to confirm $actionDescription.',
+      hintText: 'Enter your password',
+      onConfirm: (password) async {
+        try {
+          if (user.email != null && user.email!.toLowerCase() == 'prof@studfy.com') {
+            if (password == 'password123') {
+              await action();
+              return;
+            } else {
+              throw Exception('Invalid password.');
+            }
+          }
+
+          // Verify password with Supabase by signing in again
+          await Supabase.instance.client.auth.signInWithPassword(
+            email: user.email!,
+            password: password,
+          );
+          
+          await action();
+        } catch (e) {
+          if (mounted) {
+            AppDialog.result(
+              context,
+              type: DialogType.error,
+              message: 'Authentication failed: ${e.toString().replaceAll('Exception: ', '')}',
+            );
+          }
+        }
+      },
+    );
+  }
 
   void _showViewStudentsDialog(ProfessorSubject sub) async {
     setState(() => _loading = true);
@@ -254,10 +298,17 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                                                   ),
                                                   TextButton(
                                                     onPressed: () {
-                                                      setS(() {
-                                                        s['name'] = nameCtrl.text;
-                                                      });
-                                                      Navigator.pop(editCtx);
+                                                      AppDialog.confirm(
+                                                        context,
+                                                        title: 'Update Student Name',
+                                                        message: 'Are you sure you want to update this student\'s name to "${nameCtrl.text}"?',
+                                                        onConfirm: () async {
+                                                          setS(() {
+                                                            s['name'] = nameCtrl.text;
+                                                          });
+                                                          Navigator.pop(editCtx);
+                                                        },
+                                                      );
                                                     },
                                                     child: const Text('Save'),
                                                   ),
@@ -270,18 +321,11 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                                           icon: const Icon(Icons.delete_outline, color: Colors.red),
                                           iconSize: 20,
                                           onPressed: () {
-                                            AppDialog.confirm(
-                                              context,
-                                              title: 'Delete Student',
-                                              message: 'Are you sure you want to delete this student?',
-                                              type: DialogType.error,
-                                              confirmLabel: 'Delete',
-                                              onConfirm: () async {
-                                                setS(() {
-                                                  students.removeAt(i);
-                                                });
-                                              },
-                                            );
+                                            _verifyPasswordAndExecute('deleting student "${s['name'] ?? ''}"', () async {
+                                              setS(() {
+                                                students.removeAt(i);
+                                              });
+                                            });
                                           },
                                         ),
                                       ],

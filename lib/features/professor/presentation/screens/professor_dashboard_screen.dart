@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/state/app_state.dart';
+import '../../../../core/widgets/app_dialog.dart';
 import '../../data/repositories/professor_repository.dart';
 import '../../domain/models/professor_subject.dart';
 import '../widgets/professor_floating_nav_bar.dart';
@@ -18,6 +20,49 @@ class ProfessorDashboardScreen extends StatefulWidget {
 
 class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
   final _repo = const ProfessorRepository();
+
+  void _verifyPasswordAndExecute(String actionDescription, Future<void> Function() action) {
+    final user = context.read<AppState>().currentUser;
+    if (user == null) {
+      AppDialog.result(context, type: DialogType.error, message: 'User session not found.');
+      return;
+    }
+
+    AppDialog.password(
+      context,
+      title: 'Confirm Password',
+      message: 'Please enter your password to confirm $actionDescription.',
+      hintText: 'Enter your password',
+      onConfirm: (password) async {
+        try {
+          if (user.email != null && user.email!.toLowerCase() == 'prof@studfy.com') {
+            if (password == 'password123') {
+              await action();
+              return;
+            } else {
+              throw Exception('Invalid password.');
+            }
+          }
+
+          // Verify password with Supabase by signing in again
+          await Supabase.instance.client.auth.signInWithPassword(
+            email: user.email!,
+            password: password,
+          );
+          
+          await action();
+        } catch (e) {
+          if (mounted) {
+            AppDialog.result(
+              context,
+              type: DialogType.error,
+              message: 'Authentication failed: ${e.toString().replaceAll('Exception: ', '')}',
+            );
+          }
+        }
+      },
+    );
+  }
 
   List<ProfessorSubject> _subjects = [];
   List<Map<String, dynamic>> _dashboardAssignments = [];
@@ -959,8 +1004,10 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                 trailing: IconButton(
                   icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
                   onPressed: () {
-                    setState(() {
-                      _customReminders[dateKey]!.removeAt(idx);
+                    _verifyPasswordAndExecute('deleting reminder "${rem['title'] ?? ''}"', () async {
+                      setState(() {
+                        _customReminders[dateKey]!.removeAt(idx);
+                      });
                     });
                   },
                 ),

@@ -1571,16 +1571,10 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
   }
 
   void _confirmDeleteAnnouncement(Map<String, String> ann) {
-    AppDialog.confirm(
-      context,
-      title: 'Delete Announcement',
-      message: 'Are you sure you want to delete this announcement?',
-      type: DialogType.error,
-      onConfirm: () {
-        context.read<AppState>().deleteAnnouncement(ann);
-        AppDialog.result(context, type: DialogType.success, message: 'Announcement deleted successfully.');
-      },
-    );
+    _verifyPasswordAndExecute('deleting announcement "${ann['title'] ?? ''}"', () async {
+      context.read<AppState>().deleteAnnouncement(ann);
+      AppDialog.result(context, type: DialogType.success, message: 'Announcement deleted successfully.');
+    });
   }
 
   Widget _buildProfessorAnnouncementCard(Map<String, String> ann) {
@@ -2153,22 +2147,15 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
 
 
   void _confirmUnenroll(Map<String, String> student) {
-    AppDialog.confirm(
-      context,
-      title: 'Unenroll Student',
-      message: 'Remove ${student['name']} from this subject?',
-      type: DialogType.error,
-      confirmLabel: 'Remove',
-      onConfirm: () async {
-        try {
-          await _repo.unenrollStudent(widget.subject.id, student['profileId']!);
-          await _load();
-          if (mounted) AppDialog.result(context, type: DialogType.success, message: 'Student unenrolled.');
-        } catch (e) {
-          if (mounted) AppDialog.result(context, type: DialogType.error, message: e.toString());
-        }
-      },
-    );
+    _verifyPasswordAndExecute('unenrolling student "${student['name'] ?? ''}"', () async {
+      try {
+        await _repo.unenrollStudent(widget.subject.id, student['profileId']!);
+        await _load();
+        if (mounted) AppDialog.result(context, type: DialogType.success, message: 'Student unenrolled.');
+      } catch (e) {
+        if (mounted) AppDialog.result(context, type: DialogType.error, message: e.toString());
+      }
+    });
   }
 
   // Legacy tab methods removed — content now in _buildModulesContent()
@@ -2570,23 +2557,30 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                     ),
                     const SizedBox(width: 12),
                     ElevatedButton(
-                      onPressed: () async {
+                      onPressed: () {
                         if (titleCtrl.text.trim().isEmpty) return;
-                        Navigator.pop(ctx);
-                        try {
-                          await _repo.updateQuiz(
-                            quizId: quiz.id,
-                            title: titleCtrl.text,
-                            description: descCtrl.text,
-                            deadline: deadline,
-                            moduleId: selectedModuleId,
-                            questions: questions,
-                          );
-                          await _load();
-                          if (mounted) AppDialog.result(context, type: DialogType.success, message: 'Quiz updated.');
-                        } catch (e) {
-                          if (mounted) AppDialog.result(context, type: DialogType.error, message: e.toString());
-                        }
+                        AppDialog.confirm(
+                          context,
+                          title: 'Save Changes',
+                          message: 'Are you sure you want to update this quiz?',
+                          onConfirm: () async {
+                            Navigator.pop(ctx); // Close the edit quiz dialog
+                            try {
+                              await _repo.updateQuiz(
+                                quizId: quiz.id,
+                                title: titleCtrl.text,
+                                description: descCtrl.text,
+                                deadline: deadline,
+                                moduleId: selectedModuleId,
+                                questions: questions,
+                              );
+                              await _load();
+                              if (mounted) AppDialog.result(context, type: DialogType.success, message: 'Quiz updated.');
+                            } catch (e) {
+                              if (mounted) AppDialog.result(context, type: DialogType.error, message: e.toString());
+                            }
+                          },
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.authPrimary,
@@ -2704,15 +2698,9 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
           IconButton(
             icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
             onPressed: () {
-              AppDialog.confirm(
-                context,
-                title: 'Delete Meeting',
-                message: 'Are you sure you want to delete this meeting?',
-                type: DialogType.error,
-                onConfirm: () async {
-                  context.read<AppState>().deleteMeeting(meet['id']);
-                },
-              );
+              _verifyPasswordAndExecute('deleting meeting "${meet['title'] ?? ''}"', () async {
+                context.read<AppState>().deleteMeeting(meet['id']);
+              });
             },
           ),
         ],
