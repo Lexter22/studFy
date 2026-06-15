@@ -275,23 +275,53 @@ class AppState extends ChangeNotifier {
   Future<void> loadAdminData() async {
     try {
       final requests = await _adminRepository.fetchRequests();
+      
       final subjectRequests = requests
           .where(_isSubjectRequest)
           .map(_requestCard)
           .toList();
+      subjectRequests.sort((a, b) {
+        final aName = a['name'] ?? '';
+        final bName = b['name'] ?? '';
+        return aName.toLowerCase().compareTo(bName.toLowerCase());
+      });
+
       final instructorRequests = requests
           .where(_isInstructorRequest)
           .map(_requestCard)
           .toList();
+      instructorRequests.sort((a, b) {
+        final aName = a['name'] ?? '';
+        final bName = b['name'] ?? '';
+        return aName.toLowerCase().compareTo(bName.toLowerCase());
+      });
 
       pendingSubjectRequestsNotifier.value = subjectRequests;
       pendingInstructorRequestsNotifier.value = instructorRequests;
-      subjectOfferingsNotifier.value =
-          await _adminRepository.fetchSubjectOfferings();
-      instructorsNotifier.value = await _adminRepository.fetchInstructors();
-      studentsNotifier.value = await _adminRepository.fetchStudents();
-      enrollmentCodesNotifier.value =
-          await _adminRepository.fetchEnrollmentCodes();
+
+      final offerings = await _adminRepository.fetchSubjectOfferings();
+      offerings.sort((a, b) {
+        final aName = a['name'] ?? '';
+        final bName = b['name'] ?? '';
+        return aName.toLowerCase().compareTo(bName.toLowerCase());
+      });
+      subjectOfferingsNotifier.value = offerings;
+
+      final instructors = await _adminRepository.fetchInstructors();
+      instructors.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      instructorsNotifier.value = instructors;
+
+      final students = await _adminRepository.fetchStudents();
+      students.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      studentsNotifier.value = students;
+
+      final codes = await _adminRepository.fetchEnrollmentCodes();
+      codes.sort((a, b) {
+        final aCode = a['code']?.toString() ?? '';
+        final bCode = b['code']?.toString() ?? '';
+        return aCode.toLowerCase().compareTo(bCode.toLowerCase());
+      });
+      enrollmentCodesNotifier.value = codes;
     } catch (error) {
       debugPrint('Failed to load admin data: $error');
       clearAdminData();
