@@ -126,20 +126,29 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
                   ),
                   onTap: () async {
                     if (isEnrolled) {
-                      await context.read<AppState>().unenrollStudentFromSubject(
-                        studentProfileId: _currentStudent!.profileId,
-                        subjectOfferingId: subject['id']!,
+                      AppDialog.confirm(
+                        context,
+                        title: 'Remove Subject',
+                        message: 'Are you sure you want to remove ${_currentStudent!.name} from ${subject['name']}?',
+                        confirmLabel: 'Remove',
+                        type: DialogType.warning,
+                        onConfirm: () async {
+                          await context.read<AppState>().unenrollStudentFromSubject(
+                            studentProfileId: _currentStudent!.profileId,
+                            subjectOfferingId: subject['id']!,
+                          );
+                          setDialogState(() => _enrolledSubjectIds.remove(subject['id']));
+                          await _loadEnrolledSubjects();
+                        },
                       );
-                      setDialogState(() => _enrolledSubjectIds.remove(subject['id']));
                     } else {
                       await context.read<AppState>().enrollStudentInSubject(
                         studentProfileId: _currentStudent!.profileId,
                         subjectOfferingId: subject['id']!,
                       );
                       setDialogState(() => _enrolledSubjectIds.add(subject['id']!));
+                      await _loadEnrolledSubjects();
                     }
-                    if (!mounted) return;
-                    await _loadEnrolledSubjects();
                   },
                 );
               },
