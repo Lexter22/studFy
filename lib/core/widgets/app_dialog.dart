@@ -17,19 +17,19 @@ class AppDialog {
 
   // ── Design tokens ─────────────────────────────────────────────────────────
 
-  static const double _radius = 20;
-  static const double _iconSize = 52;
+  static const double _radius = 24;
+  static const double _iconSize = 48;
 
   static Color _typeColor(DialogType type) {
     switch (type) {
       case DialogType.success:
-        return const Color(0xFF28A745);
+        return const Color(0xFF10B981); // Premium emerald green
       case DialogType.error:
-        return const Color(0xFFDC3545);
+        return const Color(0xFFEF4444); // Premium rose red
       case DialogType.warning:
-        return const Color(0xFFBDA702);
+        return const Color(0xFFF59E0B); // Premium amber/orange
       case DialogType.info:
-        return AppColors.authPrimary;
+        return AppColors.authPrimary; // Premium royal/indigo blue
     }
   }
 
@@ -66,22 +66,41 @@ class AppDialog {
     return showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFFF8F9FC),
         shape: _shape,
-        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
         title: Row(
           children: [
-            Icon(_typeIcon(type), color: color, size: 22),
-            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(_typeIcon(type), color: color, size: 20),
+            ),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E293B),
+                ),
               ),
             ),
           ],
         ),
-        content: Text(message, style: const TextStyle(fontSize: 14, height: 1.5)),
+        content: Text(
+          message,
+          style: const TextStyle(
+            fontSize: 14,
+            height: 1.5,
+            color: Color(0xFF475569),
+          ),
+        ),
         actions: [
           SizedBox(
             width: double.infinity,
@@ -89,8 +108,8 @@ class AppDialog {
               style: ElevatedButton.styleFrom(
                 backgroundColor: color,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                    borderRadius: BorderRadius.circular(14)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 elevation: 0,
               ),
               onPressed: () {
@@ -127,38 +146,59 @@ class AppDialog {
     return showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFFF8F9FC),
         shape: _shape,
-        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
         title: Row(
           children: [
-            Icon(_typeIcon(type), color: color, size: 22),
-            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(_typeIcon(type), color: color, size: 20),
+            ),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E293B),
+                ),
               ),
             ),
           ],
         ),
-        content: Text(message, style: const TextStyle(fontSize: 14, height: 1.5)),
+        content: Text(
+          message,
+          style: const TextStyle(
+            fontSize: 14,
+            height: 1.5,
+            color: Color(0xFF475569),
+          ),
+        ),
         actions: [
           Row(
             children: [
               Expanded(
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.black26),
+                    side: BorderSide(color: Colors.grey.shade300, width: 1.5),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                        borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor: Colors.white,
+                    elevation: 0,
                   ),
                   onPressed: () => Navigator.pop(ctx),
                   child: Text(
                     cancelLabel,
                     style: const TextStyle(
-                        color: Colors.black54, fontWeight: FontWeight.bold),
+                        color: Color(0xFF64748B), fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -168,8 +208,8 @@ class AppDialog {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: color,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                        borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     elevation: 0,
                   ),
                   onPressed: () {
@@ -206,9 +246,10 @@ class AppDialog {
     return showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFFF8F9FC),
         shape: _shape,
-        contentPadding: const EdgeInsets.fromLTRB(24, 28, 24, 0),
-        actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+        contentPadding: const EdgeInsets.fromLTRB(24, 28, 24, 8),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -226,7 +267,7 @@ class AppDialog {
               message,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.w600, height: 1.4),
+                  fontSize: 15, fontWeight: FontWeight.w600, height: 1.4, color: Color(0xFF1E293B)),
             ),
           ],
         ),
@@ -237,8 +278,8 @@ class AppDialog {
               style: ElevatedButton.styleFrom(
                 backgroundColor: color,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                    borderRadius: BorderRadius.circular(14)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 elevation: 0,
               ),
               onPressed: () {
@@ -279,17 +320,29 @@ class AppDialog {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFFF8F9FC),
         shape: _shape,
-        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
         title: Row(
           children: [
-            Icon(_typeIcon(type), color: color, size: 22),
-            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(_typeIcon(type), color: color, size: 20),
+            ),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E293B),
+                ),
               ),
             ),
           ],
@@ -298,8 +351,14 @@ class AppDialog {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(message,
-                style: const TextStyle(fontSize: 14, height: 1.5)),
+            Text(
+              message,
+              style: const TextStyle(
+                fontSize: 14,
+                height: 1.5,
+                color: Color(0xFF475569),
+              ),
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: controller,
@@ -308,12 +367,20 @@ class AppDialog {
                 hintText: hintText,
                 prefixIcon: const Icon(Icons.lock_outline, size: 20),
                 filled: true,
-                fillColor: Colors.grey.shade100,
+                fillColor: Colors.white,
                 contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16, vertical: 14),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: color, width: 2.0),
                 ),
               ),
             ),
@@ -325,10 +392,12 @@ class AppDialog {
               Expanded(
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.black26),
+                    side: BorderSide(color: Colors.grey.shade300, width: 1.5),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                        borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor: Colors.white,
+                    elevation: 0,
                   ),
                   onPressed: () {
                     controller.dispose();
@@ -337,7 +406,7 @@ class AppDialog {
                   child: Text(
                     cancelLabel,
                     style: const TextStyle(
-                        color: Colors.black54, fontWeight: FontWeight.bold),
+                        color: Color(0xFF64748B), fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -347,8 +416,8 @@ class AppDialog {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: color,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                        borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     elevation: 0,
                   ),
                   onPressed: () async {
