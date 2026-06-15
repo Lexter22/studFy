@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/widgets/app_dialog.dart';
 import '../../../../core/widgets/studfy_header.dart';
 import '../../domain/models/auth_exception.dart';
 import '../../domain/services/auth_service.dart';
@@ -36,16 +37,22 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password reset email sent.')),
+      await AppDialog.result(
+        context,
+        type: DialogType.success,
+        message: 'Password reset email sent successfully.',
       );
-      context.goNamed(AppRoutes.login);
+      if (mounted) {
+        context.goNamed(AppRoutes.login);
+      }
     } on AuthException catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message ?? 'Unable to send reset email.')),
+      await AppDialog.alert(
+        context,
+        title: 'Error',
+        message: error.message ?? 'Unable to send reset email.',
       );
     } finally {
       if (mounted) {

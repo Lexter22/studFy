@@ -479,8 +479,10 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                                         }
                                         await _loadEnrolledStudents();
                                         if (mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('Enrolled all students from $selectedSection')),
+                                          await AppDialog.result(
+                                            context,
+                                            type: DialogType.success,
+                                            message: 'Successfully enrolled all students from $selectedSection!',
                                           );
                                         }
                                       },

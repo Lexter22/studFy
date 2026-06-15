@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
+import '../../../../core/widgets/app_dialog.dart';
 import '../../../../core/widgets/studfy_header.dart';
 import '../../domain/models/auth_exception.dart';
 import '../../domain/services/auth_service.dart';
@@ -26,15 +27,19 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
+      await AppDialog.result(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Verification email sent.')));
+        type: DialogType.success,
+        message: 'Verification email sent successfully.',
+      );
     } on AuthException catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message ?? 'Unable to send email.')),
+      await AppDialog.alert(
+        context,
+        title: 'Error',
+        message: error.message ?? 'Unable to send email.',
       );
     } finally {
       if (mounted) {
@@ -58,15 +63,19 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email is not verified yet.')),
+      await AppDialog.result(
+        context,
+        type: DialogType.info,
+        message: 'Email is not verified yet. Please check your inbox.',
       );
     } on AuthException catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message ?? 'Unable to refresh account.')),
+      await AppDialog.alert(
+        context,
+        title: 'Error',
+        message: error.message ?? 'Unable to refresh account.',
       );
     } finally {
       if (mounted) {
