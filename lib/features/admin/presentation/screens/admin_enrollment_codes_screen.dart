@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthException;
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/state/app_state.dart';
@@ -174,6 +174,10 @@ class AdminEnrollmentCodesScreen extends StatelessWidget {
     );
   }
 }
+
+class _CodeCard extends StatelessWidget {
+  final Map<String, dynamic> code;
+  const _CodeCard({required this.code});
 
   void _showDeleteCodeDialog(BuildContext context) {
     final passwordCtrl = TextEditingController();
