@@ -2856,131 +2856,276 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
     showDialog(
       context: context,
       builder: (dialogCtx) => StatefulBuilder(
-        builder: (context, setS) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text(
-            'Schedule Class Meeting',
-            style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.authPrimary),
-          ),
-          content: SingleChildScrollView(
+        builder: (context, setS) => Dialog(
+          backgroundColor: const Color(0xFFF8F9FC),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: Container(
+            width: 480,
+            padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Meeting Title', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.authPrimary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.video_call_rounded, color: AppColors.authPrimary, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Schedule Class Meeting',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
                 TextField(
                   controller: titleCtrl,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
+                    labelText: 'Meeting Title',
                     hintText: 'e.g., Weekly Consultation',
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text('Platform / Location', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: platformCtrl,
-                  decoration: const InputDecoration(
-                    hintText: 'e.g., Google Meet, Room 402',
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text('Meeting Link (Optional)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: linkCtrl,
-                  decoration: const InputDecoration(
-                    hintText: 'e.g., meet.google.com/xxx-xxxx-xxx',
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: AppColors.authPrimary, width: 2.0),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Date', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black54)),
-                        const SizedBox(height: 4),
-                        OutlinedButton(
-                          onPressed: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: meetingDate,
-                              firstDate: DateTime.now(),
-                              lastDate: DateTime.now().add(const Duration(days: 365)),
-                            );
-                            if (picked != null) {
-                              setS(() => meetingDate = picked);
-                            }
-                          },
-                          child: Text('${meetingDate.month}/${meetingDate.day}/${meetingDate.year}'),
-                        ),
-                      ],
+                TextField(
+                  controller: platformCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Platform / Location',
+                    hintText: 'e.g., Google Meet, Room 402',
+                    labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
                     ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Time', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black54)),
-                        const SizedBox(height: 4),
-                        OutlinedButton(
-                          onPressed: () async {
-                            final picked = await showTimePicker(
-                              context: context,
-                              initialTime: meetingTime,
-                            );
-                            if (picked != null) {
-                              setS(() => meetingTime = picked);
-                            }
-                          },
-                          child: Text(meetingTime.format(context)),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: AppColors.authPrimary, width: 2.0),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: linkCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Meeting Link (Optional)',
+                    hintText: 'e.g., meet.google.com/xxx-xxxx-xxx',
+                    labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: AppColors.authPrimary, width: 2.0),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Date', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF64748B))),
+                          const SizedBox(height: 6),
+                          InkWell(
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: meetingDate,
+                                firstDate: DateTime.now(),
+                                lastDate: DateTime.now().add(const Duration(days: 365)),
+                                builder: (context, child) {
+                                  return Theme(
+                                    data: Theme.of(context).copyWith(
+                                      colorScheme: const ColorScheme.light(
+                                        primary: AppColors.authPrimary,
+                                        onPrimary: Colors.white,
+                                        onSurface: Colors.black87,
+                                      ),
+                                      textButtonTheme: TextButtonThemeData(
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: AppColors.authPrimary,
+                                        ),
+                                      ),
+                                    ),
+                                    child: child!,
+                                  );
+                                },
+                              );
+                              if (picked != null) {
+                                setS(() => meetingDate = picked);
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey.shade200, width: 1.5),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.authPrimary),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '${meetingDate.month}/${meetingDate.day}/${meetingDate.year}',
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Time', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF64748B))),
+                          const SizedBox(height: 6),
+                          InkWell(
+                            onTap: () async {
+                              final picked = await showTimePicker(
+                                context: context,
+                                initialTime: meetingTime,
+                                builder: (context, child) {
+                                  return Theme(
+                                    data: Theme.of(context).copyWith(
+                                      colorScheme: const ColorScheme.light(
+                                        primary: AppColors.authPrimary,
+                                        onPrimary: Colors.white,
+                                        onSurface: Colors.black87,
+                                      ),
+                                      textButtonTheme: TextButtonThemeData(
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: AppColors.authPrimary,
+                                        ),
+                                      ),
+                                    ),
+                                    child: child!,
+                                  );
+                                },
+                              );
+                              if (picked != null) {
+                                setS(() => meetingTime = picked);
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey.shade200, width: 1.5),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.access_time_rounded, size: 16, color: AppColors.authPrimary),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    meetingTime.format(context),
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 28),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          backgroundColor: Colors.white,
+                          elevation: 0,
                         ),
-                      ],
+                        onPressed: () => Navigator.pop(dialogCtx),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.authPrimary,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          elevation: 0,
+                        ),
+                        onPressed: () {
+                          if (titleCtrl.text.trim().isEmpty) {
+                            AppDialog.result(context, type: DialogType.error, message: 'Please enter a meeting title.');
+                            return;
+                          }
+                          final dateStr = '${meetingDate.year}-${meetingDate.month.toString().padLeft(2, '0')}-${meetingDate.day.toString().padLeft(2, '0')}';
+                          final timeStr = meetingTime.format(context);
+
+                          context.read<AppState>().addMeeting(
+                            subject: widget.subject.name,
+                            title: titleCtrl.text.trim(),
+                            platform: platformCtrl.text.trim(),
+                            link: linkCtrl.text.trim(),
+                            date: dateStr,
+                            time: timeStr,
+                          );
+
+                          Navigator.pop(dialogCtx);
+                          AppDialog.result(context, type: DialogType.success, message: 'Meeting scheduled successfully!');
+                        },
+                        child: const Text(
+                          'Schedule',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (titleCtrl.text.trim().isEmpty) {
-                  AppDialog.result(context, type: DialogType.error, message: 'Please enter a meeting title.');
-                  return;
-                }
-                final dateStr = '${meetingDate.year}-${meetingDate.month.toString().padLeft(2, '0')}-${meetingDate.day.toString().padLeft(2, '0')}';
-                final timeStr = meetingTime.format(context);
-
-                context.read<AppState>().addMeeting(
-                  subject: widget.subject.name,
-                  title: titleCtrl.text.trim(),
-                  platform: platformCtrl.text.trim(),
-                  link: linkCtrl.text.trim(),
-                  date: dateStr,
-                  time: timeStr,
-                );
-
-                Navigator.pop(dialogCtx);
-                AppDialog.result(context, type: DialogType.success, message: 'Meeting scheduled successfully!');
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.authPrimary,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Schedule'),
-            ),
-          ],
         ),
       ),
     );

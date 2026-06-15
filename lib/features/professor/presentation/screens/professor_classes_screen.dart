@@ -175,37 +175,50 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
           return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            backgroundColor: const Color(0xFFF9F9F9),
-            titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-            actionsPadding: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            backgroundColor: const Color(0xFFF8F9FC),
+            titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 10),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+            actionsPadding: const EdgeInsets.all(24),
             title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Student List',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                    color: Color(0xFF1565C0),
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.authPrimary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.people_alt_rounded, color: AppColors.authPrimary, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Student List',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 12),
                 Text(
                   '${sub.courseCode} ${sub.yearLevel}-${sub.section}',
                   style: const TextStyle(
                     fontSize: 14,
-                    color: Colors.black87,
-                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF475569),
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Class Code: ${getClassCode(sub.id)}',
                   style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.black87,
+                    fontSize: 13,
+                    color: Color(0xFF64748B),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -215,8 +228,8 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
               width: 480,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200, width: 1.5),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -258,25 +271,22 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                             itemCount: students.length,
                             itemBuilder: (_, i) {
                               final s = students[i];
-                              final pid = s['profileId']!;
-
                               return Container(
-                                color: i % 2 == 0 ? Colors.grey.shade50 : Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                decoration: const BoxDecoration(
+                                  border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+                                ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Expanded(
                                       child: Text(
                                         s['name'] ?? '',
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.black87,
-                                        ),
+                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                                       ),
                                     ),
                                     Row(
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
                                         IconButton(
                                           icon: const Icon(Icons.edit_note, color: Colors.blue),
@@ -285,34 +295,108 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                                             final nameCtrl = TextEditingController(text: s['name']);
                                             showDialog(
                                               context: context,
-                                              builder: (editCtx) => AlertDialog(
-                                                title: const Text('Edit Student Name'),
-                                                content: TextField(
-                                                  controller: nameCtrl,
-                                                  decoration: const InputDecoration(labelText: 'Name'),
+                                              builder: (editCtx) => Dialog(
+                                                backgroundColor: const Color(0xFFF8F9FC),
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                                child: Container(
+                                                  width: 400,
+                                                  padding: const EdgeInsets.all(24),
+                                                  child: Column(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Row(
+                                                        children: [
+                                                          Container(
+                                                            padding: const EdgeInsets.all(8),
+                                                            decoration: BoxDecoration(
+                                                              color: AppColors.authPrimary.withOpacity(0.1),
+                                                              borderRadius: BorderRadius.circular(12),
+                                                            ),
+                                                            child: const Icon(Icons.edit_rounded, color: AppColors.authPrimary, size: 20),
+                                                          ),
+                                                          const SizedBox(width: 12),
+                                                          const Text(
+                                                            'Edit Student Name',
+                                                            style: TextStyle(
+                                                              fontSize: 18,
+                                                              fontWeight: FontWeight.bold,
+                                                              color: Color(0xFF1E293B),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      const SizedBox(height: 20),
+                                                      TextField(
+                                                        controller: nameCtrl,
+                                                        decoration: InputDecoration(
+                                                          labelText: 'Name',
+                                                          labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
+                                                          filled: true,
+                                                          fillColor: Colors.white,
+                                                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                                          enabledBorder: OutlineInputBorder(
+                                                            borderRadius: BorderRadius.circular(14),
+                                                            borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                                                          ),
+                                                          focusedBorder: OutlineInputBorder(
+                                                            borderRadius: BorderRadius.circular(14),
+                                                            borderSide: const BorderSide(color: AppColors.authPrimary, width: 2.0),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 24),
+                                                      Row(
+                                                        children: [
+                                                          Expanded(
+                                                            child: OutlinedButton(
+                                                              style: OutlinedButton.styleFrom(
+                                                                side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                                                backgroundColor: Colors.white,
+                                                                elevation: 0,
+                                                              ),
+                                                              onPressed: () => Navigator.pop(editCtx),
+                                                              child: const Text(
+                                                                'Cancel',
+                                                                style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          const SizedBox(width: 12),
+                                                          Expanded(
+                                                            child: ElevatedButton(
+                                                              style: ElevatedButton.styleFrom(
+                                                                backgroundColor: AppColors.authPrimary,
+                                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                                                elevation: 0,
+                                                              ),
+                                                              onPressed: () {
+                                                                AppDialog.confirm(
+                                                                  context,
+                                                                  title: 'Update Student Name',
+                                                                  message: 'Are you sure you want to update this student\'s name to "${nameCtrl.text}"?',
+                                                                  onConfirm: () async {
+                                                                    setS(() {
+                                                                      s['name'] = nameCtrl.text;
+                                                                    });
+                                                                    Navigator.pop(editCtx);
+                                                                  },
+                                                                );
+                                                              },
+                                                              child: const Text(
+                                                                'Save',
+                                                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
-                                                actions: [
-                                                  TextButton(
-                                                    onPressed: () => Navigator.pop(editCtx),
-                                                    child: const Text('Cancel'),
-                                                  ),
-                                                  TextButton(
-                                                    onPressed: () {
-                                                      AppDialog.confirm(
-                                                        context,
-                                                        title: 'Update Student Name',
-                                                        message: 'Are you sure you want to update this student\'s name to "${nameCtrl.text}"?',
-                                                        onConfirm: () async {
-                                                          setS(() {
-                                                            s['name'] = nameCtrl.text;
-                                                          });
-                                                          Navigator.pop(editCtx);
-                                                        },
-                                                      );
-                                                    },
-                                                    child: const Text('Save'),
-                                                  ),
-                                                ],
                                               ),
                                             );
                                           },
@@ -340,9 +424,19 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
               ),
             ),
             actions: [
-              TextButton(
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  backgroundColor: Colors.white,
+                  elevation: 0,
+                ),
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Close'),
+                child: const Text(
+                  'Close',
+                  style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           );
@@ -519,32 +613,45 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
           }
 
           return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            backgroundColor: const Color(0xFFF9F9F9),
-            titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-            actionsPadding: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            backgroundColor: const Color(0xFFF8F9FC),
+            titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 10),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+            actionsPadding: const EdgeInsets.all(24),
             title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Attendance Sheet',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                    color: AppColors.authPrimary,
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.authPrimary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.assignment_turned_in_rounded, color: AppColors.authPrimary, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Attendance Sheet',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 12),
                 Text(
                   '${sub.name} - ${sub.courseCode} ${sub.yearLevel}-${sub.section}',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: Color(0xFF475569),
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   'Date: ${DateTime.now().month}/${DateTime.now().day}/${DateTime.now().year}',
                   style: TextStyle(
@@ -582,8 +689,8 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade200),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade200, width: 1.5),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -615,8 +722,8 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade200),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade200, width: 1.5),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -683,8 +790,8 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade200),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade200, width: 1.5),
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -794,33 +901,64 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
             ),
             actions: [
               if (activeView != 'sheet')
-                TextButton(
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    backgroundColor: Colors.white,
+                    elevation: 0,
+                  ),
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Close'),
+                  child: const Text(
+                    'Close',
+                    style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold),
+                  ),
                 )
               else ...[
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    final presentCount = attendance.values.where((v) => v == 'present').length;
-                    final lateCount = attendance.values.where((v) => v == 'late').length;
-                    final absentCount = attendance.values.where((v) => v == 'absent').length;
-                    AppDialog.result(
-                      context,
-                      type: DialogType.success,
-                      message: 'Attendance submitted!\n$presentCount Present, $lateCount Late, $absentCount Absent.',
-                      buttonLabel: 'Done',
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.authPrimary,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('Submit Attendance'),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        backgroundColor: Colors.white,
+                        elevation: 0,
+                      ),
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.authPrimary,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        elevation: 0,
+                      ),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        final presentCount = attendance.values.where((v) => v == 'present').length;
+                        final lateCount = attendance.values.where((v) => v == 'late').length;
+                        final absentCount = attendance.values.where((v) => v == 'absent').length;
+                        AppDialog.result(
+                          context,
+                          type: DialogType.success,
+                          message: 'Attendance submitted!\n$presentCount Present, $lateCount Late, $absentCount Absent.',
+                          buttonLabel: 'Done',
+                        );
+                      },
+                      child: const Text(
+                        'Submit Attendance',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ],
