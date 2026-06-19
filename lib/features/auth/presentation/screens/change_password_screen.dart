@@ -104,6 +104,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                           borderRadius: BorderRadius.circular(18),
                           borderSide: BorderSide.none,
                         ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(18),
+                          borderSide: const BorderSide(color: Colors.transparent, width: 1.5),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(18),
+                          borderSide: const BorderSide(color: AppColors.authPrimary, width: 1.5),
+                        ),
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscureNew ? Icons.visibility_off_outlined : Icons.visibility_outlined,
@@ -125,6 +133,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(18),
                           borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(18),
+                          borderSide: const BorderSide(color: Colors.transparent, width: 1.5),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(18),
+                          borderSide: const BorderSide(color: AppColors.authPrimary, width: 1.5),
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(

@@ -327,6 +327,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       child: InkWell(
         onTap: () => _showAnnouncementDetail(ann),
         borderRadius: BorderRadius.circular(12),
+        hoverColor: const Color(0xFF0A5C36).withValues(alpha: 0.04),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -465,6 +466,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           );
         },
         borderRadius: BorderRadius.circular(12),
+        hoverColor: const Color(0xFF0A5C36).withValues(alpha: 0.04),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
@@ -708,6 +710,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     });
                   },
                   borderRadius: BorderRadius.circular(20),
+                  hoverColor: const Color(0xFF0A5C36).withValues(alpha: 0.08),
                   child: Center(
                     child: Container(
                       width: 38,

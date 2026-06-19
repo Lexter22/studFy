@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'dart:html' as html;
+import 'package:web/web.dart' as web;
 
 import '../../../../core/state/app_state.dart';
 import '../../data/repositories/student_repository.dart';
@@ -202,6 +202,7 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
                       if (_selectedSubject != null) ...[
                         IconButton(
                           icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF0A5C36), size: 20),
+                          tooltip: 'Back to Courses',
                           onPressed: () {
                             setState(() {
                               _selectedSubject = null;
@@ -261,6 +262,7 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
           child: InkWell(
             onTap: () => _handleSubjectSelect(dbMatch),
             borderRadius: BorderRadius.circular(12),
+            hoverColor: const Color(0xFF0A5C36).withValues(alpha: 0.04),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
               child: Row(
@@ -410,6 +412,7 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
         onTap: onTap,
+        hoverColor: const Color(0xFF0A5C36).withValues(alpha: 0.04),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Row(children: [
@@ -434,7 +437,7 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
   }
 
   void _openUrl(String url) {
-    html.window.open(url, '_blank');
+    web.window.open(url, '_blank');
   }
 
 }

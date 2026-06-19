@@ -287,6 +287,7 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
       child: InkWell(
         onTap: () => _handleAssignmentTap(sub, ass),
         borderRadius: BorderRadius.circular(12),
+        hoverColor: const Color(0xFF0A5C36).withValues(alpha: 0.04),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(

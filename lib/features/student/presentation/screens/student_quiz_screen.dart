@@ -347,6 +347,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
                 });
               },
         borderRadius: BorderRadius.circular(10),
+        hoverColor: const Color(0xFF0A5C36).withValues(alpha: 0.04),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: Text(

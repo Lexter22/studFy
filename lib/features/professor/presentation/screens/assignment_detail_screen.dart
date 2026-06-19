@@ -1,4 +1,4 @@
-import 'dart:html' as html;
+import 'package:web/web.dart' as web;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -242,7 +242,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                           if (widget.assignment.fileUrl != null) ...[
                             const SizedBox(height: 12),
                             InkWell(
-                              onTap: () => html.window.open(widget.assignment.fileUrl!, '_blank'),
+                              onTap: () => web.window.open(widget.assignment.fileUrl!, '_blank'),
                               borderRadius: BorderRadius.circular(8),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -353,7 +353,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                                     IconButton(
                                       icon: const Icon(Icons.download, color: AppColors.authPrimary),
                                       tooltip: 'Download submission',
-                                      onPressed: () => html.window.open(s['file_url'].toString(), '_blank'),
+                                      onPressed: () => web.window.open(s['file_url'].toString(), '_blank'),
                                     )
                                   else
                                     const Padding(
