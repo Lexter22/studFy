@@ -233,63 +233,148 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(
-            'Assign Subject to ${widget.instructor.name}',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          content: SizedBox(
-            width: 450,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: subjects.length,
-              itemBuilder: (_, index) {
-                final subject = subjects[index];
-                final isAssigned = _assignedSubjects.any((s) => s['id'] == subject['id']);
-                return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  leading: CircleAvatar(
-                    backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
-                    child: const Icon(Icons.book_rounded, color: AppColors.adminPrimary, size: 18),
-                  ),
-                  title: Text(subject['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  subtitle: Text('${subject['course'] ?? ''} ${subject['section'] ?? ''}'),
-                  trailing: Icon(
-                    isAssigned ? Icons.check_circle : Icons.add_circle_outline,
-                    color: isAssigned ? Colors.green : Colors.grey,
-                  ),
-                  onTap: isAssigned ? null : () async {
-                    Navigator.pop(ctx);
-                    try {
-                      await context.read<AppState>().assignProfessorToSubject(
-                        subjectId: subject['id']!,
-                        profileId: widget.instructor.profileId,
+        builder: (ctx, setDialogState) => Dialog(
+          backgroundColor: const Color(0xFFF8F9FC),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: Container(
+            width: 500,
+            height: 550,
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.adminPrimary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.bookmark_outline_rounded, color: AppColors.adminPrimary, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Assign Subject to ${widget.instructor.name}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Divider(height: 1),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: subjects.length,
+                    itemBuilder: (_, index) {
+                      final subject = subjects[index];
+                      final isAssigned = _assignedSubjects.any((s) => s['id'] == subject['id']);
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          leading: CircleAvatar(
+                            backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                            child: const Icon(Icons.book_rounded, color: AppColors.adminPrimary, size: 18),
+                          ),
+                          title: Text(subject['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B))),
+                          subtitle: Text('${subject['course'] ?? ''} ${subject['section'] ?? ''}', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                          trailing: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isAssigned
+                                  ? const Color(0xFFE8F5E9)
+                                  : AppColors.adminPrimary.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isAssigned
+                                    ? Colors.green.shade200
+                                    : AppColors.adminPrimary.withOpacity(0.2),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isAssigned ? Icons.check_circle_rounded : Icons.add_circle_rounded,
+                                  color: isAssigned ? Colors.green.shade700 : AppColors.adminPrimary,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  isAssigned ? 'Assigned' : 'Assign',
+                                  style: TextStyle(
+                                    color: isAssigned ? Colors.green.shade700 : AppColors.adminPrimary,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          onTap: isAssigned ? null : () async {
+                            Navigator.pop(ctx);
+                            try {
+                              await context.read<AppState>().assignProfessorToSubject(
+                                subjectId: subject['id']!,
+                                profileId: widget.instructor.profileId,
+                              );
+                              if (!mounted) return;
+                              // Reload subjects from updated AppState
+                              final updated = context.read<AppState>().subjectOfferings;
+                              setState(() {
+                                _assignedSubjects = updated
+                                    .where((s) => s['professor'] == _nameCtrl.text.trim())
+                                    .toList();
+                              });
+                              await AppDialog.result(context, type: DialogType.success, message: 'Subject assigned successfully.');
+                            } catch (e) {
+                              if (!mounted) return;
+                              await AppDialog.result(context, type: DialogType.error, message: e.toString());
+                            }
+                          },
+                        ),
                       );
-                      if (!mounted) return;
-                      // Reload subjects from updated AppState
-                      final updated = context.read<AppState>().subjectOfferings;
-                      setState(() {
-                        _assignedSubjects = updated
-                            .where((s) => s['professor'] == _nameCtrl.text.trim())
-                            .toList();
-                      });
-                      await AppDialog.result(context, type: DialogType.success, message: 'Subject assigned successfully.');
-                    } catch (e) {
-                      if (!mounted) return;
-                      await AppDialog.result(context, type: DialogType.error, message: e.toString());
-                    }
-                  },
-                );
-              },
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        backgroundColor: Colors.white,
+                        elevation: 0,
+                      ),
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text(
+                        'Close',
+                        style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Close', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-            ),
-          ],
         ),
       ),
     );

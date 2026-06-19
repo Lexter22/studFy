@@ -90,76 +90,153 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
     showDialog(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: [
-              const Icon(Icons.bookmark_outline_rounded, color: AppColors.adminPrimary),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Manage Subjects for ${_currentStudent!.name}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        builder: (dialogContext, setDialogState) => Dialog(
+          backgroundColor: const Color(0xFFF8F9FC),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: Container(
+            width: 500,
+            height: 550,
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.adminPrimary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.bookmark_outline_rounded, color: AppColors.adminPrimary, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Manage Subjects for ${_currentStudent!.name}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
-          content: SizedBox(
-            width: 450,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: allSubjects.length,
-              itemBuilder: (ctx, index) {
-                final subject = allSubjects[index];
-                final isEnrolled = _enrolledSubjectIds.contains(subject['id']);
-                return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  leading: CircleAvatar(
-                    backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
-                    child: const Icon(Icons.book_rounded, color: AppColors.adminPrimary, size: 18),
-                  ),
-                  title: Text(subject['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  subtitle: Text('${subject['course']} ${subject['section']} · ${subject['professor']}', style: const TextStyle(fontSize: 11)),
-                  trailing: Icon(
-                    isEnrolled ? Icons.check_circle : Icons.add_circle_outline,
-                    color: isEnrolled ? Colors.green : Colors.grey,
-                  ),
-                  onTap: () async {
-                    if (isEnrolled) {
-                      AppDialog.confirm(
-                        context,
-                        title: 'Remove Subject',
-                        message: 'Are you sure you want to remove ${_currentStudent!.name} from ${subject['name']}?',
-                        confirmLabel: 'Remove',
-                        type: DialogType.warning,
-                        onConfirm: () async {
-                          await context.read<AppState>().unenrollStudentFromSubject(
-                            studentProfileId: _currentStudent!.profileId,
-                            subjectOfferingId: subject['id']!,
-                          );
-                          setDialogState(() => _enrolledSubjectIds.remove(subject['id']));
-                          await _loadEnrolledSubjects();
-                        },
+                const SizedBox(height: 16),
+                const Divider(height: 1),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: allSubjects.length,
+                    itemBuilder: (ctx, index) {
+                      final subject = allSubjects[index];
+                      final isEnrolled = _enrolledSubjectIds.contains(subject['id']);
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          leading: CircleAvatar(
+                            backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                            child: const Icon(Icons.book_rounded, color: AppColors.adminPrimary, size: 18),
+                          ),
+                          title: Text(subject['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B))),
+                          subtitle: Text('${subject['course']} ${subject['section']} · ${subject['professor']}', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                          trailing: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isEnrolled
+                                  ? const Color(0xFFE8F5E9)
+                                  : AppColors.adminPrimary.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isEnrolled
+                                    ? Colors.green.shade200
+                                    : AppColors.adminPrimary.withOpacity(0.2),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isEnrolled ? Icons.check_circle_rounded : Icons.add_circle_rounded,
+                                  color: isEnrolled ? Colors.green.shade700 : AppColors.adminPrimary,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  isEnrolled ? 'Enrolled' : 'Enroll',
+                                  style: TextStyle(
+                                    color: isEnrolled ? Colors.green.shade700 : AppColors.adminPrimary,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          onTap: () async {
+                            if (isEnrolled) {
+                              AppDialog.confirm(
+                                context,
+                                title: 'Remove Subject',
+                                message: 'Are you sure you want to remove ${_currentStudent!.name} from ${subject['name']}?',
+                                confirmLabel: 'Remove',
+                                type: DialogType.warning,
+                                onConfirm: () async {
+                                  await context.read<AppState>().unenrollStudentFromSubject(
+                                    studentProfileId: _currentStudent!.profileId,
+                                    subjectOfferingId: subject['id']!,
+                                  );
+                                  setDialogState(() => _enrolledSubjectIds.remove(subject['id']));
+                                  await _loadEnrolledSubjects();
+                                },
+                              );
+                            } else {
+                              await context.read<AppState>().enrollStudentInSubject(
+                                studentProfileId: _currentStudent!.profileId,
+                                subjectOfferingId: subject['id']!,
+                              );
+                              setDialogState(() => _enrolledSubjectIds.add(subject['id']!));
+                              await _loadEnrolledSubjects();
+                            }
+                          },
+                        ),
                       );
-                    } else {
-                      await context.read<AppState>().enrollStudentInSubject(
-                        studentProfileId: _currentStudent!.profileId,
-                        subjectOfferingId: subject['id']!,
-                      );
-                      setDialogState(() => _enrolledSubjectIds.add(subject['id']!));
-                      await _loadEnrolledSubjects();
-                    }
-                  },
-                );
-              },
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        backgroundColor: Colors.white,
+                        elevation: 0,
+                      ),
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: const Text(
+                        'Close',
+                        style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Close', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-            ),
-          ],
         ),
       ),
     );
