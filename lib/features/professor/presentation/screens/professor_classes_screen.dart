@@ -285,134 +285,20 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                                         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                                       ),
                                     ),
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.edit_note, color: Colors.blue),
-                                          iconSize: 20,
-                                          onPressed: () {
-                                            final nameCtrl = TextEditingController(text: s['name']);
-                                            showDialog(
-                                              context: context,
-                                              builder: (editCtx) => Dialog(
-                                                backgroundColor: const Color(0xFFF8F9FC),
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                                                child: Container(
-                                                  width: 400,
-                                                  padding: const EdgeInsets.all(24),
-                                                  child: Column(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                      Row(
-                                                        children: [
-                                                          Container(
-                                                            padding: const EdgeInsets.all(8),
-                                                            decoration: BoxDecoration(
-                                                              color: AppColors.authPrimary.withOpacity(0.1),
-                                                              borderRadius: BorderRadius.circular(12),
-                                                            ),
-                                                            child: const Icon(Icons.edit_rounded, color: AppColors.authPrimary, size: 20),
-                                                          ),
-                                                          const SizedBox(width: 12),
-                                                          const Text(
-                                                            'Edit Student Name',
-                                                            style: TextStyle(
-                                                              fontSize: 18,
-                                                              fontWeight: FontWeight.bold,
-                                                              color: Color(0xFF1E293B),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                      const SizedBox(height: 20),
-                                                      TextField(
-                                                        controller: nameCtrl,
-                                                        decoration: InputDecoration(
-                                                          labelText: 'Name',
-                                                          labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
-                                                          filled: true,
-                                                          fillColor: Colors.white,
-                                                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                                          enabledBorder: OutlineInputBorder(
-                                                            borderRadius: BorderRadius.circular(14),
-                                                            borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
-                                                          ),
-                                                          focusedBorder: OutlineInputBorder(
-                                                            borderRadius: BorderRadius.circular(14),
-                                                            borderSide: const BorderSide(color: AppColors.authPrimary, width: 2.0),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      const SizedBox(height: 24),
-                                                      Row(
-                                                        children: [
-                                                          Expanded(
-                                                            child: OutlinedButton(
-                                                              style: OutlinedButton.styleFrom(
-                                                                side: BorderSide(color: Colors.grey.shade300, width: 1.5),
-                                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                                                backgroundColor: Colors.white,
-                                                                elevation: 0,
-                                                              ),
-                                                              onPressed: () => Navigator.pop(editCtx),
-                                                              child: const Text(
-                                                                'Cancel',
-                                                                style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          const SizedBox(width: 12),
-                                                          Expanded(
-                                                            child: ElevatedButton(
-                                                              style: ElevatedButton.styleFrom(
-                                                                backgroundColor: AppColors.authPrimary,
-                                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                                                elevation: 0,
-                                                              ),
-                                                              onPressed: () {
-                                                                AppDialog.confirm(
-                                                                  context,
-                                                                  title: 'Update Student Name',
-                                                                  message: 'Are you sure you want to update this student\'s name to "${nameCtrl.text}"?',
-                                                                  onConfirm: () async {
-                                                                    setS(() {
-                                                                      s['name'] = nameCtrl.text;
-                                                                    });
-                                                                    Navigator.pop(editCtx);
-                                                                  },
-                                                                );
-                                                              },
-                                                              child: const Text(
-                                                                'Save',
-                                                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                          iconSize: 20,
-                                          onPressed: () {
-                                            _verifyPasswordAndExecute('deleting student "${s['name'] ?? ''}"', () async {
-                                              setS(() {
-                                                students.removeAt(i);
-                                              });
-                                            });
-                                          },
-                                        ),
-                                      ],
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                      iconSize: 20,
+                                      onPressed: () {
+                                        _verifyPasswordAndExecute('un-enrolling student "${s['name'] ?? ''}"', () async {
+                                          await _repo.unenrollStudent(sub.id, s['profileId']!);
+                                          setS(() {
+                                            students.removeAt(i);
+                                          });
+                                          setState(() {
+                                            sub.studentCount = students.length;
+                                          });
+                                        });
+                                      },
                                     ),
                                   ],
                                 ),

@@ -6,9 +6,9 @@ class ProfessorSubject {
   final int yearLevel;
   final String? scheduleLabel;
   final String? room;
-  final int studentCount;
+  int studentCount;
 
-  const ProfessorSubject({
+  ProfessorSubject({
     required this.id,
     required this.name,
     required this.courseCode,
