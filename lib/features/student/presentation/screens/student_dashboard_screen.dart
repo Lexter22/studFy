@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
 import '../../data/repositories/student_repository.dart';
 import '../../domain/models/student_subject.dart';
@@ -455,43 +457,53 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         borderRadius: BorderRadius.circular(12),
         side: const BorderSide(color: Color(0xFFEEEEEE)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0A5C36).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: () {
+          context.goNamed(
+            AppRoutes.studentModules,
+            queryParameters: {'subjectId': sub.id},
+          );
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0A5C36).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.book_rounded, color: Color(0xFF0A5C36), size: 24),
               ),
-              child: const Icon(Icons.book_rounded, color: const Color(0xFF0A5C36), size: 24),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    sub.name,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      sub.name,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    sub.professorName,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.black54,
+                    const SizedBox(height: 4),
+                    Text(
+                      sub.professorName,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black54,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+              const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+            ],
+          ),
         ),
       ),
     );
@@ -696,55 +708,59 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     });
                   },
                   borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? const Color(0xFF0A5C36)
-                          : isEvent
-                              ? const Color(0xFF0A5C36).withOpacity(0.08)
-                              : Colors.transparent,
-                      shape: BoxShape.circle,
-                      border: isToday && !isSelected
-                          ? Border.all(color: const Color(0xFF0A5C36), width: 1.5)
-                          : null,
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: const Color(0xFF0A5C36).withOpacity(0.25),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              )
-                            ]
-                          : null,
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          dayNumber.toString(),
-                          style: TextStyle(
-                            color: isSelected
-                                ? Colors.white
-                                : isEvent
-                                    ? const Color(0xFF0A5C36)
-                                    : Colors.black87,
-                            fontWeight: (isSelected || isEvent || isToday) ? FontWeight.bold : FontWeight.normal,
-                            fontSize: 13,
-                          ),
-                        ),
-                        if (isEvent) ...[
-                          const SizedBox(height: 2),
-                          Container(
-                            width: 4,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: isSelected ? Colors.white : const Color(0xFF0A5C36),
-                              shape: BoxShape.circle,
+                  child: Center(
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? const Color(0xFF0A5C36)
+                            : isEvent
+                                ? const Color(0xFF0A5C36).withOpacity(0.08)
+                                : Colors.transparent,
+                        shape: BoxShape.circle,
+                        border: isToday && !isSelected
+                            ? Border.all(color: const Color(0xFF0A5C36), width: 1.5)
+                            : null,
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: const Color(0xFF0A5C36).withOpacity(0.2),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 3),
+                                )
+                              ]
+                            : null,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            dayNumber.toString(),
+                            style: TextStyle(
+                              color: isSelected
+                                  ? Colors.white
+                                  : isEvent
+                                      ? const Color(0xFF0A5C36)
+                                      : Colors.black87,
+                              fontWeight: (isSelected || isEvent || isToday) ? FontWeight.bold : FontWeight.normal,
+                              fontSize: 13,
                             ),
                           ),
-                        ] else
-                          const SizedBox(height: 6),
-                      ],
+                          if (isEvent) ...[
+                            const SizedBox(height: 2),
+                            Container(
+                              width: 4,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: isSelected ? Colors.white : const Color(0xFF0A5C36),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ] else
+                            const SizedBox(height: 6),
+                        ],
+                      ),
                     ),
                   ),
                 );

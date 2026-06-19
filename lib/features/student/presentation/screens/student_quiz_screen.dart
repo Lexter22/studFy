@@ -84,7 +84,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF9F9FC),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(90),
         child: AppBar(
@@ -136,9 +136,14 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: _showResult && !_isReviewing
-                      ? _buildResultScreen()
-                      : _buildQuizContent(),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: _showResult
+                        ? (_isReviewing
+                            ? _buildReviewScreen(key: const ValueKey('review'))
+                            : _buildResultScreen(key: const ValueKey('result')))
+                        : _buildQuizContent(key: const ValueKey('quiz')),
+                  ),
                 ),
               ],
             ),
@@ -149,13 +154,14 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
     );
   }
 
-  Widget _buildQuizContent() {
+  Widget _buildQuizContent({Key? key}) {
     final int questionNum = _currentQuestionIndex + 1;
     final Map<String, dynamic> qData = _questions[_currentQuestionIndex];
     final String questionText = qData['question'];
     final List<String> options = List<String>.from(qData['options']);
 
     return ListView(
+      key: key,
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
       children: [
         const Text(
@@ -228,56 +234,53 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF0A5C36),
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: const Color(0xFF0A5C36).withOpacity(0.4),
+                disabledForegroundColor: Colors.white.withOpacity(0.6),
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              onPressed: () {
-                if (!_isReviewing && _selectedOptionIndex == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please select an option first!')),
-                  );
-                  return;
-                }
+              onPressed: (_isReviewing || _selectedOptionIndex != null)
+                  ? () {
+                      if (_isReviewing) {
+                        // Review flow
+                        if (_currentQuestionIndex < 9) {
+                          setState(() {
+                            _currentQuestionIndex++;
+                            _selectedOptionIndex = _userAnswers[_currentQuestionIndex];
+                          });
+                        } else {
+                          setState(() {
+                            _isReviewing = false;
+                            _showResult = true;
+                          });
+                        }
+                      } else {
+                        // First play flow
+                        _userAnswers[_currentQuestionIndex] = _selectedOptionIndex;
+                        if (_selectedOptionIndex == qData['correctIndex']) {
+                          _score++;
+                        }
 
-                if (_isReviewing) {
-                  // Review flow
-                  if (_currentQuestionIndex < 9) {
-                    setState(() {
-                      _currentQuestionIndex++;
-                      _selectedOptionIndex = _userAnswers[_currentQuestionIndex];
-                    });
-                  } else {
-                    setState(() {
-                      _isReviewing = false;
-                      _showResult = true;
-                    });
-                  }
-                } else {
-                  // First play flow
-                  _userAnswers[_currentQuestionIndex] = _selectedOptionIndex;
-                  if (_selectedOptionIndex == qData['correctIndex']) {
-                    _score++;
-                  }
-
-                  if (_currentQuestionIndex < 9) {
-                    setState(() {
-                      _currentQuestionIndex++;
-                      _selectedOptionIndex = null;
-                    });
-                  } else {
-                    setState(() {
-                      _showResult = true;
-                    });
-                  }
-                }
-              },
+                        if (_currentQuestionIndex < 9) {
+                          setState(() {
+                            _currentQuestionIndex++;
+                            _selectedOptionIndex = null;
+                          });
+                        } else {
+                          setState(() {
+                            _showResult = true;
+                          });
+                        }
+                      }
+                    }
+                  : null,
               child: Text(
                 _currentQuestionIndex == 9 ? (_isReviewing ? 'Finish' : 'Submit') : 'Next',
                 style: const TextStyle(
-                  color: Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
                 ),
@@ -295,9 +298,6 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
     Color textColor = Colors.black87;
 
     if (_isReviewing) {
-      // In review mode:
-      // - Correct answer is always green
-      // - If user selected wrong answer, user selection is highlighted red
       final int? userAns = _userAnswers[_currentQuestionIndex];
       if (index == correctIndex) {
         cardBgColor = const Color(0xFFE2F0D9);
@@ -309,8 +309,6 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
         textColor = Colors.red;
       }
     } else {
-      // In game mode:
-      // - Highlight selection
       final bool isSelected = _selectedOptionIndex == index;
       if (isSelected) {
         cardBgColor = const Color(0xFF0A5C36).withOpacity(0.1);
@@ -319,20 +317,20 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
       }
     }
 
-    // Special match for Screenshot 3 right where 'Manager' is highlighted red
-    // Only if reviewing, and user answered incorrectly
     final bool isManagerIncorrectMatch = _isReviewing && 
         _currentQuestionIndex == 0 && 
         index == 0 && 
-        _userAnswers[0] == 0; // manager selected but incorrect
+        _userAnswers[0] == 0; 
 
     if (isManagerIncorrectMatch) {
-      cardBgColor = const Color(0xFFF87171); // Solid Red matching Screenshot 3
+      cardBgColor = const Color(0xFFF87171); 
       borderColor = Colors.red;
       textColor = Colors.white;
     }
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
       margin: const EdgeInsets.only(bottom: 12),
       width: double.infinity,
       decoration: BoxDecoration(
@@ -364,66 +362,360 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
     );
   }
 
-  Widget _buildResultScreen() {
-    // We mock "9/10 Nice Try!" by default, but let's show the actual user score!
-    // To match screenshot 3 exactly, we say "$_score/10" and "Nice Try!"
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildResultScreen({Key? key}) {
+    final double percentage = (_score / 10.0) * 100;
+    return Container(
+      key: key,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: ListView(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
         children: [
-          Text(
-            '$_score/10',
-            style: const TextStyle(
-              fontSize: 72,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF0A5C36),
-            ),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'Nice Try!',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF0A5C36),
-            ),
-          ),
-          const SizedBox(height: 32),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0A5C36),
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            onPressed: () {
-              setState(() {
-                _isReviewing = true;
-                _currentQuestionIndex = 0;
-                _selectedOptionIndex = _userAnswers[0];
-              });
+          TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeOutBack,
+            builder: (context, value, child) {
+              return Transform.scale(
+                scale: value,
+                child: Opacity(
+                  opacity: value.clamp(0.0, 1.0),
+                  child: child,
+                ),
+              );
             },
-            child: const Text(
-              'Review Quiz',
-              style: TextStyle(
+            child: Container(
+              decoration: BoxDecoration(
                 color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+                border: Border.all(color: Colors.grey.shade100),
               ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Back to Assignments',
-              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TweenAnimationBuilder<double>(
+                    tween: Tween<double>(begin: 0.5, end: 1.0),
+                    duration: const Duration(milliseconds: 600),
+                    curve: Curves.elasticOut,
+                    builder: (context, value, child) {
+                      return Transform.scale(
+                        scale: value,
+                        child: child,
+                      );
+                    },
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0A5C36).withOpacity(0.06),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(0xFF0A5C36).withOpacity(0.12),
+                          width: 4,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            '$_score',
+                            style: const TextStyle(
+                              fontSize: 48,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF0A5C36),
+                            ),
+                          ),
+                          Text(
+                            'of 10',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    _score >= 8
+                        ? 'Outstanding!'
+                        : _score >= 5
+                            ? 'Good Job!'
+                            : 'Nice Try!',
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0A5C36),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'You scored ${percentage.toInt()}% correct answers.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.playlist_add_check_rounded, color: Colors.white),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0A5C36),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isReviewing = true;
+                        });
+                      },
+                      label: const Text(
+                        'Review Quiz',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey.shade700,
+                        side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'Back to Assignments',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildReviewScreen({Key? key}) {
+    return ListView(
+      key: key,
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Quiz Review',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0A5C36),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0A5C36).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                'Score: $_score/10',
+                style: const TextStyle(
+                  color: Color(0xFF0A5C36),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        ...List.generate(_questions.length, (qIndex) {
+          final question = _questions[qIndex];
+          final String questionText = question['question'];
+          final List<String> options = List<String>.from(question['options']);
+          final int correctIndex = question['correctIndex'];
+          final int? userAns = _userAnswers[qIndex];
+          final bool isCorrect = userAns == correctIndex;
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade200),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.02),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Question ${qIndex + 1} of 10',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isCorrect ? Colors.green.shade50 : Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                            color: isCorrect ? Colors.green : Colors.red,
+                            size: 14,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            isCorrect ? 'Correct' : 'Incorrect',
+                            style: TextStyle(
+                              color: isCorrect ? Colors.green : Colors.red,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  questionText,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ...options.asMap().entries.map((optionEntry) {
+                  final int optIndex = optionEntry.key;
+                  final String optText = optionEntry.value;
+
+                  Color cardBgColor = Colors.white;
+                  Color borderColor = const Color(0xFFE0E0E0);
+                  Color textColor = Colors.black87;
+                  Widget? statusIcon;
+
+                  if (optIndex == correctIndex) {
+                    cardBgColor = const Color(0xFFE2F0D9);
+                    borderColor = const Color(0xFF0A5C36);
+                    textColor = const Color(0xFF0A5C36);
+                    statusIcon = const Icon(Icons.check_circle, color: Color(0xFF0A5C36), size: 18);
+                  } else if (userAns == optIndex) {
+                    cardBgColor = const Color(0xFFFCE4D6);
+                    borderColor = Colors.redAccent;
+                    textColor = Colors.red;
+                    statusIcon = const Icon(Icons.cancel, color: Colors.red, size: 18);
+                  }
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: cardBgColor,
+                      border: Border.all(color: borderColor, width: 1.5),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            optText,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: textColor,
+                            ),
+                          ),
+                        ),
+                        if (statusIcon != null) statusIcon,
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ),
+          );
+        }),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0A5C36),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () {
+              setState(() {
+                _isReviewing = false;
+              });
+            },
+            child: const Text(
+              'Back to Results',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

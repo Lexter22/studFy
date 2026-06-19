@@ -44,8 +44,22 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
       for (final sub in subjects) {
         final assignments = await _repo.fetchAssignments(sub.id);
         final filtered = assignments.where((a) => !(a.description ?? '').startsWith('[MATERIAL]')).toList();
-        _subjectAssignments[sub.id] = filtered;
-        for (final ass in filtered) {
+        
+        // Fetch quizzes
+        final quizzes = await _repo.fetchQuizzes(sub.id);
+        final quizAssignments = quizzes.map((q) => SubjectAssignment(
+          id: 'quiz-${q.id}',
+          title: q.title,
+          description: q.description,
+          deadline: q.deadline,
+          moduleId: q.moduleId,
+        )).toList();
+
+
+        final combined = [...filtered, ...quizAssignments];
+        _subjectAssignments[sub.id] = combined;
+
+        for (final ass in combined) {
           final isSubmitted = await _repo.checkSubmission(ass.id);
           _submittedAssignments[ass.id] = isSubmitted;
         }

@@ -923,55 +923,59 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                     });
                   },
                   borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.authPrimary
-                          : isEvent
-                              ? AppColors.authPrimary.withOpacity(0.08)
-                              : Colors.transparent,
-                      shape: BoxShape.circle,
-                      border: isToday && !isSelected
-                          ? Border.all(color: AppColors.authPrimary, width: 1.5)
-                          : null,
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: AppColors.authPrimary.withOpacity(0.25),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              )
-                            ]
-                          : null,
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          dayNumber.toString(),
-                          style: TextStyle(
-                            color: isSelected
-                                ? Colors.white
-                                : isEvent
-                                    ? AppColors.authPrimary
-                                    : Colors.black87,
-                            fontWeight: (isSelected || isEvent || isToday) ? FontWeight.bold : FontWeight.normal,
-                            fontSize: 13,
-                          ),
-                        ),
-                        if (isEvent) ...[
-                          const SizedBox(height: 2),
-                          Container(
-                            width: 4,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: isSelected ? Colors.white : AppColors.authPrimary,
-                              shape: BoxShape.circle,
+                  child: Center(
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.authPrimary
+                            : isEvent
+                                ? AppColors.authPrimary.withOpacity(0.08)
+                                : Colors.transparent,
+                        shape: BoxShape.circle,
+                        border: isToday && !isSelected
+                            ? Border.all(color: AppColors.authPrimary, width: 1.5)
+                            : null,
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: AppColors.authPrimary.withOpacity(0.2),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 3),
+                                )
+                              ]
+                            : null,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            dayNumber.toString(),
+                            style: TextStyle(
+                              color: isSelected
+                                  ? Colors.white
+                                  : isEvent
+                                      ? AppColors.authPrimary
+                                      : Colors.black87,
+                              fontWeight: (isSelected || isEvent || isToday) ? FontWeight.bold : FontWeight.normal,
+                              fontSize: 13,
                             ),
                           ),
-                        ] else
-                          const SizedBox(height: 6),
-                      ],
+                          if (isEvent) ...[
+                            const SizedBox(height: 2),
+                            Container(
+                              width: 4,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: isSelected ? Colors.white : AppColors.authPrimary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ] else
+                            const SizedBox(height: 6),
+                        ],
+                      ),
                     ),
                   ),
                 );

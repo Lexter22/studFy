@@ -44,13 +44,11 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final savedEmail = prefs.getString('remember_email') ?? '';
-      final savedPassword = prefs.getString('remember_password') ?? '';
       final savedRememberMe = prefs.getBool('remember_me') ?? false;
 
       if (savedRememberMe && mounted) {
         setState(() {
           _emailController.text = savedEmail;
-          _passwordController.text = savedPassword;
           _rememberMe = true;
         });
       }
@@ -101,13 +99,13 @@ class _LoginScreenState extends State<LoginScreen> {
         final prefs = await SharedPreferences.getInstance();
         if (_rememberMe) {
           await prefs.setString('remember_email', _emailController.text.trim());
-          await prefs.setString('remember_password', _passwordController.text);
           await prefs.setBool('remember_me', true);
         } else {
           await prefs.remove('remember_email');
-          await prefs.remove('remember_password');
           await prefs.setBool('remember_me', false);
         }
+        // Always clean up remember_password for privacy if present
+        await prefs.remove('remember_password');
       } catch (e) {
         // Ignore writing errors
       }

@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/models/student_subject.dart';
 import '../../../professor/domain/models/professor_subject.dart';
@@ -193,5 +194,12 @@ class StudentRepository {
       'file_url': fileUrl,
       'submitted_at': DateTime.now().toUtc().toIso8601String(),
     });
+  }
+
+  Future<String> uploadSubmissionFile(String assignmentId, String fileName, Uint8List bytes) async {
+    final uid = _client.auth.currentUser?.id ?? 'unknown';
+    final path = 'submissions/$assignmentId/${uid}_${DateTime.now().millisecondsSinceEpoch}_$fileName';
+    await _client.storage.from('assignments').uploadBinary(path, bytes);
+    return _client.storage.from('assignments').getPublicUrl(path);
   }
 }

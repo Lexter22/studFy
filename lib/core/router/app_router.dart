@@ -288,7 +288,10 @@ GoRouter createAppRouter(AppState appState) {
       GoRoute(
         path: '/student/modules',
         name: AppRoutes.studentModules,
-        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const StudentModulesScreen()),
+        pageBuilder: (context, state) {
+          final subjectId = state.uri.queryParameters['subjectId'];
+          return _seamlessPage(state.pageKey, StudentModulesScreen(subjectId: subjectId));
+        },
       ),
     ],
   );

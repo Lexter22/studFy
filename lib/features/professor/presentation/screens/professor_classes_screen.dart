@@ -967,53 +967,47 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                       const SizedBox(height: 12),
 
                       // Dropdown Filters grid
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          return Row(
-                            children: [
-                              Expanded(
-                                child: _buildFilterDropdown<String>(
-                                  label: 'Classname',
-                                  value: _selectedSubject,
-                                  items: subjectNames,
-                                  onChanged: (v) => setState(() {
-                                    _selectedSubject = v;
-                                    _applyFilters();
-                                  }),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _buildFilterDropdown<String>(
-                                  label: 'Course & Section',
-                                  value: _selectedCourseSection,
-                                  items: courseSections,
-                                  onChanged: (v) => setState(() {
-                                    _selectedCourseSection = v;
-                                    _applyFilters();
-                                  }),
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Buttons Row
+                      // Dropdown Filters grid inline
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          ElevatedButton.icon(
-                            onPressed: _applyFilters,
-                            icon: const Icon(Icons.search, size: 16),
-                            label: const Text('Search'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.authPrimary,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(6),
+                          Expanded(
+                            child: _buildFilterDropdown<String>(
+                              label: 'Classname',
+                              value: _selectedSubject,
+                              items: subjectNames,
+                              onChanged: (v) => setState(() {
+                                _selectedSubject = v;
+                                _applyFilters();
+                              }),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildFilterDropdown<String>(
+                              label: 'Course & Section',
+                              value: _selectedCourseSection,
+                              items: courseSections,
+                              onChanged: (v) => setState(() {
+                                _selectedCourseSection = v;
+                                _applyFilters();
+                              }),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            height: 48,
+                            child: ElevatedButton.icon(
+                              onPressed: _applyFilters,
+                              icon: const Icon(Icons.search, size: 16),
+                              label: const Text('Search'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.authPrimary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 0,
                               ),
                             ),
                           ),
@@ -1021,11 +1015,21 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                               _selectedYearLevel != null ||
                               _selectedSubject != null ||
                               _selectedCourseSection != null) ...[
-                            const SizedBox(width: 8),
-                            IconButton(
-                              icon: const Icon(Icons.refresh, color: Colors.grey),
-                              onPressed: _resetFilters,
-                              tooltip: 'Clear Filters',
+                            const SizedBox(width: 6),
+                            SizedBox(
+                              height: 48,
+                              width: 48,
+                              child: IconButton(
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Colors.grey[200],
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.refresh, color: Colors.black87, size: 20),
+                                onPressed: _resetFilters,
+                                tooltip: 'Clear Filters',
+                              ),
                             ),
                           ],
                         ],
@@ -1075,11 +1079,12 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F0F0),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.black.withOpacity(0.08)),
+        color: const Color(0xFFF5F5F7),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.black.withOpacity(0.06)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(

@@ -11,7 +11,8 @@ import 'student_assignment_detail_screen.dart';
 import 'student_quiz_screen.dart';
 
 class StudentModulesScreen extends StatefulWidget {
-  const StudentModulesScreen({super.key});
+  final String? subjectId;
+  const StudentModulesScreen({super.key, this.subjectId});
 
   @override
   State<StudentModulesScreen> createState() => _StudentModulesScreenState();
@@ -42,11 +43,26 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
       final profile = await _repo.fetchStudentProfile();
       final subjects = await _repo.fetchEnrolledSubjects();
       if (!mounted) return;
+
+      StudentSubject? autoSelected;
+      if (widget.subjectId != null) {
+        for (final sub in subjects) {
+          if (sub.id == widget.subjectId) {
+            autoSelected = sub;
+            break;
+          }
+        }
+      }
+
       setState(() {
         _studentProfile = profile;
         _subjects = subjects;
         _loading = false;
       });
+
+      if (autoSelected != null) {
+        _handleSubjectSelect(autoSelected);
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
@@ -76,6 +92,31 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
       }
     } catch (_) {
       if (mounted) setState(() => _loadingModules = false);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant StudentModulesScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.subjectId != oldWidget.subjectId) {
+      if (widget.subjectId == null) {
+        setState(() {
+          _selectedSubject = null;
+        });
+      } else {
+        StudentSubject? match;
+        for (final sub in _subjects) {
+          if (sub.id == widget.subjectId) {
+            match = sub;
+            break;
+          }
+        }
+        if (match != null) {
+          _handleSubjectSelect(match);
+        } else {
+          _loadData();
+        }
+      }
     }
   }
 
@@ -251,11 +292,8 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final hasMaterials = _assignments.any((a) => (a.description ?? '').startsWith('[MATERIAL]'));
-    final hasLegacyFiles = _selectedModules.any((m) => m.fileUrl != null);
-
-    if (_selectedModules.isEmpty && !hasMaterials && !hasLegacyFiles) {
-      return const Center(child: Text('No modules or materials uploaded yet.'));
+    if (_selectedModules.isEmpty) {
+      return const Center(child: Text('No modules uploaded yet.'));
     }
 
     return ListView(
@@ -265,9 +303,11 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
           final i = entry.key;
           final m = entry.value;
           final mMaterials = _assignments.where((a) => a.moduleId == m.id && (a.description ?? '').startsWith('[MATERIAL]')).toList();
+          final mAssignments = _assignments.where((a) => a.moduleId == m.id && !(a.description ?? '').startsWith('[MATERIAL]')).toList();
+          final mQuizzes = _quizzes.where((q) => q.moduleId == m.id).toList();
+
 
           final bool hasLegacyFile = m.fileUrl != null;
-          final bool hasMaterialsList = mMaterials.isNotEmpty;
 
           return Container(
             margin: const EdgeInsets.only(bottom: 16),
@@ -312,32 +352,49 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
                       },
                     )),
 
-                if (!hasLegacyFile && !hasMaterialsList)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      'No materials uploaded yet.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade400,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ),
+                // Assignments
+                ...mAssignments.map((ass) => _buildStudentContentRow(
+                      Icons.assignment_rounded,
+                      ass.title,
+                      'Assignment',
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => StudentAssignmentDetailScreen(
+                              subject: _selectedSubject!,
+                              assignment: ass,
+                            ),
+                          ),
+                        );
+                      },
+                    )),
+
+                // Quizzes
+                ...mQuizzes.map((quiz) => _buildStudentContentRow(
+                      Icons.quiz_rounded,
+                      quiz.title,
+                      'Quiz',
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => StudentQuizScreen(
+                              subject: _selectedSubject!,
+                              assignment: SubjectAssignment(
+                                id: quiz.id,
+                                title: quiz.title,
+                                description: quiz.description,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    )),
               ],
             ),
           );
         }).toList(),
-
-        // Unlinked materials
-        ..._assignments.where((a) => a.moduleId == null && (a.description ?? '').startsWith('[MATERIAL]')).map((mat) => _buildStudentContentRow(
-              Icons.menu_book_rounded,
-              mat.fileName ?? '${mat.title} - Document',
-              'Material',
-              () {
-                if (mat.fileUrl != null) _openUrl(mat.fileUrl!);
-              },
-            )),
       ],
     );
   }
