@@ -170,10 +170,17 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
       return result.toString();
     }
 
+    String searchQuery = '';
+
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
+          final filteredStudents = students.where((s) {
+            final name = s['name']?.toLowerCase() ?? '';
+            return name.contains(searchQuery.toLowerCase());
+          }).toList();
+
           return AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             backgroundColor: const Color(0xFFF8F9FC),
@@ -234,6 +241,34 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Search student...',
+                        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                        prefixIcon: const Icon(Icons.search, size: 20, color: Colors.grey),
+                        isDense: true,
+                        filled: true,
+                        fillColor: const Color(0xFFF8F9FC),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: AppColors.authPrimary, width: 2),
+                        ),
+                      ),
+                      onChanged: (val) {
+                        setS(() {
+                          searchQuery = val;
+                        });
+                      },
+                    ),
+                  ),
+                  const Divider(height: 1, thickness: 1),
                   const Padding(
                     padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
                     child: Row(
@@ -261,16 +296,16 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                   const Divider(height: 1, thickness: 1),
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 350),
-                    child: students.isEmpty
+                    child: filteredStudents.isEmpty
                         ? const Padding(
                             padding: EdgeInsets.symmetric(vertical: 24),
                             child: Center(child: Text('No students found.')),
                           )
                         : ListView.builder(
                             shrinkWrap: true,
-                            itemCount: students.length,
+                            itemCount: filteredStudents.length,
                             itemBuilder: (_, i) {
-                              final s = students[i];
+                              final s = filteredStudents[i];
                               return Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                 decoration: const BoxDecoration(
@@ -292,7 +327,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                                         _verifyPasswordAndExecute('un-enrolling student "${s['name'] ?? ''}"', () async {
                                           await _repo.unenrollStudent(sub.id, s['profileId']!);
                                           setS(() {
-                                            students.removeAt(i);
+                                            students.remove(s);
                                           });
                                           setState(() {
                                             sub.studentCount = students.length;
