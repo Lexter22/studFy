@@ -536,12 +536,134 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
   void _showCreateSubjectDialog() {
     final subjectNameCtrl = TextEditingController();
     final courseCodeCtrl = TextEditingController();
-    final sectionCtrl = TextEditingController();
     final yearLevelCtrl = TextEditingController();
     final semesterCtrl = TextEditingController();
     final roomCtrl = TextEditingController();
     final scheduleCtrl = TextEditingController();
+    
+    // Fetch available sections from current state
+    final appState = context.read<AppState>();
+    final sectionsFromStudents = appState.students.map((s) => s.yearSection).toSet();
+    final sectionsFromOfferings = appState.subjectOfferings.map((s) => s['section'] ?? '').toSet();
+    final sectionsFromCodes = appState.enrollmentCodes.map((c) => c['year_section']?.toString() ?? '').toSet();
+    
+    final List<String> allSections = <String>{
+      ...sectionsFromStudents, 
+      ...sectionsFromOfferings, 
+      ...sectionsFromCodes,
+      '1-1', '1-2', '2-1', '2-2', '3-1', '3-2', '4-1', '4-2'
+    }
+        .where((s) => s.isNotEmpty)
+        .toList()
+      ..sort();
+
+    final List<String> selectedSections = [];
     bool isLoading = false;
+
+    void showMultiSectionSelector(BuildContext parentCtx, void Function(void Function()) setDialogState) {
+      final customSectionCtrl = TextEditingController();
+      showDialog(
+        context: parentCtx,
+        builder: (selectCtx) {
+          return StatefulBuilder(
+            builder: (selectCtx, setSelectState) {
+              return AlertDialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                title: const Text(
+                  'Select Sections',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.adminPrimary),
+                ),
+                content: Container(
+                  width: 320,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: customSectionCtrl,
+                              decoration: InputDecoration(
+                                hintText: 'Add custom section...',
+                                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.add_circle, color: AppColors.adminPrimary),
+                            onPressed: () {
+                              final text = customSectionCtrl.text.trim();
+                              if (text.isNotEmpty) {
+                                setSelectState(() {
+                                  if (!allSections.contains(text)) {
+                                    allSections.add(text);
+                                    allSections.sort();
+                                  }
+                                  if (!selectedSections.contains(text)) {
+                                    selectedSections.add(text);
+                                  }
+                                  customSectionCtrl.clear();
+                                });
+                                setDialogState(() {});
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      const Divider(height: 1),
+                      const SizedBox(height: 8),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 250),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: allSections.map((sec) {
+                              final isSelected = selectedSections.contains(sec);
+                              return CheckboxListTile(
+                                title: Text(sec, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                                value: isSelected,
+                                activeColor: AppColors.adminPrimary,
+                                contentPadding: EdgeInsets.zero,
+                                controlAffinity: ListTileControlAffinity.leading,
+                                onChanged: (val) {
+                                  setSelectState(() {
+                                    if (val == true) {
+                                      if (!selectedSections.contains(sec)) {
+                                        selectedSections.add(sec);
+                                      }
+                                    } else {
+                                      selectedSections.remove(sec);
+                                    }
+                                  });
+                                  setDialogState(() {});
+                                },
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(selectCtx),
+                    child: const Text('Done', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.adminPrimary)),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    }
 
     showDialog(
       context: context,
@@ -634,24 +756,57 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: sectionCtrl,
-                    decoration: InputDecoration(
-                      labelText: 'Section (e.g. 2-A)',
-                      labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                      floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.class_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
-                      filled: true,
-                      fillColor: const Color(0xFFF8F9FC),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                  GestureDetector(
+                    onTap: () => showMultiSectionSelector(ctx, setDialogState),
+                    child: InputDecorator(
+                      decoration: InputDecoration(
+                        labelText: 'Section(s)',
+                        labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                        floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
+                        prefixIcon: Icon(Icons.class_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                        suffixIcon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                        filled: true,
+                        fillColor: const Color(0xFFF8F9FC),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
+                        ),
                       ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
-                      ),
+                      child: selectedSections.isEmpty
+                          ? Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Text(
+                                'Select Section(s)',
+                                style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                              ),
+                            )
+                          : Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Wrap(
+                                spacing: 8,
+                                runSpacing: 4,
+                                children: selectedSections.map((sec) => Chip(
+                                  label: Text(
+                                    sec,
+                                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                  ),
+                                  backgroundColor: AppColors.adminPrimary,
+                                  padding: EdgeInsets.zero,
+                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  onDeleted: () {
+                                    setDialogState(() {
+                                      selectedSections.remove(sec);
+                                    });
+                                  },
+                                  deleteIcon: const Icon(Icons.close, size: 12, color: Colors.white),
+                                )).toList(),
+                              ),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -770,28 +925,30 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                       final semester = int.tryParse(semesterCtrl.text.trim());
                       if (subjectNameCtrl.text.trim().isEmpty ||
                           courseCodeCtrl.text.trim().isEmpty ||
-                          sectionCtrl.text.trim().isEmpty ||
+                          selectedSections.isEmpty ||
                           yearLevel == null) {
                         AppDialog.alert(ctx, title: 'Error', message: 'Please fill in all required fields.');
                         return;
                       }
                       setDialogState(() => isLoading = true);
                       try {
-                        await context.read<AppState>().createSubject(
-                              subjectName: subjectNameCtrl.text,
-                              courseCode: courseCodeCtrl.text,
-                              section: sectionCtrl.text,
-                              yearLevel: yearLevel,
-                              semester: semester,
-                              room: roomCtrl.text,
-                              scheduleLabel: scheduleCtrl.text,
-                            );
+                        for (final sec in selectedSections) {
+                          await context.read<AppState>().createSubject(
+                                subjectName: subjectNameCtrl.text,
+                                courseCode: courseCodeCtrl.text,
+                                section: sec,
+                                yearLevel: yearLevel,
+                                semester: semester,
+                                room: roomCtrl.text,
+                                scheduleLabel: scheduleCtrl.text,
+                              );
+                        }
                         if (!mounted) return;
                         Navigator.pop(ctx);
-                        await AppDialog.result(context, type: DialogType.success, message: 'Subject created successfully.');
+                        await AppDialog.result(context, type: DialogType.success, message: 'Subjects created successfully.');
                       } on AuthException catch (e) {
                         setDialogState(() => isLoading = false);
-                        await AppDialog.alert(context, title: 'Error', message: e.message ?? 'Failed to create subject.');
+                        await AppDialog.alert(context, title: 'Error', message: e.message ?? 'Failed to create subject offerings.');
                       } catch (e) {
                         setDialogState(() => isLoading = false);
                         await AppDialog.alert(context, title: 'Error', message: e.toString());
