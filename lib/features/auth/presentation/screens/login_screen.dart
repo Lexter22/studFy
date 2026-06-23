@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/models/auth_exception.dart' as app_auth;
 
 import '../../../../core/constants/app_colors.dart';
@@ -36,6 +37,24 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     _emailController.addListener(_validateInputs);
     _passwordController.addListener(_validateInputs);
+    _loadSavedCredentials();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedEmail = prefs.getString('remember_email') ?? '';
+      final savedRememberMe = prefs.getBool('remember_me') ?? false;
+
+      if (savedRememberMe && mounted) {
+        setState(() {
+          _emailController.text = savedEmail;
+          _rememberMe = true;
+        });
+      }
+    } catch (e) {
+      // Ignore reading errors
+    }
   }
 
   void _validateInputs() {
@@ -73,6 +92,22 @@ class _LoginScreenState extends State<LoginScreen> {
         context.read<AppState>().logout();
         AppDialog.alert(context, title: 'Access Denied', message: 'No role assigned. Please contact the administrator.');
         return;
+      }
+
+      // Save or clear credentials based on "Remember me" checkbox
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        if (_rememberMe) {
+          await prefs.setString('remember_email', _emailController.text.trim());
+          await prefs.setBool('remember_me', true);
+        } else {
+          await prefs.remove('remember_email');
+          await prefs.setBool('remember_me', false);
+        }
+        // Always clean up remember_password for privacy if present
+        await prefs.remove('remember_password');
+      } catch (e) {
+        // Ignore writing errors
       }
 
       context.read<AppState>().login(user);
@@ -334,6 +369,14 @@ Widget build(BuildContext context) {
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: Colors.transparent, width: 1.5),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: AppColors.authPrimary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),

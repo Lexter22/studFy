@@ -44,37 +44,51 @@ class _StudfyAppViewState extends State<_StudfyAppView> {
     final AuthService authService = context.read<AuthService>();
     _router = createAppRouter(appState);
 
-    _authSubscription = authService.authStateChanges().listen((user) {
-      // If a user was returned but has unknown role, they were rejected by
-      // _withRole (no profile / not approved). Show access denied message.
-      if (user != null && user.role == UserRole.unknown) {
+    _authSubscription = authService.authStateChanges().listen(
+      (user) {
+        // If a user was returned but has unknown role, they were rejected by
+        // _withRole (no profile / not approved). Show access denied message.
+        if (user != null && user.role == UserRole.unknown) {
+          appState.syncAuthState(null);
+          appState.accessDeniedNotifier.value =
+              'Your account is not registered in the system. '
+              'Please contact your administrator.';
+          return;
+        }
+
+        appState.syncAuthState(user);
+
+        if (user == null) {
+          appState.clearAdminData();
+          return;
+        }
+
+        if (user.role == UserRole.admin) {
+          unawaited(appState.loadAdminData());
+        } else {
+          appState.clearAdminData();
+        }
+      },
+      onError: (error) {
+        // Gracefully handle errors (e.g. JSON parsing failures during hot restart
+        // when the Supabase session token in localStorage is corrupted).
+        debugPrint('Auth stream error (ignored): $error');
         appState.syncAuthState(null);
-        appState.accessDeniedNotifier.value =
-            'Your account is not registered in the system. '
-            'Please contact your administrator.';
-        return;
-      }
-
-      appState.syncAuthState(user);
-
-      if (user == null) {
-        appState.clearAdminData();
-        return;
-      }
-
-      if (user.role == UserRole.admin) {
-        unawaited(appState.loadAdminData());
-      } else {
-        appState.clearAdminData();
-      }
-    });
+      },
+    );
 
     // Handle Supabase deep link (e.g. password reset)
-    _deepLinkSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
-      if (data.event == AuthChangeEvent.passwordRecovery) {
-        _router.pushNamed(AppRoutes.changePassword);
-      }
-    });
+    _deepLinkSubscription = Supabase.instance.client.auth.onAuthStateChange.listen(
+      (data) {
+        if (data.event == AuthChangeEvent.passwordRecovery) {
+          _router.pushNamed(AppRoutes.changePassword);
+        }
+      },
+      onError: (error) {
+        // Ignore auth state change errors during hot restart
+        debugPrint('Deep link auth stream error (ignored): $error');
+      },
+    );
   }
 
   @override

@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
       email: email.trim().toLowerCase(),
       email_confirm: true,
       password: defaultPassword,
-      user_metadata: { first_name: firstName.trim(), last_name: lastName.trim(), display_name: displayName, role: 'professor' },
+      user_metadata: { first_name: firstName.trim(), last_name: lastName.trim(), display_name: displayName, role: 'professor', must_change_password: true },
     })
     if (createError) return json({ error: createError.message }, 400)
 

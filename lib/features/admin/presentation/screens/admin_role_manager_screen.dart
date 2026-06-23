@@ -144,8 +144,10 @@ class _AdminRoleManagerScreenState extends State<AdminRoleManagerScreen> with Si
       });
     } catch (e) {
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load users: $e')),
+      AppDialog.result(
+        context,
+        type: DialogType.error,
+        message: 'Failed to load users: $e',
       );
     }
   }
@@ -299,8 +301,10 @@ class _AdminRoleManagerScreenState extends State<AdminRoleManagerScreen> with Si
                   onPressed: isLocalSaving ? null : () async {
                     final enteredPassword = passwordController.text.trim();
                     if (enteredPassword.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please enter your password to authorize.')),
+                      AppDialog.alert(
+                        context,
+                        title: 'Required',
+                        message: 'Please enter your password to authorize.',
                       );
                       return;
                     }
@@ -333,8 +337,10 @@ class _AdminRoleManagerScreenState extends State<AdminRoleManagerScreen> with Si
                         Navigator.pop(context);
                       }
                     } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Authorization failed: Incorrect password')),
+                      AppDialog.alert(
+                        context,
+                        title: 'Error',
+                        message: 'Authorization failed: Incorrect password.',
                       );
                     } finally {
                       setDialogState(() {
@@ -457,7 +463,7 @@ class _AdminRoleManagerScreenState extends State<AdminRoleManagerScreen> with Si
               ),
             ],
           ),
-          const AdminFloatingNavBar(currentIndex: 2),
+          const AdminFloatingNavBar(currentIndex: 1),
         ],
       ),
     );

@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'dart:html' as html;
+import 'package:web/web.dart' as web;
 
 import '../../../../core/state/app_state.dart';
+import '../../../../core/utils/upper_case_text_formatter.dart';
+import '../../../../core/widgets/app_dialog.dart';
 import '../../data/repositories/student_repository.dart';
 import '../../domain/models/student_subject.dart';
 import '../../../professor/domain/models/professor_subject.dart';
 import '../widgets/student_floating_nav_bar.dart';
 import 'student_assignment_detail_screen.dart';
+import 'student_attendance_screen.dart';
+import 'student_grades_screen.dart';
 import 'student_quiz_screen.dart';
 
 class StudentModulesScreen extends StatefulWidget {
-  const StudentModulesScreen({super.key});
+  final String? subjectId;
+  const StudentModulesScreen({super.key, this.subjectId});
 
   @override
   State<StudentModulesScreen> createState() => _StudentModulesScreenState();
@@ -42,11 +47,26 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
       final profile = await _repo.fetchStudentProfile();
       final subjects = await _repo.fetchEnrolledSubjects();
       if (!mounted) return;
+
+      StudentSubject? autoSelected;
+      if (widget.subjectId != null) {
+        for (final sub in subjects) {
+          if (sub.id == widget.subjectId) {
+            autoSelected = sub;
+            break;
+          }
+        }
+      }
+
       setState(() {
         _studentProfile = profile;
         _subjects = subjects;
         _loading = false;
       });
+
+      if (autoSelected != null) {
+        _handleSubjectSelect(autoSelected);
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
@@ -76,6 +96,31 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
       }
     } catch (_) {
       if (mounted) setState(() => _loadingModules = false);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant StudentModulesScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.subjectId != oldWidget.subjectId) {
+      if (widget.subjectId == null) {
+        setState(() {
+          _selectedSubject = null;
+        });
+      } else {
+        StudentSubject? match;
+        for (final sub in _subjects) {
+          if (sub.id == widget.subjectId) {
+            match = sub;
+            break;
+          }
+        }
+        if (match != null) {
+          _handleSubjectSelect(match);
+        } else {
+          _loadData();
+        }
+      }
     }
   }
 
@@ -161,6 +206,7 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
                       if (_selectedSubject != null) ...[
                         IconButton(
                           icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF0A5C36), size: 20),
+                          tooltip: 'Back to Courses',
                           onPressed: () {
                             setState(() {
                               _selectedSubject = null;
@@ -177,6 +223,21 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
                           color: Color(0xFF0A5C36),
                         ),
                       ),
+                      if (_selectedSubject == null) ...[
+                        const Spacer(),
+                        ElevatedButton.icon(
+                          onPressed: _showJoinClassDialog,
+                          icon: const Icon(Icons.add_rounded, size: 18),
+                          label: const Text('Join Class', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0A5C36),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -220,6 +281,7 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
           child: InkWell(
             onTap: () => _handleSubjectSelect(dbMatch),
             borderRadius: BorderRadius.circular(12),
+            hoverColor: const Color(0xFF0A5C36).withValues(alpha: 0.04),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
               child: Row(
@@ -251,23 +313,53 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final hasMaterials = _assignments.any((a) => (a.description ?? '').startsWith('[MATERIAL]'));
-    final hasLegacyFiles = _selectedModules.any((m) => m.fileUrl != null);
-
-    if (_selectedModules.isEmpty && !hasMaterials && !hasLegacyFiles) {
-      return const Center(child: Text('No modules or materials uploaded yet.'));
+    if (_selectedModules.isEmpty && _quizzes.isEmpty && _assignments.isEmpty) {
+      return const Center(child: Text('No modules uploaded yet.'));
     }
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
       children: [
+        // Quick access buttons for Grades and Attendance
+        Row(
+          children: [
+            Expanded(
+              child: _buildQuickAccessButton(
+                icon: Icons.grade_rounded,
+                label: 'My Grades',
+                color: const Color(0xFF7C3AED),
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => StudentGradesScreen(subject: _selectedSubject),
+                  ));
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildQuickAccessButton(
+                icon: Icons.event_available_rounded,
+                label: 'Attendance',
+                color: const Color(0xFF0A5C36),
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => StudentAttendanceScreen(subject: _selectedSubject),
+                  ));
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
         ..._selectedModules.asMap().entries.map((entry) {
           final i = entry.key;
           final m = entry.value;
           final mMaterials = _assignments.where((a) => a.moduleId == m.id && (a.description ?? '').startsWith('[MATERIAL]')).toList();
+          final mAssignments = _assignments.where((a) => a.moduleId == m.id && !(a.description ?? '').startsWith('[MATERIAL]')).toList();
+          final mQuizzes = _quizzes.where((q) => q.moduleId == m.id).toList();
+
 
           final bool hasLegacyFile = m.fileUrl != null;
-          final bool hasMaterialsList = mMaterials.isNotEmpty;
 
           return Container(
             margin: const EdgeInsets.only(bottom: 16),
@@ -312,32 +404,45 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
                       },
                     )),
 
-                if (!hasLegacyFile && !hasMaterialsList)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      'No materials uploaded yet.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade400,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ),
+                // Assignments
+                ...mAssignments.map((ass) => _buildStudentContentRow(
+                      Icons.assignment_rounded,
+                      ass.title,
+                      'Assignment',
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => StudentAssignmentDetailScreen(
+                              subject: _selectedSubject!,
+                              assignment: ass,
+                            ),
+                          ),
+                        );
+                      },
+                    )),
+
+                // Quizzes
+                ...mQuizzes.map((quiz) => _buildStudentContentRow(
+                      Icons.quiz_rounded,
+                      quiz.title,
+                      'Quiz',
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => StudentQuizScreen(
+                              subject: _selectedSubject!,
+                              quiz: quiz,
+                            ),
+                          ),
+                        );
+                      },
+                    )),
               ],
             ),
           );
         }).toList(),
-
-        // Unlinked materials
-        ..._assignments.where((a) => a.moduleId == null && (a.description ?? '').startsWith('[MATERIAL]')).map((mat) => _buildStudentContentRow(
-              Icons.menu_book_rounded,
-              mat.fileName ?? '${mat.title} - Document',
-              'Material',
-              () {
-                if (mat.fileUrl != null) _openUrl(mat.fileUrl!);
-              },
-            )),
       ],
     );
   }
@@ -353,6 +458,7 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
         onTap: onTap,
+        hoverColor: const Color(0xFF0A5C36).withValues(alpha: 0.04),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Row(children: [
@@ -377,7 +483,142 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
   }
 
   void _openUrl(String url) {
-    html.window.open(url, '_blank');
+    web.window.open(url, '_blank');
   }
 
+  void _showJoinClassDialog() {
+    final codeCtrl = TextEditingController();
+    bool joining = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          backgroundColor: Colors.white,
+          title: Row(
+            children: [
+              const Icon(Icons.group_add_rounded, color: Color(0xFF0A5C36)),
+              const SizedBox(width: 10),
+              const Text('Join a Class', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Ask your professor for the class code, then enter it below.',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600, height: 1.4),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: codeCtrl,
+                textCapitalization: TextCapitalization.characters,
+                inputFormatters: const [UpperCaseTextFormatter()],
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 4, color: Color(0xFF0A5C36)),
+                decoration: InputDecoration(
+                  hintText: 'CODE',
+                  hintStyle: TextStyle(color: Colors.grey.shade300, letterSpacing: 4),
+                  filled: true,
+                  fillColor: const Color(0xFF0A5C36).withOpacity(0.04),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF0A5C36), width: 2),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: joining ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0A5C36),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: joining
+                  ? null
+                  : () async {
+                      final code = codeCtrl.text.trim();
+                      if (code.isEmpty) return;
+                      setS(() => joining = true);
+                      try {
+                        final result = await _repo.joinClassByCode(code);
+                        final status = result['status'];
+                        if (!ctx.mounted) return;
+                        if (status == 'ok') {
+                          Navigator.pop(ctx);
+                          await _loadData();
+                          if (mounted) {
+                            AppDialog.result(context, type: DialogType.success,
+                                message: 'Joined ${result['subjectName']}!');
+                          }
+                        } else if (status == 'already') {
+                          Navigator.pop(ctx);
+                          if (mounted) {
+                            AppDialog.result(context, type: DialogType.info,
+                                message: 'You are already enrolled in ${result['subjectName']}.');
+                          }
+                        } else if (status == 'not_student') {
+                          setS(() => joining = false);
+                          AppDialog.result(ctx, type: DialogType.error,
+                              message: 'Your account is not set up as a student yet.');
+                        } else {
+                          setS(() => joining = false);
+                          AppDialog.result(ctx, type: DialogType.error,
+                              message: 'Invalid class code. Please check and try again.');
+                        }
+                      } catch (e) {
+                        setS(() => joining = false);
+                        if (ctx.mounted) {
+                          AppDialog.result(ctx, type: DialogType.error, message: 'Failed to join: $e');
+                        }
+                      }
+                    },
+              child: Text(joining ? 'Joining...' : 'Join'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickAccessButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.2)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(width: 8),
+            Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color)),
+          ],
+        ),
+      ),
+    );
+  }
 }

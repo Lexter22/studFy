@@ -1,8 +1,11 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../data/repositories/student_repository.dart';
 import '../../domain/models/student_subject.dart';
 import '../../../professor/domain/models/professor_subject.dart';
 import '../widgets/student_floating_nav_bar.dart';
+import '../../../../core/widgets/app_dialog.dart';
 
 class StudentAssignmentDetailScreen extends StatefulWidget {
   final StudentSubject subject;
@@ -22,7 +25,9 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
   final StudentRepository _repo = const StudentRepository();
   bool _submitting = false;
   bool _submitted = false;
+  bool _justSubmitted = false;
   String? _selectedFile;
+  Uint8List? _selectedFileBytes;
 
   @override
   void initState() {
@@ -50,15 +55,25 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
 
     setState(() => _submitting = true);
     try {
+      String fileUrl = 'https://supabase.com/mock/presentation.pptx';
+      if (_selectedFileBytes != null) {
+        fileUrl = await _repo.uploadSubmissionFile(
+          widget.assignment.id,
+          _selectedFile!,
+          _selectedFileBytes!,
+        );
+      }
+      
       await _repo.submitAssignment(
         widget.assignment.id,
         _selectedFile!,
-        'https://supabase.com/mock/presentation.pptx',
+        fileUrl,
       );
       if (mounted) {
         setState(() {
           _submitting = false;
           _submitted = true;
+          _justSubmitted = true;
         });
       }
     } catch (_) {
@@ -66,10 +81,15 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
     }
   }
 
+  String _getMonthName(int month) {
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    return months[month - 1];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF9F9FC),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(90),
         child: AppBar(
@@ -80,32 +100,42 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                    tooltip: 'Back to Modules',
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  const SizedBox(width: 8),
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
-                      Icon(Icons.school, color: Colors.white, size: 28),
+                      Icon(Icons.school, color: Colors.white, size: 24),
                       SizedBox(height: 2),
                       Text(
                         'STUDFY',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 14,
+                          fontSize: 11,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.5,
                         ),
                       ),
                     ],
                   ),
-                  Text(
-                    widget.subject.name.toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                  const Spacer(),
+                  Expanded(
+                    child: Text(
+                      widget.subject.name.toUpperCase(),
+                      textAlign: TextAlign.end,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -124,88 +154,233 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
                     children: [
-                      // Assignment Title e.g., "Activity 1: PPT"
-                      Text(
-                        widget.assignment.title,
-                        style: const TextStyle(
-                          fontSize: 22,
+                      // Assignment Header Card
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.03),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF0A5C36).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: const Text(
+                                    'Assignment',
+                                    style: TextStyle(
+                                      color: Color(0xFF0A5C36),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: _submitted ? Colors.green.shade50 : Colors.orange.shade50,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    _submitted ? 'Submitted' : 'Pending',
+                                    style: TextStyle(
+                                      color: _submitted ? Colors.green : Colors.orange,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              widget.assignment.title,
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF0A5C36),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Icon(Icons.calendar_today_rounded, size: 14, color: Colors.grey.shade500),
+                                const SizedBox(width: 6),
+                                Text(
+                                  widget.assignment.deadline != null
+                                      ? 'Due: ${_getMonthName(widget.assignment.deadline!.month)} ${widget.assignment.deadline!.day}'
+                                      : 'Due: May 09, 2026',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w500),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Instructions Section
+                      const Text(
+                        'Instructions',
+                        style: TextStyle(
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF0A5C36),
                         ),
                       ),
-                      const SizedBox(height: 16),
-
-                      // Divider
-                      Container(
-                        height: 1,
-                        color: Colors.grey[200],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Instructions text
-                      Text(
-                        widget.assignment.description ?? 'Make a power point presentation about dilemma',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          color: Colors.black87,
-                          height: 1.6,
-                        ),
-                      ),
-                      const SizedBox(height: 48),
-
-                      // File upload card with "Add" and "Submit"
+                      const SizedBox(height: 10),
                       Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          border: Border.all(color: Colors.black12),
                           borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        padding: const EdgeInsets.all(20),
+                        child: Text(
+                          widget.assignment.description ?? 'Make a power point presentation about dilemma',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.black87,
+                            height: 1.6,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Submission / File upload zone
+                      const Text(
+                        'My Submission',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0A5C36),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade200),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.02),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         padding: const EdgeInsets.all(20),
                         child: Column(
                           children: [
                             if (_selectedFile != null) ...[
-                              Row(
-                                children: [
-                                  const Icon(Icons.insert_drive_file_rounded, color: Color(0xFF0A5C36), size: 28),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      _selectedFile!,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF8F9FA),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.grey.shade200),
+                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.insert_drive_file_rounded, color: Color(0xFF0A5C36), size: 28),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            _selectedFile!,
+                                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 13),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            _submitted ? 'Uploaded & Locked' : 'Ready to submit',
+                                            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  if (!_submitted)
-                                    IconButton(
-                                      icon: const Icon(Icons.close, color: Colors.red),
-                                      onPressed: () => setState(() => _selectedFile = null),
-                                    ),
-                                ],
+                                    if (!_submitted)
+                                      IconButton(
+                                        icon: const Icon(Icons.close_rounded, color: Colors.red),
+                                        onPressed: () => setState(() => _selectedFile = null),
+                                      ),
+                                  ],
+                                ),
                               ),
                               const SizedBox(height: 20),
+                            ] else ...[
+                              // Upload placeholder
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                child: Column(
+                                  children: [
+                                    Icon(Icons.cloud_upload_outlined, color: const Color(0xFF0A5C36).withOpacity(0.5), size: 48),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      'No file selected',
+                                      style: TextStyle(color: Colors.grey.shade600, fontSize: 14, fontWeight: FontWeight.w600),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Upload your assignment document or presentation.',
+                                      style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
                             ],
 
                             // Add Button
                             if (!_submitted)
                               SizedBox(
                                 width: double.infinity,
-                                height: 50,
-                                child: OutlinedButton(
+                                height: 48,
+                                child: OutlinedButton.icon(
+                                  icon: const Icon(Icons.add_rounded, size: 18),
                                   style: OutlinedButton.styleFrom(
+                                    foregroundColor: const Color(0xFF0A5C36),
                                     side: const BorderSide(color: Color(0xFF0A5C36), width: 1.5),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(25),
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _selectedFile = 'presentation.pptx';
-                                    });
+                                  onPressed: () async {
+                                    try {
+                                      final result = await FilePicker.platform.pickFiles(withData: true);
+                                      if (result == null || result.files.isEmpty) return;
+                                      final file = result.files.first;
+                                      if (file.bytes == null) return;
+                                      setState(() {
+                                        _selectedFile = file.name;
+                                        _selectedFileBytes = file.bytes;
+                                      });
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        AppDialog.alert(context, title: 'Error', message: 'Failed to pick file: $e');
+                                      }
+                                    }
                                   },
-                                  child: const Text(
+                                  label: const Text(
                                     'Add File',
                                     style: TextStyle(
-                                      color: Color(0xFF0A5C36),
-                                      fontSize: 15,
+                                      fontSize: 14,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -217,24 +392,29 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
                             // Submit Button
                             SizedBox(
                               width: double.infinity,
-                              height: 50,
+                              height: 48,
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: _submitted ? Colors.grey : const Color(0xFF0A5C36),
+                                  elevation: 0,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(25),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
                                 onPressed: _submitted || _submitting || _selectedFile == null
                                     ? null
                                     : _handleSubmit,
                                 child: _submitting
-                                    ? const CircularProgressIndicator(color: Colors.white)
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                      )
                                     : Text(
-                                        _submitted ? 'Submitted' : 'Submit',
+                                        _submitted ? 'Submitted Successfully' : 'Submit Assignment',
                                         style: const TextStyle(
                                           color: Colors.white,
-                                          fontSize: 15,
+                                          fontSize: 14,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
@@ -250,8 +430,8 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
             ),
           ),
 
-          // Green Success Banner popup matching Screenshot 5 exactly!
-          if (_submitted && !_submitting)
+          // Green Success Banner popup — only right after a fresh submit
+          if (_justSubmitted && !_submitting)
             _buildSuccessOverlay(),
 
           const StudentFloatingNavBar(currentIndex: 1),
@@ -259,8 +439,6 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
       ),
     );
   }
-
-
 
   Widget _buildSuccessOverlay() {
     return Positioned.fill(
@@ -309,9 +487,9 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
                       borderRadius: BorderRadius.circular(20),
                     ),
                   ),
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => setState(() => _justSubmitted = false),
                   child: const Text(
-                    'Done',
+                    'View My Submission',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),

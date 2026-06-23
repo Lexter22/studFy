@@ -114,6 +114,7 @@ Deno.serve(async (req) => {
           last_name: lastName,
           display_name: displayName,
           role: 'student',
+          must_change_password: true,
         },
       })
 
@@ -124,10 +125,10 @@ Deno.serve(async (req) => {
 
       const uid = newUser.user.id
 
-      // ── Generate student number if not provided ───────────────────────
+      // ── Deterministic, collision-free student number derived from uid ─
       const year = new Date().getFullYear()
-      const randomNum = String(Math.floor(Math.random() * 99999) + 1).padStart(5, '0')
-      const resolvedStudentNumber = studentNumber || `${year}-${randomNum}-BN-0`
+      const uidPart = uid.replace(/-/g, '').substring(0, 8).toUpperCase()
+      const resolvedStudentNumber = studentNumber || `${year}-${uidPart}-BN-0`
 
       // ── Create student_profiles row ───────────────────────────────────
       const { error: studentError } = await admin.from('student_profiles').insert({

@@ -31,14 +31,14 @@ Deno.serve(async (req) => {
       email: email.trim().toLowerCase(),
       email_confirm: true,
       password: defaultPassword,
-      user_metadata: { first_name: firstName.trim(), last_name: lastName.trim(), display_name: displayName, role: 'student' },
+      user_metadata: { first_name: firstName.trim(), last_name: lastName.trim(), display_name: displayName, role: 'student', must_change_password: true },
     })
     if (createError) return json({ error: createError.message }, 400)
 
     const uid = newUser.user.id
     const year = new Date().getFullYear()
-    const randomNum = String(Math.floor(Math.random() * 99999) + 1).padStart(5, '0')
-    const resolvedStudentNumber = (studentNumber ?? '').trim() || `${year}-${randomNum}-BN-0`
+    const uidPart = uid.replace(/-/g, '').substring(0, 8).toUpperCase()
+    const resolvedStudentNumber = (studentNumber ?? '').trim() || `${year}-${uidPart}-BN-0`
 
     const { error: studentError } = await admin.from('student_profiles').insert({
       profile_id: uid,

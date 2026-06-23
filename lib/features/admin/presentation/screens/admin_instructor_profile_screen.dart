@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/state/app_state.dart';
+import '../../../../core/utils/upper_case_text_formatter.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../../domain/models/instructor.dart';
 import '../widgets/admin_floating_nav_bar.dart';
@@ -71,33 +74,153 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
   }
 
   void _showDeleteDialog() {
+    final passwordCtrl = TextEditingController();
+    bool isLoading = false;
+    bool obscurePassword = true;
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete Instructor', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: Text('Delete "${widget.instructor.name}"? This will revoke their access and cannot be undone.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              try {
-                await context.read<AppState>().deleteProfile(widget.instructor.profileId);
-                if (!mounted) return;
-                context.pop();
-              } catch (e) {
-                if (!mounted) return;
-                await AppDialog.result(context, type: DialogType.error, message: e.toString());
-              }
-            },
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+      barrierDismissible: false,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Delete Instructor',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Delete "${widget.instructor.name}"? This will revoke their access and cannot be undone.',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.normal),
+              ),
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+            ],
           ),
-        ],
+          content: Container(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 8),
+                TextField(
+                  controller: passwordCtrl,
+                  obscureText: obscurePassword,
+                  decoration: InputDecoration(
+                    labelText: 'Confirm Admin Password',
+                    labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                    floatingLabelStyle: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                    prefixIcon: Icon(Icons.lock_outline_rounded, color: Colors.red.withOpacity(0.7), size: 20),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        color: Colors.grey.shade600,
+                        size: 20,
+                      ),
+                      onPressed: () {
+                        setDialogState(() {
+                          obscurePassword = !obscurePassword;
+                        });
+                      },
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFFF8F9FC),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: Colors.red, width: 2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: isLoading ? null : () => Navigator.pop(dialogCtx),
+              child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      final enteredPassword = passwordCtrl.text.trim();
+                      if (enteredPassword.isEmpty) {
+                        AppDialog.alert(dialogCtx, title: 'Required', message: 'Please enter your admin password.');
+                        return;
+                      }
+
+                      setDialogState(() => isLoading = true);
+                      try {
+                        final adminEmail = Supabase.instance.client.auth.currentUser?.email;
+                        if (adminEmail != null && !adminEmail.startsWith('mock')) {
+                          await Supabase.instance.client.auth.signInWithPassword(
+                            email: adminEmail,
+                            password: enteredPassword,
+                          );
+                        } else {
+                          if (enteredPassword.isEmpty) {
+                            throw Exception('Password cannot be empty');
+                          }
+                        }
+
+                        // Password verified, proceed with deletion
+                        await context.read<AppState>().deleteProfile(widget.instructor.profileId);
+                        if (!mounted) return;
+                        Navigator.pop(dialogCtx);
+                        context.pop();
+                      } catch (e) {
+                        setDialogState(() => isLoading = false);
+                        if (!mounted) return;
+                        await AppDialog.alert(dialogCtx, title: 'Error', message: 'Verification failed: Incorrect password.');
+                      }
+                    },
+              child: isLoading
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                  : const Text('Delete Instructor', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -111,63 +234,148 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(
-            'Assign Subject to ${widget.instructor.name}',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          content: SizedBox(
-            width: 450,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: subjects.length,
-              itemBuilder: (_, index) {
-                final subject = subjects[index];
-                final isAssigned = _assignedSubjects.any((s) => s['id'] == subject['id']);
-                return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  leading: CircleAvatar(
-                    backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
-                    child: const Icon(Icons.book_rounded, color: AppColors.adminPrimary, size: 18),
-                  ),
-                  title: Text(subject['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  subtitle: Text('${subject['course'] ?? ''} ${subject['section'] ?? ''}'),
-                  trailing: Icon(
-                    isAssigned ? Icons.check_circle : Icons.add_circle_outline,
-                    color: isAssigned ? Colors.green : Colors.grey,
-                  ),
-                  onTap: isAssigned ? null : () async {
-                    Navigator.pop(ctx);
-                    try {
-                      await context.read<AppState>().assignProfessorToSubject(
-                        subjectId: subject['id']!,
-                        profileId: widget.instructor.profileId,
+        builder: (ctx, setDialogState) => Dialog(
+          backgroundColor: const Color(0xFFF8F9FC),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: Container(
+            width: 500,
+            height: 550,
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.adminPrimary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.bookmark_outline_rounded, color: AppColors.adminPrimary, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Assign Subject to ${widget.instructor.name}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Divider(height: 1),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: subjects.length,
+                    itemBuilder: (_, index) {
+                      final subject = subjects[index];
+                      final isAssigned = _assignedSubjects.any((s) => s['id'] == subject['id']);
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          leading: CircleAvatar(
+                            backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                            child: const Icon(Icons.book_rounded, color: AppColors.adminPrimary, size: 18),
+                          ),
+                          title: Text(subject['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B))),
+                          subtitle: Text('${subject['course'] ?? ''} ${subject['section'] ?? ''}', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                          trailing: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isAssigned
+                                  ? const Color(0xFFE8F5E9)
+                                  : AppColors.adminPrimary.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isAssigned
+                                    ? Colors.green.shade200
+                                    : AppColors.adminPrimary.withOpacity(0.2),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isAssigned ? Icons.check_circle_rounded : Icons.add_circle_rounded,
+                                  color: isAssigned ? Colors.green.shade700 : AppColors.adminPrimary,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  isAssigned ? 'Assigned' : 'Assign',
+                                  style: TextStyle(
+                                    color: isAssigned ? Colors.green.shade700 : AppColors.adminPrimary,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          onTap: isAssigned ? null : () async {
+                            Navigator.pop(ctx);
+                            try {
+                              await context.read<AppState>().assignProfessorToSubject(
+                                subjectId: subject['id']!,
+                                profileId: widget.instructor.profileId,
+                              );
+                              if (!mounted) return;
+                              // Reload subjects from updated AppState
+                              final updated = context.read<AppState>().subjectOfferings;
+                              setState(() {
+                                _assignedSubjects = updated
+                                    .where((s) => s['professor'] == _nameCtrl.text.trim())
+                                    .toList();
+                              });
+                              await AppDialog.result(context, type: DialogType.success, message: 'Subject assigned successfully.');
+                            } catch (e) {
+                              if (!mounted) return;
+                              await AppDialog.result(context, type: DialogType.error, message: e.toString());
+                            }
+                          },
+                        ),
                       );
-                      if (!mounted) return;
-                      // Reload subjects from updated AppState
-                      final updated = context.read<AppState>().subjectOfferings;
-                      setState(() {
-                        _assignedSubjects = updated
-                            .where((s) => s['professor'] == _nameCtrl.text.trim())
-                            .toList();
-                      });
-                      await AppDialog.result(context, type: DialogType.success, message: 'Subject assigned successfully.');
-                    } catch (e) {
-                      if (!mounted) return;
-                      await AppDialog.result(context, type: DialogType.error, message: e.toString());
-                    }
-                  },
-                );
-              },
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        backgroundColor: Colors.white,
+                        elevation: 0,
+                      ),
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text(
+                        'Close',
+                        style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Close', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-            ),
-          ],
         ),
       ),
     );
@@ -233,7 +441,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
               ),
             ),
           ),
-          const AdminFloatingNavBar(currentIndex: 0),
+          const AdminFloatingNavBar(currentIndex: 2),
         ],
       ),
     );
@@ -300,7 +508,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
                     if (_isEditing) ...[
                       _buildEditField('Instructor Name', _nameCtrl),
                       const SizedBox(height: 8),
-                      _buildEditField('Department (e.g. BSIT)', _deptCtrl),
+                      _buildEditField('Department (e.g. BSIT)', _deptCtrl, uppercase: true),
                     ] else ...[
                       Text(
                         widget.instructor.name,
@@ -359,9 +567,11 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
     );
   }
 
-  Widget _buildEditField(String label, TextEditingController controller) {
+  Widget _buildEditField(String label, TextEditingController controller, {bool uppercase = false}) {
     return TextField(
       controller: controller,
+      textCapitalization: uppercase ? TextCapitalization.characters : TextCapitalization.none,
+      inputFormatters: uppercase ? const [UpperCaseTextFormatter()] : null,
       decoration: InputDecoration(
         labelText: label,
         isDense: true,

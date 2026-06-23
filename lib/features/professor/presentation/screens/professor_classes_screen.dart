@@ -99,6 +99,26 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
 
 
 
+  void _verifyPasswordAndExecute(String actionDescription, Future<void> Function() action) {
+    final user = context.read<AppState>().currentUser;
+    if (user == null) {
+      AppDialog.result(context, type: DialogType.error, message: 'User session not found.');
+      return;
+    }
+
+    // Safe confirmation gate (no re-authentication / no hardcoded credentials).
+    AppDialog.confirm(
+      context,
+      title: 'Please Confirm',
+      message: 'Are you sure you want to proceed with $actionDescription? This action cannot be undone.',
+      type: DialogType.warning,
+      confirmLabel: 'Confirm',
+      onConfirm: () async {
+        await action();
+      },
+    );
+  }
+
   void _showViewStudentsDialog(ProfessorSubject sub) async {
     setState(() => _loading = true);
     List<Map<String, String>> students = [];
@@ -112,56 +132,62 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
 
     if (!mounted) return;
 
-    String getClassCode(String id) {
-      if (id.contains('ethics')) return 'a5NhJk';
-      if (id.contains('programming')) return 'a5NhJk';
-      final hash = id.hashCode.abs();
-      const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      final result = StringBuffer();
-      var temp = hash;
-      for (int i = 0; i < 6; i++) {
-        result.write(chars[temp % chars.length]);
-        temp = temp ~/ chars.length;
-      }
-      return result.toString();
-    }
+    String searchQuery = '';
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
+          final filteredStudents = students.where((s) {
+            final name = s['name']?.toLowerCase() ?? '';
+            return name.contains(searchQuery.toLowerCase());
+          }).toList();
+
           return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            backgroundColor: const Color(0xFFF9F9F9),
-            titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-            actionsPadding: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            backgroundColor: const Color(0xFFF8F9FC),
+            titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 10),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+            actionsPadding: const EdgeInsets.all(24),
             title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Student List',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                    color: Color(0xFF1565C0),
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.authPrimary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.people_alt_rounded, color: AppColors.authPrimary, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Student List',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 12),
                 Text(
                   '${sub.courseCode} ${sub.yearLevel}-${sub.section}',
                   style: const TextStyle(
                     fontSize: 14,
-                    color: Colors.black87,
-                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF475569),
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Class Code: ${getClassCode(sub.id)}',
+                  'Class Code: ${sub.joinCode ?? '------'}',
                   style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.black87,
+                    fontSize: 13,
+                    color: Color(0xFF64748B),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -171,12 +197,40 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
               width: 480,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200, width: 1.5),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Search student...',
+                        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                        prefixIcon: const Icon(Icons.search, size: 20, color: Colors.grey),
+                        isDense: true,
+                        filled: true,
+                        fillColor: const Color(0xFFF8F9FC),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: AppColors.authPrimary, width: 2),
+                        ),
+                      ),
+                      onChanged: (val) {
+                        setS(() {
+                          searchQuery = val;
+                        });
+                      },
+                    ),
+                  ),
+                  const Divider(height: 1, thickness: 1),
                   const Padding(
                     padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
                     child: Row(
@@ -204,87 +258,44 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                   const Divider(height: 1, thickness: 1),
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 350),
-                    child: students.isEmpty
+                    child: filteredStudents.isEmpty
                         ? const Padding(
                             padding: EdgeInsets.symmetric(vertical: 24),
                             child: Center(child: Text('No students found.')),
                           )
                         : ListView.builder(
                             shrinkWrap: true,
-                            itemCount: students.length,
+                            itemCount: filteredStudents.length,
                             itemBuilder: (_, i) {
-                              final s = students[i];
-                              final pid = s['profileId']!;
-
+                              final s = filteredStudents[i];
                               return Container(
-                                color: i % 2 == 0 ? Colors.grey.shade50 : Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                decoration: const BoxDecoration(
+                                  border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+                                ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Expanded(
                                       child: Text(
                                         s['name'] ?? '',
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.black87,
-                                        ),
+                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                                       ),
                                     ),
-                                    Row(
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.edit_note, color: Colors.blue),
-                                          iconSize: 20,
-                                          onPressed: () {
-                                            final nameCtrl = TextEditingController(text: s['name']);
-                                            showDialog(
-                                              context: context,
-                                              builder: (editCtx) => AlertDialog(
-                                                title: const Text('Edit Student Name'),
-                                                content: TextField(
-                                                  controller: nameCtrl,
-                                                  decoration: const InputDecoration(labelText: 'Name'),
-                                                ),
-                                                actions: [
-                                                  TextButton(
-                                                    onPressed: () => Navigator.pop(editCtx),
-                                                    child: const Text('Cancel'),
-                                                  ),
-                                                  TextButton(
-                                                    onPressed: () {
-                                                      setS(() {
-                                                        s['name'] = nameCtrl.text;
-                                                      });
-                                                      Navigator.pop(editCtx);
-                                                    },
-                                                    child: const Text('Save'),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                          iconSize: 20,
-                                          onPressed: () {
-                                            AppDialog.confirm(
-                                              context,
-                                              title: 'Delete Student',
-                                              message: 'Are you sure you want to delete this student?',
-                                              type: DialogType.error,
-                                              confirmLabel: 'Delete',
-                                              onConfirm: () async {
-                                                setS(() {
-                                                  students.removeAt(i);
-                                                });
-                                              },
-                                            );
-                                          },
-                                        ),
-                                      ],
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                      iconSize: 20,
+                                      onPressed: () {
+                                        _verifyPasswordAndExecute('un-enrolling student "${s['name'] ?? ''}"', () async {
+                                          await _repo.unenrollStudent(sub.id, s['profileId']!);
+                                          setS(() {
+                                            students.remove(s);
+                                          });
+                                          setState(() {
+                                            sub.studentCount = students.length;
+                                          });
+                                        });
+                                      },
                                     ),
                                   ],
                                 ),
@@ -296,9 +307,19 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
               ),
             ),
             actions: [
-              TextButton(
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  backgroundColor: Colors.white,
+                  elevation: 0,
+                ),
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Close'),
+                child: const Text(
+                  'Close',
+                  style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           );
@@ -310,8 +331,12 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
   void _showAttendanceDialog(ProfessorSubject sub) async {
     setState(() => _loading = true);
     List<Map<String, String>> students = [];
+    List<AttendanceSummary> historyData = [];
+    List<StudentAttendanceSummary> summaryData = [];
     try {
       students = await _repo.fetchEnrolledStudents(sub.id);
+      historyData = await _repo.fetchAttendanceHistory(sub.id);
+      summaryData = await _repo.fetchStudentAttendanceSummaries(sub.id);
     } catch (_) {
       students = [];
     } finally {
@@ -320,12 +345,21 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
 
     if (!mounted) return;
 
+    // Pre-fill today's attendance from DB if already recorded
     final attendance = <String, String>{};
+    try {
+      final todayRecords = await _repo.fetchAttendanceByDate(sub.id, DateTime.now());
+      for (final r in todayRecords) {
+        attendance[r.studentProfileId] = r.status;
+      }
+    } catch (_) {}
+    // Default remaining students to 'present'
     for (final s in students) {
-      attendance[s['profileId']!] = 'present'; // Present by default
+      attendance.putIfAbsent(s['profileId']!, () => 'present');
     }
 
     String activeView = 'sheet'; // 'sheet', 'history', 'summary'
+    bool submitting = false;
 
     showDialog(
       context: context,
@@ -392,11 +426,8 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
             );
           }
 
-          Widget buildHistoryRow(String date, int total) {
-            // Scale dynamically and ensure stats are always positive
-            final int present = total > 0 ? (total * 0.9).round() : 0;
-            final int late = total > 0 ? (total * 0.05).round() : 0;
-            final int absent = total - present - late;
+          Widget buildHistoryRow(AttendanceSummary summary) {
+            final dateStr = '${summary.date.month.toString().padLeft(2, '0')}/${summary.date.day.toString().padLeft(2, '0')}/${summary.date.year}';
 
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -407,16 +438,16 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    date,
+                    dateStr,
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
                   ),
                   Row(
                     children: [
-                      _buildStatBadge('$present Present', const Color(0xFFE0F2F1), const Color(0xFF00796B)),
+                      _buildStatBadge('${summary.presentCount} Present', const Color(0xFFE0F2F1), const Color(0xFF00796B)),
                       const SizedBox(width: 6),
-                      _buildStatBadge('$late Late', const Color(0xFFFFF3E0), const Color(0xFFEF6C00)),
+                      _buildStatBadge('${summary.lateCount} Late', const Color(0xFFFFF3E0), const Color(0xFFEF6C00)),
                       const SizedBox(width: 6),
-                      _buildStatBadge('$absent Absent', const Color(0xFFFFEBEE), const Color(0xFFC62828)),
+                      _buildStatBadge('${summary.absentCount} Absent', const Color(0xFFFFEBEE), const Color(0xFFC62828)),
                     ],
                   ),
                 ],
@@ -475,32 +506,45 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
           }
 
           return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            backgroundColor: const Color(0xFFF9F9F9),
-            titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-            actionsPadding: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            backgroundColor: const Color(0xFFF8F9FC),
+            titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 10),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+            actionsPadding: const EdgeInsets.all(24),
             title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Attendance Sheet',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                    color: AppColors.authPrimary,
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.authPrimary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.assignment_turned_in_rounded, color: AppColors.authPrimary, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Attendance Sheet',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 12),
                 Text(
                   '${sub.name} - ${sub.courseCode} ${sub.yearLevel}-${sub.section}',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: Color(0xFF475569),
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   'Date: ${DateTime.now().month}/${DateTime.now().day}/${DateTime.now().year}',
                   style: TextStyle(
@@ -538,8 +582,8 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade200),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade200, width: 1.5),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -554,15 +598,16 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                           const Divider(height: 1),
                           ConstrainedBox(
                             constraints: const BoxConstraints(maxHeight: 300),
-                            child: ListView(
-                              shrinkWrap: true,
-                              children: [
-                                buildHistoryRow('05/26/2026', sub.studentCount),
-                                buildHistoryRow('05/25/2026', sub.studentCount),
-                                buildHistoryRow('05/24/2026', sub.studentCount),
-                                buildHistoryRow('05/20/2026', sub.studentCount),
-                              ],
-                            ),
+                            child: historyData.isEmpty
+                                ? const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 24),
+                                    child: Center(child: Text('No attendance records yet.', style: TextStyle(color: Colors.grey))),
+                                  )
+                                : ListView.builder(
+                                    shrinkWrap: true,
+                                    itemCount: historyData.length,
+                                    itemBuilder: (_, i) => buildHistoryRow(historyData[i]),
+                                  ),
                           ),
                         ],
                       ),
@@ -571,8 +616,8 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade200),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade200, width: 1.5),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -587,50 +632,52 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                           const Divider(height: 1),
                           ConstrainedBox(
                             constraints: const BoxConstraints(maxHeight: 300),
-                            child: ListView.builder(
-                              shrinkWrap: true,
-                              itemCount: students.length,
-                              itemBuilder: (_, i) {
-                                final s = students[i];
-                                final int present = 10 + (i % 3);
-                                final int late = i % 2;
-                                final int absent = 12 - present - late;
-                                final double pct = (present / 12) * 100;
-                                return Container(
-                                  color: i % 2 == 0 ? Colors.grey.shade50 : Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          s['name'] ?? '',
-                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87),
-                                        ),
-                                      ),
-                                      Row(
-                                        children: [
-                                          Text(
-                                            '${pct.toStringAsFixed(0)}%',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w800,
-                                              color: pct > 85 ? const Color(0xFF00796B) : const Color(0xFFEF6C00),
+                            child: summaryData.isEmpty
+                                ? const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 24),
+                                    child: Center(child: Text('No attendance data yet.', style: TextStyle(color: Colors.grey))),
+                                  )
+                                : ListView.builder(
+                                    shrinkWrap: true,
+                                    itemCount: summaryData.length,
+                                    itemBuilder: (_, i) {
+                                      final s = summaryData[i];
+                                      final pct = s.attendanceRate;
+                                      return Container(
+                                        color: i % 2 == 0 ? Colors.grey.shade50 : Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                s.studentName,
+                                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87),
+                                              ),
                                             ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          _buildStatBadge('$present P', const Color(0xFFE0F2F1), const Color(0xFF00796B)),
-                                          const SizedBox(width: 4),
-                                          _buildStatBadge('$late L', const Color(0xFFFFF3E0), const Color(0xFFEF6C00)),
-                                          const SizedBox(width: 4),
-                                          _buildStatBadge('$absent A', const Color(0xFFFFEBEE), const Color(0xFFC62828)),
-                                        ],
-                                      ),
-                                    ],
+                                            Row(
+                                              children: [
+                                                Text(
+                                                  '${pct.toStringAsFixed(0)}%',
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w800,
+                                                    color: pct > 85 ? const Color(0xFF00796B) : const Color(0xFFEF6C00),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                _buildStatBadge('${s.totalPresent} P', const Color(0xFFE0F2F1), const Color(0xFF00796B)),
+                                                const SizedBox(width: 4),
+                                                _buildStatBadge('${s.totalLate} L', const Color(0xFFFFF3E0), const Color(0xFFEF6C00)),
+                                                const SizedBox(width: 4),
+                                                _buildStatBadge('${s.totalAbsent} A', const Color(0xFFFFEBEE), const Color(0xFFC62828)),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
                                   ),
-                                );
-                              },
-                            ),
                           ),
                         ],
                       ),
@@ -639,8 +686,8 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade200),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade200, width: 1.5),
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -750,33 +797,78 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
             ),
             actions: [
               if (activeView != 'sheet')
-                TextButton(
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    backgroundColor: Colors.white,
+                    elevation: 0,
+                  ),
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Close'),
+                  child: const Text(
+                    'Close',
+                    style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold),
+                  ),
                 )
               else ...[
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    final presentCount = attendance.values.where((v) => v == 'present').length;
-                    final lateCount = attendance.values.where((v) => v == 'late').length;
-                    final absentCount = attendance.values.where((v) => v == 'absent').length;
-                    AppDialog.result(
-                      context,
-                      type: DialogType.success,
-                      message: 'Attendance submitted!\n$presentCount Present, $lateCount Late, $absentCount Absent.',
-                      buttonLabel: 'Done',
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.authPrimary,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('Submit Attendance'),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        backgroundColor: Colors.white,
+                        elevation: 0,
+                      ),
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.authPrimary,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        elevation: 0,
+                      ),
+                      onPressed: submitting ? null : () async {
+                        setS(() => submitting = true);
+                        try {
+                          await _repo.saveAttendance(
+                            subjectId: sub.id,
+                            date: DateTime.now(),
+                            attendance: attendance,
+                          );
+                          if (!ctx.mounted) return;
+                          Navigator.pop(ctx);
+                          final presentCount = attendance.values.where((v) => v == 'present').length;
+                          final lateCount = attendance.values.where((v) => v == 'late').length;
+                          final absentCount = attendance.values.where((v) => v == 'absent').length;
+                          AppDialog.result(
+                            context,
+                            type: DialogType.success,
+                            message: 'Attendance saved!\n$presentCount Present, $lateCount Late, $absentCount Absent.',
+                            buttonLabel: 'Done',
+                          );
+                        } catch (e) {
+                          setS(() => submitting = false);
+                          if (ctx.mounted) {
+                            AppDialog.result(ctx, type: DialogType.error, message: 'Failed to save: $e');
+                          }
+                        }
+                      },
+                      child: Text(
+                        submitting ? 'Saving...' : 'Submit Attendance',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ],
@@ -864,53 +956,47 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                       const SizedBox(height: 12),
 
                       // Dropdown Filters grid
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          return Row(
-                            children: [
-                              Expanded(
-                                child: _buildFilterDropdown<String>(
-                                  label: 'Classname',
-                                  value: _selectedSubject,
-                                  items: subjectNames,
-                                  onChanged: (v) => setState(() {
-                                    _selectedSubject = v;
-                                    _applyFilters();
-                                  }),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _buildFilterDropdown<String>(
-                                  label: 'Course & Section',
-                                  value: _selectedCourseSection,
-                                  items: courseSections,
-                                  onChanged: (v) => setState(() {
-                                    _selectedCourseSection = v;
-                                    _applyFilters();
-                                  }),
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Buttons Row
+                      // Dropdown Filters grid inline
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          ElevatedButton.icon(
-                            onPressed: _applyFilters,
-                            icon: const Icon(Icons.search, size: 16),
-                            label: const Text('Search'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.authPrimary,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(6),
+                          Expanded(
+                            child: _buildFilterDropdown<String>(
+                              label: 'Classname',
+                              value: _selectedSubject,
+                              items: subjectNames,
+                              onChanged: (v) => setState(() {
+                                _selectedSubject = v;
+                                _applyFilters();
+                              }),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildFilterDropdown<String>(
+                              label: 'Course & Section',
+                              value: _selectedCourseSection,
+                              items: courseSections,
+                              onChanged: (v) => setState(() {
+                                _selectedCourseSection = v;
+                                _applyFilters();
+                              }),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            height: 48,
+                            child: ElevatedButton.icon(
+                              onPressed: _applyFilters,
+                              icon: const Icon(Icons.search, size: 16),
+                              label: const Text('Search'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.authPrimary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 0,
                               ),
                             ),
                           ),
@@ -918,11 +1004,21 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                               _selectedYearLevel != null ||
                               _selectedSubject != null ||
                               _selectedCourseSection != null) ...[
-                            const SizedBox(width: 8),
-                            IconButton(
-                              icon: const Icon(Icons.refresh, color: Colors.grey),
-                              onPressed: _resetFilters,
-                              tooltip: 'Clear Filters',
+                            const SizedBox(width: 6),
+                            SizedBox(
+                              height: 48,
+                              width: 48,
+                              child: IconButton(
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Colors.grey[200],
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.refresh, color: Colors.black87, size: 20),
+                                onPressed: _resetFilters,
+                                tooltip: 'Clear Filters',
+                              ),
                             ),
                           ],
                         ],
@@ -972,11 +1068,12 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F0F0),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.black.withOpacity(0.08)),
+        color: const Color(0xFFF5F5F7),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.black.withOpacity(0.06)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(

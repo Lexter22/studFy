@@ -77,7 +77,7 @@ class AdminDrawer extends StatelessWidget {
                   _buildDrawerItem(
                     context,
                     icon: Icons.qr_code,
-                    title: 'Enrollment Codes',
+                    title: 'Registration Codes',
                     onTap: () {
                       context.pop();
                       context.goNamed(AppRoutes.adminEnrollmentCodes);

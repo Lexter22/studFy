@@ -6,9 +6,10 @@ class ProfessorSubject {
   final int yearLevel;
   final String? scheduleLabel;
   final String? room;
-  final int studentCount;
+  String? joinCode;
+  int studentCount;
 
-  const ProfessorSubject({
+  ProfessorSubject({
     required this.id,
     required this.name,
     required this.courseCode,
@@ -16,6 +17,7 @@ class ProfessorSubject {
     required this.yearLevel,
     this.scheduleLabel,
     this.room,
+    this.joinCode,
     required this.studentCount,
   });
 }
@@ -90,4 +92,108 @@ class SubjectAssignment {
     this.fileName,
     this.moduleId,
   });
+}
+
+class AttendanceRecord {
+  final String id;
+  final String subjectOfferingId;
+  final String studentProfileId;
+  final DateTime date;
+  final String status; // 'present', 'late', 'absent'
+  final String? remarks;
+  final String? studentName;
+
+  const AttendanceRecord({
+    required this.id,
+    required this.subjectOfferingId,
+    required this.studentProfileId,
+    required this.date,
+    required this.status,
+    this.remarks,
+    this.studentName,
+  });
+}
+
+class AttendanceSummary {
+  final DateTime date;
+  final int presentCount;
+  final int lateCount;
+  final int absentCount;
+
+  const AttendanceSummary({
+    required this.date,
+    required this.presentCount,
+    required this.lateCount,
+    required this.absentCount,
+  });
+
+  int get total => presentCount + lateCount + absentCount;
+}
+
+class StudentAttendanceSummary {
+  final String studentProfileId;
+  final String studentName;
+  final int totalPresent;
+  final int totalLate;
+  final int totalAbsent;
+
+  const StudentAttendanceSummary({
+    required this.studentProfileId,
+    required this.studentName,
+    required this.totalPresent,
+    required this.totalLate,
+    required this.totalAbsent,
+  });
+
+  int get totalSessions => totalPresent + totalLate + totalAbsent;
+  double get attendanceRate =>
+      totalSessions > 0 ? (totalPresent + totalLate) / totalSessions * 100 : 0;
+}
+
+class StudentGrade {
+  final String id;
+  final String subjectOfferingId;
+  final String studentProfileId;
+  final String category; // 'quiz', 'assignment', 'exam', 'project', 'general'
+  final String title;
+  final double score;
+  final double maxScore;
+  final String? remarks;
+  final DateTime gradedAt;
+  final String? studentName;
+
+  const StudentGrade({
+    required this.id,
+    required this.subjectOfferingId,
+    required this.studentProfileId,
+    required this.category,
+    required this.title,
+    required this.score,
+    required this.maxScore,
+    this.remarks,
+    required this.gradedAt,
+    this.studentName,
+  });
+
+  double get percentage => maxScore > 0 ? (score / maxScore) * 100 : 0;
+}
+
+class StudentGradeSummary {
+  final String studentProfileId;
+  final String studentName;
+  final double averagePercentage;
+  final int totalItems;
+  final double totalScore;
+  final double totalMaxScore;
+
+  const StudentGradeSummary({
+    required this.studentProfileId,
+    required this.studentName,
+    required this.averagePercentage,
+    required this.totalItems,
+    required this.totalScore,
+    required this.totalMaxScore,
+  });
+
+  bool get isPassing => averagePercentage >= 75;
 }

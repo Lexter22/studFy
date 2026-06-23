@@ -26,6 +26,7 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
   // Track state of assignment submissions
   final Map<String, bool> _submittedAssignments = {};
   final Map<String, List<SubjectAssignment>> _subjectAssignments = {};
+  final Map<String, List<SubjectQuiz>> _subjectQuizzes = {};
 
   @override
   void initState() {
@@ -44,10 +45,32 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
       for (final sub in subjects) {
         final assignments = await _repo.fetchAssignments(sub.id);
         final filtered = assignments.where((a) => !(a.description ?? '').startsWith('[MATERIAL]')).toList();
-        _subjectAssignments[sub.id] = filtered;
-        for (final ass in filtered) {
-          final isSubmitted = await _repo.checkSubmission(ass.id);
-          _submittedAssignments[ass.id] = isSubmitted;
+        
+        // Fetch quizzes
+        final quizzes = await _repo.fetchQuizzes(sub.id);
+        _subjectQuizzes[sub.id] = quizzes;
+        final quizAssignments = quizzes.map((q) => SubjectAssignment(
+          id: 'quiz-${q.id}',
+          title: q.title,
+          description: q.description,
+          deadline: q.deadline,
+          moduleId: q.moduleId,
+        )).toList();
+
+
+        final combined = [...filtered, ...quizAssignments];
+        _subjectAssignments[sub.id] = combined;
+
+        for (final ass in combined) {
+          if (ass.id.startsWith('quiz-')) {
+            // Check quiz_answers table for quiz completion
+            final quizId = ass.id.replaceFirst('quiz-', '');
+            final isAnswered = await _repo.hasAnsweredQuiz(quizId);
+            _submittedAssignments[ass.id] = isAnswered;
+          } else {
+            final isSubmitted = await _repo.checkSubmission(ass.id);
+            _submittedAssignments[ass.id] = isSubmitted;
+          }
         }
       }
 
@@ -273,6 +296,7 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
       child: InkWell(
         onTap: () => _handleAssignmentTap(sub, ass),
         borderRadius: BorderRadius.circular(12),
+        hoverColor: const Color(0xFF0A5C36).withValues(alpha: 0.04),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -340,12 +364,19 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
   }
 
   void _handleAssignmentTap(StudentSubject sub, SubjectAssignment ass) async {
-    if (ass.id.contains('quiz')) {
-      // Open Quiz Screen
+    if (ass.id.startsWith('quiz-')) {
+      // Open Quiz Screen with real quiz data
+      final quizId = ass.id.replaceFirst('quiz-', '');
+      final quizzes = _subjectQuizzes[sub.id] ?? [];
+      final quiz = quizzes.where((q) => q.id == quizId).toList();
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => StudentQuizScreen(subject: sub, assignment: ass),
+          builder: (_) => StudentQuizScreen(
+            subject: sub,
+            quiz: quiz.isNotEmpty ? quiz.first : null,
+            assignment: ass,
+          ),
         ),
       );
     } else {

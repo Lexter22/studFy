@@ -1,7 +1,8 @@
-import 'dart:html' as html;
+import 'package:web/web.dart' as web;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -33,6 +34,9 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
   List<SubjectQuiz> _quizzes = [];
   List<SubjectAssignment> _assignments = [];
   List<Map<String, String>> _students = [];
+  List<StudentGradeSummary> _gradeSummaries = [];
+  List<Map<String, String>> _announcements = [];
+  List<Map<String, dynamic>> _meetings = [];
   bool _loading = true;
 
   @override
@@ -50,28 +54,31 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      // Auto-enroll all students in the database to this subject
-      try {
-        final allDbStudents = await _repo.fetchAllStudents();
-        for (final s in allDbStudents) {
-          if (s['profileId'] != null) {
-            await _repo.enrollStudent(widget.subject.id, s['profileId']!);
-          }
-        }
-      } catch (e) {
-        debugPrint('Auto-enrollment failed: $e');
-      }
-
       final modules = await _repo.fetchModules(widget.subject.id);
       final quizzes = await _repo.fetchQuizzes(widget.subject.id);
       var assignments = await _repo.fetchAssignments(widget.subject.id);
       final students = await _repo.fetchEnrolledStudents(widget.subject.id);
+      List<StudentGradeSummary> gradeSummaries = [];
+      try {
+        gradeSummaries = await _repo.fetchGradeSummaries(widget.subject.id);
+      } catch (_) {}
+      List<Map<String, String>> announcements = [];
+      try {
+        announcements = await _repo.fetchAnnouncements(widget.subject.id);
+      } catch (_) {}
+      List<Map<String, dynamic>> meetings = [];
+      try {
+        meetings = await _repo.fetchMeetings(widget.subject.id);
+      } catch (_) {}
       if (!mounted) return;
       setState(() {
         _modules = modules;
         _quizzes = quizzes;
         _assignments = assignments;
         _students = students;
+        _gradeSummaries = gradeSummaries;
+        _announcements = announcements;
+        _meetings = meetings;
         _loading = false;
       });
     } catch (e) {
@@ -214,38 +221,15 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
       return;
     }
 
-    AppDialog.password(
+    // Safe confirmation gate (no re-authentication / no hardcoded credentials).
+    AppDialog.confirm(
       context,
-      title: 'Confirm Password',
-      message: 'Please enter your password to confirm $actionDescription.',
-      hintText: 'Enter your password',
-      onConfirm: (password) async {
-        try {
-          if (user.email != null && user.email!.toLowerCase() == 'prof@studfy.com') {
-            if (password == 'password123') {
-              await action();
-              return;
-            } else {
-              throw Exception('Invalid password.');
-            }
-          }
-
-          // Verify password with Supabase by signing in again
-          await Supabase.instance.client.auth.signInWithPassword(
-            email: user.email!,
-            password: password,
-          );
-          
-          await action();
-        } catch (e) {
-          if (mounted) {
-            AppDialog.result(
-              context,
-              type: DialogType.error,
-              message: 'Authentication failed: ${e.toString().replaceAll('Exception: ', '')}',
-            );
-          }
-        }
+      title: 'Please Confirm',
+      message: 'Are you sure you want to proceed with $actionDescription? This action cannot be undone.',
+      type: DialogType.warning,
+      confirmLabel: 'Confirm',
+      onConfirm: () async {
+        await action();
       },
     );
   }
@@ -405,6 +389,23 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                               initialDate: deadline ?? DateTime.now().add(const Duration(days: 7)),
                               firstDate: DateTime.now(),
                               lastDate: DateTime.now().add(const Duration(days: 365)),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: AppColors.authPrimary,
+                                      onPrimary: Colors.white,
+                                      onSurface: Colors.black87,
+                                    ),
+                                    textButtonTheme: TextButtonThemeData(
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: AppColors.authPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
                             );
                             if (picked != null) setS(() => deadline = picked);
                           },
@@ -693,6 +694,23 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                         initialDate: DateTime.now().add(const Duration(days: 7)),
                         firstDate: DateTime.now(),
                         lastDate: DateTime.now().add(const Duration(days: 365)),
+                        builder: (context, child) {
+                          return Theme(
+                            data: Theme.of(context).copyWith(
+                              colorScheme: const ColorScheme.light(
+                                primary: AppColors.authPrimary,
+                                onPrimary: Colors.white,
+                                onSurface: Colors.black87,
+                              ),
+                              textButtonTheme: TextButtonThemeData(
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppColors.authPrimary,
+                                ),
+                              ),
+                            ),
+                            child: child!,
+                          );
+                        },
                       );
                       if (picked != null) setS(() => deadline = picked);
                     },
@@ -1195,7 +1213,9 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                             ? _buildModulesContent()
                             : _contentIndex == 1
                                 ? _buildStudentsContent()
-                                : _buildAnnouncementsContent(),
+                                : _contentIndex == 2
+                                    ? _buildGradesContent()
+                                    : _buildAnnouncementsContent(),
                       ),
                     ],
                   ),
@@ -1203,6 +1223,148 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
           const ProfessorFloatingNavBar(currentIndex: 1),
         ],
       ),
+    );
+  }
+
+  Widget _buildClassCodeChip() {
+    final code = widget.subject.joinCode ?? '------';
+    return InkWell(
+      onTap: _showClassCodeDialog,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.authPrimary.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.authPrimary.withOpacity(0.2)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.vpn_key_rounded, size: 13, color: AppColors.authPrimary),
+                const SizedBox(width: 4),
+                Text('CLASS CODE',
+                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.authPrimary.withOpacity(0.7), letterSpacing: 0.5)),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(code,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.authPrimary, letterSpacing: 2)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showClassCodeDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) {
+          final code = widget.subject.joinCode ?? '------';
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            backgroundColor: Colors.white,
+            title: Row(
+              children: [
+                const Icon(Icons.vpn_key_rounded, color: AppColors.authPrimary),
+                const SizedBox(width: 10),
+                const Text('Class Code', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Share this code with your students. They join this class from their dashboard using "Join Class".',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600, height: 1.4),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  decoration: BoxDecoration(
+                    color: AppColors.authPrimary.withOpacity(0.06),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.authPrimary.withOpacity(0.2)),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(code,
+                      style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: AppColors.authPrimary, letterSpacing: 6)),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: code));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Class code copied'), duration: Duration(seconds: 2)),
+                          );
+                        },
+                        icon: const Icon(Icons.copy_rounded, size: 16),
+                        label: const Text('Copy'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.authPrimary,
+                          side: const BorderSide(color: AppColors.authPrimary),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _confirmRegenerateCode(ctx, setS),
+                        icon: const Icon(Icons.refresh_rounded, size: 16),
+                        label: const Text('Reset'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.authPrimary,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Close', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _confirmRegenerateCode(BuildContext dialogCtx, StateSetter setS) {
+    AppDialog.confirm(
+      context,
+      title: 'Reset Class Code?',
+      message: 'The current code will stop working. Students who already joined stay enrolled, but anyone with the old code can no longer join.',
+      type: DialogType.warning,
+      confirmLabel: 'Reset',
+      onConfirm: () async {
+        try {
+          final newCode = await _repo.regenerateClassCode(widget.subject.id);
+          setState(() => widget.subject.joinCode = newCode);
+          setS(() {});
+          if (mounted) {
+            AppDialog.result(context, type: DialogType.success, message: 'New class code generated.');
+          }
+        } catch (e) {
+          if (mounted) AppDialog.result(context, type: DialogType.error, message: 'Failed: $e');
+        }
+      },
     );
   }
 
@@ -1232,10 +1394,11 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                   ),
                 ],
               ),
+              _buildClassCodeChip(),
             ],
           ),
           const SizedBox(height: 12),
-          // Segmented Control bar for 3 tabs: Modules (0), Students (1), Announcements (2)
+          // Segmented Control bar for 4 tabs: Modules (0), Students (1), Grades (2), Announcements (3)
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
@@ -1246,7 +1409,8 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
               children: [
                 _buildSegmentButton(0, 'Modules', Icons.book_rounded),
                 _buildSegmentButton(1, 'Students', Icons.people_alt_rounded),
-                _buildSegmentButton(2, 'Announcements', Icons.campaign_rounded),
+                _buildSegmentButton(2, 'Grades', Icons.grade_rounded),
+                _buildSegmentButton(3, 'Announcements', Icons.campaign_rounded),
               ],
             ),
           ),
@@ -1501,6 +1665,23 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                       initialDate: announcementDate,
                       firstDate: DateTime.now().subtract(const Duration(days: 365)),
                       lastDate: DateTime.now().add(const Duration(days: 365)),
+                      builder: (context, child) {
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: const ColorScheme.light(
+                              primary: AppColors.authPrimary,
+                              onPrimary: Colors.white,
+                              onSurface: Colors.black87,
+                            ),
+                            textButtonTheme: TextButtonThemeData(
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppColors.authPrimary,
+                              ),
+                            ),
+                          ),
+                          child: child!,
+                        );
+                      },
                     );
                     if (picked != null) {
                       setS(() => announcementDate = picked);
@@ -1541,15 +1722,16 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                     ),
                     const SizedBox(width: 12),
                     ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
                         if (ctrl.text.trim().isEmpty) return;
                         Navigator.pop(ctx);
-                        context.read<AppState>().addAnnouncement(
-                              widget.subject.name,
-                              ctrl.text.trim(),
-                              announcementDate,
-                            );
-                        AppDialog.result(context, type: DialogType.success, message: 'Announcement posted!');
+                        try {
+                          await _repo.createAnnouncement(widget.subject.id, ctrl.text.trim());
+                          await _load();
+                          if (mounted) AppDialog.result(context, type: DialogType.success, message: 'Announcement posted!');
+                        } catch (e) {
+                          if (mounted) AppDialog.result(context, type: DialogType.error, message: 'Failed to post: $e');
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.authPrimary,
@@ -1571,16 +1753,15 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
   }
 
   void _confirmDeleteAnnouncement(Map<String, String> ann) {
-    AppDialog.confirm(
-      context,
-      title: 'Delete Announcement',
-      message: 'Are you sure you want to delete this announcement?',
-      type: DialogType.error,
-      onConfirm: () {
-        context.read<AppState>().deleteAnnouncement(ann);
-        AppDialog.result(context, type: DialogType.success, message: 'Announcement deleted successfully.');
-      },
-    );
+    _verifyPasswordAndExecute('deleting announcement "${ann['fullText']?.substring(0, 20) ?? ''}"', () async {
+      try {
+        await _repo.deleteAnnouncement(ann['id']!);
+        await _load();
+        if (mounted) AppDialog.result(context, type: DialogType.success, message: 'Announcement deleted successfully.');
+      } catch (e) {
+        if (mounted) AppDialog.result(context, type: DialogType.error, message: 'Failed: $e');
+      }
+    });
   }
 
   Widget _buildProfessorAnnouncementCard(Map<String, String> ann) {
@@ -1629,9 +1810,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
   }
 
   Widget _buildModulesContent() {
-    final subjectMeetings = context.watch<AppState>().meetings
-        .where((m) => m['subject'] == widget.subject.name)
-        .toList();
+    final subjectMeetings = _meetings;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
@@ -2102,10 +2281,19 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
     );
   }
 
+  Widget _buildGradesContent() {
+    // Fetch grades data (already loaded as _gradeSummaries, but we also need individual grades)
+    return _GradesContentWidget(
+      repo: _repo,
+      subject: widget.subject,
+      students: _students,
+      gradeSummaries: _gradeSummaries,
+      onGradeChanged: () => _load(),
+    );
+  }
+
   Widget _buildAnnouncementsContent() {
-    final subjectAnnouncements = context.watch<AppState>().announcements
-        .where((ann) => ann['subject'] == widget.subject.name)
-        .toList();
+    final subjectAnnouncements = _announcements;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
@@ -2153,29 +2341,22 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
 
 
   void _confirmUnenroll(Map<String, String> student) {
-    AppDialog.confirm(
-      context,
-      title: 'Unenroll Student',
-      message: 'Remove ${student['name']} from this subject?',
-      type: DialogType.error,
-      confirmLabel: 'Remove',
-      onConfirm: () async {
-        try {
-          await _repo.unenrollStudent(widget.subject.id, student['profileId']!);
-          await _load();
-          if (mounted) AppDialog.result(context, type: DialogType.success, message: 'Student unenrolled.');
-        } catch (e) {
-          if (mounted) AppDialog.result(context, type: DialogType.error, message: e.toString());
-        }
-      },
-    );
+    _verifyPasswordAndExecute('unenrolling student "${student['name'] ?? ''}"', () async {
+      try {
+        await _repo.unenrollStudent(widget.subject.id, student['profileId']!);
+        await _load();
+        if (mounted) AppDialog.result(context, type: DialogType.success, message: 'Student unenrolled.');
+      } catch (e) {
+        if (mounted) AppDialog.result(context, type: DialogType.error, message: e.toString());
+      }
+    });
   }
 
   // Legacy tab methods removed — content now in _buildModulesContent()
 
 
   void _openUrl(String url) {
-    html.window.open(url, '_blank');
+    web.window.open(url, '_blank');
   }
 
   void _showQuizDetailDialog(SubjectQuiz quiz) async {
@@ -2458,6 +2639,23 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                               initialDate: deadline ?? DateTime.now().add(const Duration(days: 7)),
                               firstDate: DateTime.now(),
                               lastDate: DateTime.now().add(const Duration(days: 365)),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: AppColors.authPrimary,
+                                      onPrimary: Colors.white,
+                                      onSurface: Colors.black87,
+                                    ),
+                                    textButtonTheme: TextButtonThemeData(
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: AppColors.authPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
                             );
                             if (picked != null) setS(() => deadline = picked);
                           },
@@ -2570,23 +2768,30 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                     ),
                     const SizedBox(width: 12),
                     ElevatedButton(
-                      onPressed: () async {
+                      onPressed: () {
                         if (titleCtrl.text.trim().isEmpty) return;
-                        Navigator.pop(ctx);
-                        try {
-                          await _repo.updateQuiz(
-                            quizId: quiz.id,
-                            title: titleCtrl.text,
-                            description: descCtrl.text,
-                            deadline: deadline,
-                            moduleId: selectedModuleId,
-                            questions: questions,
-                          );
-                          await _load();
-                          if (mounted) AppDialog.result(context, type: DialogType.success, message: 'Quiz updated.');
-                        } catch (e) {
-                          if (mounted) AppDialog.result(context, type: DialogType.error, message: e.toString());
-                        }
+                        AppDialog.confirm(
+                          context,
+                          title: 'Save Changes',
+                          message: 'Are you sure you want to update this quiz?',
+                          onConfirm: () async {
+                            Navigator.pop(ctx); // Close the edit quiz dialog
+                            try {
+                              await _repo.updateQuiz(
+                                quizId: quiz.id,
+                                title: titleCtrl.text,
+                                description: descCtrl.text,
+                                deadline: deadline,
+                                moduleId: selectedModuleId,
+                                questions: questions,
+                              );
+                              await _load();
+                              if (mounted) AppDialog.result(context, type: DialogType.success, message: 'Quiz updated.');
+                            } catch (e) {
+                              if (mounted) AppDialog.result(context, type: DialogType.error, message: e.toString());
+                            }
+                          },
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.authPrimary,
@@ -2704,15 +2909,14 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
           IconButton(
             icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
             onPressed: () {
-              AppDialog.confirm(
-                context,
-                title: 'Delete Meeting',
-                message: 'Are you sure you want to delete this meeting?',
-                type: DialogType.error,
-                onConfirm: () async {
-                  context.read<AppState>().deleteMeeting(meet['id']);
-                },
-              );
+              _verifyPasswordAndExecute('deleting meeting "${meet['title'] ?? ''}"', () async {
+                try {
+                  await _repo.deleteMeeting(meet['id']);
+                  await _load();
+                } catch (e) {
+                  if (mounted) AppDialog.result(context, type: DialogType.error, message: 'Failed: $e');
+                }
+              });
             },
           ),
         ],
@@ -2738,18 +2942,29 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
       );
     }
 
-    // Assign mock grades dynamically
-    final List<double> grades = [];
-    for (int i = 0; i < _students.length; i++) {
-      final grade = 78.0 + ((i * 7) % 21);
-      grades.add(grade);
+    if (_gradeSummaries.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200, width: 1.5),
+        ),
+        child: const Text(
+          'No grades recorded yet. Add grades to see performance summary.',
+          style: TextStyle(color: Colors.grey, fontSize: 13, fontStyle: FontStyle.italic),
+          textAlign: TextAlign.center,
+        ),
+      );
     }
 
+    final List<double> grades = _gradeSummaries.map((s) => s.averagePercentage).toList();
     final double avg = grades.reduce((a, b) => a + b) / grades.length;
     final double maxGrade = grades.reduce((a, b) => a > b ? a : b);
 
-    final passingCount = grades.where((g) => g >= 75).length;
-    final passingPercentage = (passingCount / grades.length * 100).round();
+    final passingCount = _gradeSummaries.where((s) => s.isPassing).length;
+    final passingPercentage = (passingCount / _gradeSummaries.length * 100).round();
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -2783,11 +2998,11 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
               thumbVisibility: true,
               child: ListView.builder(
                 shrinkWrap: true,
-                itemCount: _students.length,
+                itemCount: _gradeSummaries.length,
                 itemBuilder: (ctx, i) {
-                  final s = _students[i];
-                  final grade = grades[i];
-                  final isPassing = grade >= 75;
+                  final s = _gradeSummaries[i];
+                  final grade = s.averagePercentage;
+                  final isPassing = s.isPassing;
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Row(
@@ -2795,7 +3010,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                       children: [
                         Expanded(
                           child: Text(
-                            s['name'] ?? '',
+                            s.studentName,
                             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.black87),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -2868,131 +3083,280 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
     showDialog(
       context: context,
       builder: (dialogCtx) => StatefulBuilder(
-        builder: (context, setS) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text(
-            'Schedule Class Meeting',
-            style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.authPrimary),
-          ),
-          content: SingleChildScrollView(
+        builder: (context, setS) => Dialog(
+          backgroundColor: const Color(0xFFF8F9FC),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: Container(
+            width: 480,
+            padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Meeting Title', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.authPrimary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.video_call_rounded, color: AppColors.authPrimary, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Schedule Class Meeting',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
                 TextField(
                   controller: titleCtrl,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
+                    labelText: 'Meeting Title',
                     hintText: 'e.g., Weekly Consultation',
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text('Platform / Location', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: platformCtrl,
-                  decoration: const InputDecoration(
-                    hintText: 'e.g., Google Meet, Room 402',
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text('Meeting Link (Optional)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: linkCtrl,
-                  decoration: const InputDecoration(
-                    hintText: 'e.g., meet.google.com/xxx-xxxx-xxx',
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: AppColors.authPrimary, width: 2.0),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Date', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black54)),
-                        const SizedBox(height: 4),
-                        OutlinedButton(
-                          onPressed: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: meetingDate,
-                              firstDate: DateTime.now(),
-                              lastDate: DateTime.now().add(const Duration(days: 365)),
-                            );
-                            if (picked != null) {
-                              setS(() => meetingDate = picked);
-                            }
-                          },
-                          child: Text('${meetingDate.month}/${meetingDate.day}/${meetingDate.year}'),
-                        ),
-                      ],
+                TextField(
+                  controller: platformCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Platform / Location',
+                    hintText: 'e.g., Google Meet, Room 402',
+                    labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
                     ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Time', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black54)),
-                        const SizedBox(height: 4),
-                        OutlinedButton(
-                          onPressed: () async {
-                            final picked = await showTimePicker(
-                              context: context,
-                              initialTime: meetingTime,
-                            );
-                            if (picked != null) {
-                              setS(() => meetingTime = picked);
-                            }
-                          },
-                          child: Text(meetingTime.format(context)),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: AppColors.authPrimary, width: 2.0),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: linkCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Meeting Link (Optional)',
+                    hintText: 'e.g., meet.google.com/xxx-xxxx-xxx',
+                    labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: AppColors.authPrimary, width: 2.0),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Date', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF64748B))),
+                          const SizedBox(height: 6),
+                          InkWell(
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: meetingDate,
+                                firstDate: DateTime.now(),
+                                lastDate: DateTime.now().add(const Duration(days: 365)),
+                                builder: (context, child) {
+                                  return Theme(
+                                    data: Theme.of(context).copyWith(
+                                      colorScheme: const ColorScheme.light(
+                                        primary: AppColors.authPrimary,
+                                        onPrimary: Colors.white,
+                                        onSurface: Colors.black87,
+                                      ),
+                                      textButtonTheme: TextButtonThemeData(
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: AppColors.authPrimary,
+                                        ),
+                                      ),
+                                    ),
+                                    child: child!,
+                                  );
+                                },
+                              );
+                              if (picked != null) {
+                                setS(() => meetingDate = picked);
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey.shade200, width: 1.5),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.authPrimary),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '${meetingDate.month}/${meetingDate.day}/${meetingDate.year}',
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Time', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF64748B))),
+                          const SizedBox(height: 6),
+                          InkWell(
+                            onTap: () async {
+                              final picked = await showTimePicker(
+                                context: context,
+                                initialTime: meetingTime,
+                                builder: (context, child) {
+                                  return Theme(
+                                    data: Theme.of(context).copyWith(
+                                      colorScheme: const ColorScheme.light(
+                                        primary: AppColors.authPrimary,
+                                        onPrimary: Colors.white,
+                                        onSurface: Colors.black87,
+                                      ),
+                                      textButtonTheme: TextButtonThemeData(
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: AppColors.authPrimary,
+                                        ),
+                                      ),
+                                    ),
+                                    child: child!,
+                                  );
+                                },
+                              );
+                              if (picked != null) {
+                                setS(() => meetingTime = picked);
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey.shade200, width: 1.5),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.access_time_rounded, size: 16, color: AppColors.authPrimary),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    meetingTime.format(context),
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 28),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          backgroundColor: Colors.white,
+                          elevation: 0,
                         ),
-                      ],
+                        onPressed: () => Navigator.pop(dialogCtx),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.authPrimary,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          elevation: 0,
+                        ),
+                        onPressed: () async {
+                          if (titleCtrl.text.trim().isEmpty) {
+                            AppDialog.result(context, type: DialogType.error, message: 'Please enter a meeting title.');
+                            return;
+                          }
+                          final timeStr = meetingTime.format(context);
+
+                          try {
+                            await _repo.createMeeting(
+                              subjectId: widget.subject.id,
+                              title: titleCtrl.text.trim(),
+                              platform: platformCtrl.text.trim(),
+                              link: linkCtrl.text.trim(),
+                              date: meetingDate,
+                              time: timeStr,
+                            );
+                            if (!mounted) return;
+                            Navigator.pop(dialogCtx);
+                            await _load();
+                            if (mounted) AppDialog.result(context, type: DialogType.success, message: 'Meeting scheduled successfully!');
+                          } catch (e) {
+                            if (mounted) AppDialog.result(context, type: DialogType.error, message: 'Failed: $e');
+                          }
+                        },
+                        child: const Text(
+                          'Schedule',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (titleCtrl.text.trim().isEmpty) {
-                  AppDialog.result(context, type: DialogType.error, message: 'Please enter a meeting title.');
-                  return;
-                }
-                final dateStr = '${meetingDate.year}-${meetingDate.month.toString().padLeft(2, '0')}-${meetingDate.day.toString().padLeft(2, '0')}';
-                final timeStr = meetingTime.format(context);
-
-                context.read<AppState>().addMeeting(
-                  subject: widget.subject.name,
-                  title: titleCtrl.text.trim(),
-                  platform: platformCtrl.text.trim(),
-                  link: linkCtrl.text.trim(),
-                  date: dateStr,
-                  time: timeStr,
-                );
-
-                Navigator.pop(dialogCtx);
-                AppDialog.result(context, type: DialogType.success, message: 'Meeting scheduled successfully!');
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.authPrimary,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Schedule'),
-            ),
-          ],
         ),
       ),
     );
@@ -3163,6 +3527,595 @@ class _QuestionTileState extends State<_QuestionTile> {
           }),
         ],
       ),
+    );
+  }
+}
+
+
+// ── Grades Content Widget ─────────────────────────────────────────────────────
+
+class _GradesContentWidget extends StatefulWidget {
+  final ProfessorRepository repo;
+  final ProfessorSubject subject;
+  final List<Map<String, String>> students;
+  final List<StudentGradeSummary> gradeSummaries;
+  final VoidCallback onGradeChanged;
+
+  const _GradesContentWidget({
+    required this.repo,
+    required this.subject,
+    required this.students,
+    required this.gradeSummaries,
+    required this.onGradeChanged,
+  });
+
+  @override
+  State<_GradesContentWidget> createState() => _GradesContentWidgetState();
+}
+
+class _GradesContentWidgetState extends State<_GradesContentWidget> {
+  List<StudentGrade> _allGrades = [];
+  bool _loading = true;
+  String _filterCategory = 'all';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGrades();
+  }
+
+  Future<void> _loadGrades() async {
+    setState(() => _loading = true);
+    try {
+      final grades = await widget.repo.fetchGrades(widget.subject.id);
+      if (mounted) setState(() { _allGrades = grades; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  List<StudentGrade> get _filteredGrades {
+    if (_filterCategory == 'all') return _allGrades;
+    return _allGrades.where((g) => g.category == _filterCategory).toList();
+  }
+
+  void _showAddGradeDialog() {
+    final titleCtrl = TextEditingController();
+    final maxScoreCtrl = TextEditingController(text: '100');
+    String selectedCategory = 'general';
+    final Map<String, TextEditingController> scoreControllers = {};
+
+    for (final s in widget.students) {
+      scoreControllers[s['profileId']!] = TextEditingController();
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            width: 520,
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.authPrimary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.grade_rounded, color: AppColors.authPrimary, size: 24),
+                    ),
+                    const SizedBox(width: 14),
+                    const Text(
+                      'Add Grades',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: titleCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Grade Title (e.g., Quiz 1, Midterm Exam)',
+                    labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.authPrimary, width: 2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: selectedCategory,
+                        decoration: InputDecoration(
+                          labelText: 'Category',
+                          labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppColors.authPrimary, width: 2),
+                          ),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'quiz', child: Text('Quiz')),
+                          DropdownMenuItem(value: 'assignment', child: Text('Assignment')),
+                          DropdownMenuItem(value: 'exam', child: Text('Exam')),
+                          DropdownMenuItem(value: 'project', child: Text('Project')),
+                          DropdownMenuItem(value: 'general', child: Text('General')),
+                        ],
+                        onChanged: (v) => setS(() => selectedCategory = v ?? 'general'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 120,
+                      child: TextField(
+                        controller: maxScoreCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Max Score',
+                          labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppColors.authPrimary, width: 2),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Student Scores',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: widget.students.isEmpty
+                        ? const Center(child: Text('No students enrolled.', style: TextStyle(color: Colors.grey)))
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(8),
+                            itemCount: widget.students.length,
+                            itemBuilder: (_, i) {
+                              final s = widget.students[i];
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 3,
+                                      child: Text(
+                                        s['name'] ?? '',
+                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    SizedBox(
+                                      width: 80,
+                                      child: TextField(
+                                        controller: scoreControllers[s['profileId']],
+                                        keyboardType: TextInputType.number,
+                                        textAlign: TextAlign.center,
+                                        decoration: InputDecoration(
+                                          hintText: '0',
+                                          hintStyle: TextStyle(color: Colors.grey.shade400),
+                                          isDense: true,
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                            borderSide: BorderSide(color: Colors.grey.shade300),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                            borderSide: const BorderSide(color: AppColors.authPrimary, width: 1.5),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.grey.shade600,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (titleCtrl.text.trim().isEmpty) return;
+                        final maxScore = double.tryParse(maxScoreCtrl.text) ?? 100;
+                        final Map<String, double> scores = {};
+                        for (final entry in scoreControllers.entries) {
+                          final val = double.tryParse(entry.value.text);
+                          if (val != null) scores[entry.key] = val;
+                        }
+                        if (scores.isEmpty) {
+                          AppDialog.result(context, type: DialogType.error, message: 'Enter at least one score.');
+                          return;
+                        }
+                        Navigator.pop(ctx);
+                        try {
+                          await widget.repo.saveBatchGrades(
+                            subjectId: widget.subject.id,
+                            category: selectedCategory,
+                            title: titleCtrl.text.trim(),
+                            maxScore: maxScore,
+                            studentScores: scores,
+                          );
+                          await _loadGrades();
+                          widget.onGradeChanged();
+                          if (mounted) {
+                            AppDialog.result(context, type: DialogType.success, message: 'Grades saved for ${scores.length} student${scores.length == 1 ? '' : 's'}.');
+                          }
+                        } catch (e) {
+                          if (mounted) AppDialog.result(context, type: DialogType.error, message: 'Failed to save: $e');
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.authPrimary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                      child: const Text('Save Grades', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeleteGrade(StudentGrade grade) {
+    AppDialog.confirm(
+      context,
+      title: 'Delete Grade',
+      message: 'Delete "${grade.title}" for ${grade.studentName ?? 'student'}?',
+      type: DialogType.warning,
+      confirmLabel: 'Delete',
+      onConfirm: () async {
+        try {
+          await widget.repo.deleteGrade(grade.id);
+          await _loadGrades();
+          widget.onGradeChanged();
+          if (mounted) AppDialog.result(context, type: DialogType.success, message: 'Grade deleted.');
+        } catch (e) {
+          if (mounted) AppDialog.result(context, type: DialogType.error, message: 'Failed: $e');
+        }
+      },
+    );
+  }
+
+  Color _categoryColor(String category) {
+    switch (category) {
+      case 'quiz': return const Color(0xFF7C3AED);
+      case 'assignment': return const Color(0xFF2563EB);
+      case 'exam': return const Color(0xFFDC2626);
+      case 'project': return const Color(0xFF059669);
+      default: return const Color(0xFF6B7280);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+      children: [
+        // Header with Add button
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.grade_rounded, color: AppColors.authPrimary, size: 20),
+                const SizedBox(width: 8),
+                const Text(
+                  'Grade Book',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+                ),
+              ],
+            ),
+            ElevatedButton.icon(
+              onPressed: _showAddGradeDialog,
+              icon: const Icon(Icons.add_circle_outline, size: 16),
+              label: const Text('Add Grades', style: TextStyle(fontSize: 13)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.authPrimary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                elevation: 0,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // Category filter chips
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              _buildFilterChip('all', 'All'),
+              _buildFilterChip('quiz', 'Quiz'),
+              _buildFilterChip('assignment', 'Assignment'),
+              _buildFilterChip('exam', 'Exam'),
+              _buildFilterChip('project', 'Project'),
+              _buildFilterChip('general', 'General'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Summary stats
+        if (widget.gradeSummaries.isNotEmpty) ...[
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildMiniStat('Total Items', '${_allGrades.map((g) => g.title).toSet().length}'),
+                _buildMiniStat('Students', '${widget.students.length}'),
+                _buildMiniStat('Grades Recorded', '${_allGrades.length}'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+
+        // Grade entries list
+        if (_filteredGrades.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 40),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade100),
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.grade_outlined, color: Colors.grey.shade400, size: 36),
+                const SizedBox(height: 8),
+                Text(
+                  _filterCategory == 'all'
+                      ? 'No grades recorded yet.\nTap "Add Grades" to get started.'
+                      : 'No grades in this category.',
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 13, fontWeight: FontWeight.w500),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          )
+        else
+          ..._buildGroupedGrades(),
+      ],
+    );
+  }
+
+  List<Widget> _buildGroupedGrades() {
+    // Group grades by title
+    final Map<String, List<StudentGrade>> grouped = {};
+    for (final g in _filteredGrades) {
+      grouped.putIfAbsent(g.title, () => []).add(g);
+    }
+
+    final List<Widget> widgets = [];
+    for (final entry in grouped.entries) {
+      final grades = entry.value;
+      final category = grades.first.category;
+      final maxScore = grades.first.maxScore;
+      final avgScore = grades.fold<double>(0, (sum, g) => sum + g.score) / grades.length;
+      final avgPct = maxScore > 0 ? (avgScore / maxScore) * 100 : 0.0;
+
+      widgets.add(
+        Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _categoryColor(category).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  category == 'quiz' ? Icons.edit_rounded
+                      : category == 'assignment' ? Icons.assignment_rounded
+                      : category == 'exam' ? Icons.school_rounded
+                      : category == 'project' ? Icons.folder_rounded
+                      : Icons.star_rounded,
+                  size: 18,
+                  color: _categoryColor(category),
+                ),
+              ),
+              title: Text(
+                entry.key,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+              ),
+              subtitle: Row(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: _categoryColor(category).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      category.toUpperCase(),
+                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: _categoryColor(category)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Avg: ${avgPct.toStringAsFixed(1)}% | ${grades.length} student${grades.length == 1 ? '' : 's'}',
+                      style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                    ),
+                  ),
+                ],
+              ),
+              children: [
+                const Divider(height: 1),
+                const SizedBox(height: 8),
+                ...grades.map((g) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          g.studentName ?? 'Unknown',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text(
+                        '${g.score.toStringAsFixed(g.score == g.score.roundToDouble() ? 0 : 1)}/${g.maxScore.toStringAsFixed(0)}',
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: g.percentage >= 75 ? Colors.green.shade50 : Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '${g.percentage.toStringAsFixed(0)}%',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: g.percentage >= 75 ? Colors.green.shade700 : Colors.red.shade700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      InkWell(
+                        onTap: () => _confirmDeleteGrade(g),
+                        borderRadius: BorderRadius.circular(4),
+                        child: const Padding(
+                          padding: EdgeInsets.all(4),
+                          child: Icon(Icons.close, size: 14, color: Colors.red),
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    return widgets;
+  }
+
+  Widget _buildFilterChip(String category, String label) {
+    final isSelected = _filterCategory == category;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: FilterChip(
+        selected: isSelected,
+        label: Text(label, style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: isSelected ? Colors.white : Colors.black87,
+        )),
+        backgroundColor: Colors.grey.shade100,
+        selectedColor: AppColors.authPrimary,
+        checkmarkColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        side: BorderSide(color: isSelected ? AppColors.authPrimary : Colors.grey.shade300),
+        onSelected: (_) => setState(() => _filterCategory = category),
+      ),
+    );
+  }
+
+  Widget _buildMiniStat(String label, String value) {
+    return Column(
+      children: [
+        Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.authPrimary)),
+        const SizedBox(height: 2),
+        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+      ],
     );
   }
 }

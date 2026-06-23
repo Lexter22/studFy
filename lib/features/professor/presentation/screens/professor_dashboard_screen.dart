@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/state/app_state.dart';
+import '../../../../core/widgets/app_dialog.dart';
 import '../../data/repositories/professor_repository.dart';
 import '../../domain/models/professor_subject.dart';
 import '../widgets/professor_floating_nav_bar.dart';
@@ -19,8 +20,29 @@ class ProfessorDashboardScreen extends StatefulWidget {
 class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
   final _repo = const ProfessorRepository();
 
+  void _verifyPasswordAndExecute(String actionDescription, Future<void> Function() action) {
+    final user = context.read<AppState>().currentUser;
+    if (user == null) {
+      AppDialog.result(context, type: DialogType.error, message: 'User session not found.');
+      return;
+    }
+
+    // Safe confirmation gate (no re-authentication / no hardcoded credentials).
+    AppDialog.confirm(
+      context,
+      title: 'Please Confirm',
+      message: 'Are you sure you want to proceed with $actionDescription? This action cannot be undone.',
+      type: DialogType.warning,
+      confirmLabel: 'Confirm',
+      onConfirm: () async {
+        await action();
+      },
+    );
+  }
+
   List<ProfessorSubject> _subjects = [];
   List<Map<String, dynamic>> _dashboardAssignments = [];
+  List<Map<String, String>> _reminders = [];
   bool _loading = true;
 
   // Selected date for calendar starting at June 2026
@@ -28,19 +50,16 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
   final List<int> _eventDays = [9, 13];
   DateTime? _selectedDate = DateTime(2026, 6, 11);
 
-  // Key format: "yyyy-MM-dd" -> List of reminder maps
-  Map<String, List<Map<String, String>>>? __customReminders;
+  // Computed from _reminders (DB-backed)
   Map<String, List<Map<String, String>>> get _customReminders {
-    __customReminders ??= {
-      '2026-06-11': [
-        {
-          'title': 'Submit Ethics Grades',
-          'time': '11:00 AM',
-          'description': 'Submit the final grades for Ethics block 1 to the registrar.',
-        }
-      ]
-    };
-    return __customReminders!;
+    final Map<String, List<Map<String, String>>> map = {};
+    for (final r in _reminders) {
+      final dateKey = r['date'] ?? '';
+      if (dateKey.isEmpty) continue;
+      map.putIfAbsent(dateKey, () => []);
+      map[dateKey]!.add(r);
+    }
+    return map;
   }
 
   void _showAddReminderDialog(DateTime date) {
@@ -50,64 +69,113 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
 
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogCtx) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: Row(
-                children: [
-                  const Icon(Icons.alarm_add_rounded, color: AppColors.authPrimary),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Add Reminder',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              content: SingleChildScrollView(
+            return Dialog(
+              backgroundColor: const Color(0xFFF8F9FC),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              child: Container(
+                width: 440,
+                padding: const EdgeInsets.all(24),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.authPrimary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.alarm_add_rounded, color: AppColors.authPrimary, size: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Add Reminder',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E293B),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
                     Text(
                       'For: ${_getMonthName(date.month)} ${date.day}, ${date.year}',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                      style: const TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w500),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     TextField(
                       controller: titleController,
                       decoration: InputDecoration(
                         labelText: 'Reminder Title',
-                        labelStyle: const TextStyle(fontSize: 14),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: AppColors.authPrimary, width: 2.0),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     TextField(
                       controller: descController,
                       decoration: InputDecoration(
                         labelText: 'Description (Optional)',
-                        labelStyle: const TextStyle(fontSize: 14),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: AppColors.authPrimary, width: 2.0),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Select Time:', style: TextStyle(fontWeight: FontWeight.bold)),
-                        TextButton.icon(
-                          icon: const Icon(Icons.access_time, size: 18),
-                          label: Text(selectedTime.format(context)),
-                          onPressed: () async {
+                        const Text(
+                          'Select Time:',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF475569)),
+                        ),
+                        InkWell(
+                          onTap: () async {
                             final TimeOfDay? time = await showTimePicker(
                               context: context,
                               initialTime: selectedTime,
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: AppColors.authPrimary,
+                                      onPrimary: Colors.white,
+                                      onSurface: Colors.black87,
+                                    ),
+                                    textButtonTheme: TextButtonThemeData(
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: AppColors.authPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
                             );
                             if (time != null) {
                               setDialogState(() {
@@ -115,43 +183,85 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                               });
                             }
                           },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade200, width: 1.5),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.access_time_rounded, size: 16, color: AppColors.authPrimary),
+                                const SizedBox(width: 8),
+                                Text(
+                                  selectedTime.format(context),
+                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 28),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              backgroundColor: Colors.white,
+                              elevation: 0,
+                            ),
+                            onPressed: () => Navigator.pop(dialogCtx),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.authPrimary,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              elevation: 0,
+                            ),
+                            onPressed: () async {
+                              if (titleController.text.trim().isEmpty) return;
+                              
+                              Navigator.pop(dialogCtx);
+                              try {
+                                await _repo.createReminder(
+                                  title: titleController.text.trim(),
+                                  description: descController.text.trim(),
+                                  date: date,
+                                  time: selectedTime.format(context),
+                                );
+                                await _load();
+                              } catch (e) {
+                                if (mounted) {
+                                  AppDialog.result(context, type: DialogType.error, message: 'Failed to save reminder: $e');
+                                }
+                              }
+                            },
+                            child: const Text(
+                              'Save',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   ],
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.authPrimary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  onPressed: () {
-                    if (titleController.text.trim().isEmpty) return;
-                    
-                    final dateKey = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-                    
-                    setState(() {
-                      if (!_customReminders.containsKey(dateKey)) {
-                        _customReminders[dateKey] = [];
-                      }
-                      _customReminders[dateKey]!.add({
-                        'title': titleController.text.trim(),
-                        'time': selectedTime.format(context),
-                        'description': descController.text.trim(),
-                      });
-                    });
-                    
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Save', style: TextStyle(color: Colors.white)),
-                ),
-              ],
             );
           },
         );
@@ -185,11 +295,18 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
           });
         }
       }
+
+      // Load reminders from DB
+      List<Map<String, String>> reminders = [];
+      try {
+        reminders = await _repo.fetchReminders();
+      } catch (_) {}
       
       if (mounted) {
         setState(() {
           _subjects = subjects;
           _dashboardAssignments = loadedAssignments;
+          _reminders = reminders;
           _loading = false;
         });
       }
@@ -787,55 +904,59 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                     });
                   },
                   borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.authPrimary
-                          : isEvent
-                              ? AppColors.authPrimary.withOpacity(0.08)
-                              : Colors.transparent,
-                      shape: BoxShape.circle,
-                      border: isToday && !isSelected
-                          ? Border.all(color: AppColors.authPrimary, width: 1.5)
-                          : null,
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: AppColors.authPrimary.withOpacity(0.25),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              )
-                            ]
-                          : null,
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          dayNumber.toString(),
-                          style: TextStyle(
-                            color: isSelected
-                                ? Colors.white
-                                : isEvent
-                                    ? AppColors.authPrimary
-                                    : Colors.black87,
-                            fontWeight: (isSelected || isEvent || isToday) ? FontWeight.bold : FontWeight.normal,
-                            fontSize: 13,
-                          ),
-                        ),
-                        if (isEvent) ...[
-                          const SizedBox(height: 2),
-                          Container(
-                            width: 4,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: isSelected ? Colors.white : AppColors.authPrimary,
-                              shape: BoxShape.circle,
+                  child: Center(
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.authPrimary
+                            : isEvent
+                                ? AppColors.authPrimary.withOpacity(0.08)
+                                : Colors.transparent,
+                        shape: BoxShape.circle,
+                        border: isToday && !isSelected
+                            ? Border.all(color: AppColors.authPrimary, width: 1.5)
+                            : null,
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: AppColors.authPrimary.withOpacity(0.2),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 3),
+                                )
+                              ]
+                            : null,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            dayNumber.toString(),
+                            style: TextStyle(
+                              color: isSelected
+                                  ? Colors.white
+                                  : isEvent
+                                      ? AppColors.authPrimary
+                                      : Colors.black87,
+                              fontWeight: (isSelected || isEvent || isToday) ? FontWeight.bold : FontWeight.normal,
+                              fontSize: 13,
                             ),
                           ),
-                        ] else
-                          const SizedBox(height: 6),
-                      ],
+                          if (isEvent) ...[
+                            const SizedBox(height: 2),
+                            Container(
+                              width: 4,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: isSelected ? Colors.white : AppColors.authPrimary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ] else
+                            const SizedBox(height: 6),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -959,8 +1080,16 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                 trailing: IconButton(
                   icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
                   onPressed: () {
-                    setState(() {
-                      _customReminders[dateKey]!.removeAt(idx);
+                    _verifyPasswordAndExecute('deleting reminder "${rem['title'] ?? ''}"', () async {
+                      try {
+                        final remId = rem['id'];
+                        if (remId != null && remId.isNotEmpty) {
+                          await _repo.deleteReminder(remId);
+                        }
+                        await _load();
+                      } catch (e) {
+                        if (mounted) AppDialog.result(context, type: DialogType.error, message: 'Failed: $e');
+                      }
                     });
                   },
                 ),

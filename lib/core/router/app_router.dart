@@ -113,6 +113,15 @@ GoRouter createAppRouter(AppState appState) {
         return '/verify-email';
       }
 
+      // Forced password change guard (admin-created accounts on default password)
+      if (appState.isAuthenticated &&
+          appState.currentUser != null &&
+          appState.currentUser!.isEmailVerified &&
+          appState.currentUser!.mustChangePassword &&
+          !isGoingToChangePassword) {
+        return '/change-password';
+      }
+
       // Already logged in redirect
       if (appState.isAuthenticated && isGoingToLogin) {
         return AppRoutes.pathForRole(role);
@@ -288,7 +297,10 @@ GoRouter createAppRouter(AppState appState) {
       GoRoute(
         path: '/student/modules',
         name: AppRoutes.studentModules,
-        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const StudentModulesScreen()),
+        pageBuilder: (context, state) {
+          final subjectId = state.uri.queryParameters['subjectId'];
+          return _seamlessPage(state.pageKey, StudentModulesScreen(subjectId: subjectId));
+        },
       ),
     ],
   );

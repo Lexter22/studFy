@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../features/auth/domain/models/app_user.dart';
 import '../../features/admin/data/repositories/supabase_admin_repository.dart';
@@ -275,23 +276,53 @@ class AppState extends ChangeNotifier {
   Future<void> loadAdminData() async {
     try {
       final requests = await _adminRepository.fetchRequests();
+      
       final subjectRequests = requests
           .where(_isSubjectRequest)
           .map(_requestCard)
           .toList();
+      subjectRequests.sort((a, b) {
+        final aName = a['name'] ?? '';
+        final bName = b['name'] ?? '';
+        return aName.toLowerCase().compareTo(bName.toLowerCase());
+      });
+
       final instructorRequests = requests
           .where(_isInstructorRequest)
           .map(_requestCard)
           .toList();
+      instructorRequests.sort((a, b) {
+        final aName = a['name'] ?? '';
+        final bName = b['name'] ?? '';
+        return aName.toLowerCase().compareTo(bName.toLowerCase());
+      });
 
       pendingSubjectRequestsNotifier.value = subjectRequests;
       pendingInstructorRequestsNotifier.value = instructorRequests;
-      subjectOfferingsNotifier.value =
-          await _adminRepository.fetchSubjectOfferings();
-      instructorsNotifier.value = await _adminRepository.fetchInstructors();
-      studentsNotifier.value = await _adminRepository.fetchStudents();
-      enrollmentCodesNotifier.value =
-          await _adminRepository.fetchEnrollmentCodes();
+
+      final offerings = await _adminRepository.fetchSubjectOfferings();
+      offerings.sort((a, b) {
+        final aName = a['name'] ?? '';
+        final bName = b['name'] ?? '';
+        return aName.toLowerCase().compareTo(bName.toLowerCase());
+      });
+      subjectOfferingsNotifier.value = offerings;
+
+      final instructors = await _adminRepository.fetchInstructors();
+      instructors.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      instructorsNotifier.value = instructors;
+
+      final students = await _adminRepository.fetchStudents();
+      students.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      studentsNotifier.value = students;
+
+      final codes = await _adminRepository.fetchEnrollmentCodes();
+      codes.sort((a, b) {
+        final aCode = a['code']?.toString() ?? '';
+        final bCode = b['code']?.toString() ?? '';
+        return aCode.toLowerCase().compareTo(bCode.toLowerCase());
+      });
+      enrollmentCodesNotifier.value = codes;
     } catch (error) {
       debugPrint('Failed to load admin data: $error');
       clearAdminData();
@@ -328,6 +359,9 @@ class AppState extends ChangeNotifier {
     _isAuthenticated = true;
     _currentUser = user;
     notifyListeners();
+    // Load persistent data from DB
+    loadAnnouncements();
+    loadMeetings();
   }
 
   void logout() {
@@ -380,37 +414,105 @@ class AppState extends ChangeNotifier {
     };
   }
 
-  // Global announcements list
-  final List<Map<String, String>> _announcements = [
-    {
-      'subject': 'Ethics',
-      'body': "Class, we're online daw until friday. I will just post our lecture here na lng. No online session kc...",
-      'date': 'Today 1:00pm',
-      'fullText': "Good Afternoon! Class, we're online daw until friday. I will just post our lecture here na lng. No online session kc I'll be having dentist appointment bukas."
-    },
-    {
-      'subject': 'Capstone',
-      'body': "Class, we're online daw until friday. I will just post our lecture here na lng. No online session kc...",
-      'date': 'Jan 20 3:01pm',
-      'fullText': "Good Afternoon! Capstone class is online today. Please review the Capstone guidelines posted under modules and begin drafting your abstract. I will be on leave today."
-    }
-  ];
+  // Global announcements list (loaded from DB)
+  List<Map<String, String>> _announcements = [];
 
   List<Map<String, String>> get announcements => _announcements;
 
-  void addAnnouncement(String subject, String text, DateTime date) {
-    final dateStr = _formatAnnouncementDate(date);
-    final snippet = text.length > 80 ? '${text.substring(0, 80)}...' : text;
-    _announcements.insert(0, {
-      'subject': subject,
-      'body': snippet,
-      'date': dateStr,
-      'fullText': text,
-    });
-    notifyListeners();
+  /// Load announcements from the database
+  Future<void> loadAnnouncements() async {
+    try {
+      final client = Supabase.instance.client;
+      final rows = await client
+          .from('announcements')
+          .select('id,subject_offering_id,content,posted_by,created_at')
+          .order('created_at', ascending: false)
+          .limit(50);
+
+      if ((rows as List).isEmpty) {
+        _announcements = [];
+        notifyListeners();
+        return;
+      }
+
+      // Get subject names
+      final subjectIds = rows.map((r) => r['subject_offering_id']?.toString()).whereType<String>().toSet().toList();
+      final subjectRows = await client
+          .from('subject_offerings')
+          .select('id,subject_name')
+          .inFilter('id', subjectIds);
+      final Map<String, String> subjectNameMap = {};
+      for (final r in (subjectRows as List)) {
+        subjectNameMap[r['id'].toString()] = r['subject_name']?.toString() ?? '';
+      }
+
+      _announcements = rows.map((r) {
+        final createdAt = DateTime.tryParse(r['created_at']?.toString() ?? '');
+        final dateStr = createdAt != null ? _formatAnnouncementDate(createdAt) : '';
+        final content = r['content']?.toString() ?? '';
+        final snippet = content.length > 80 ? '${content.substring(0, 80)}...' : content;
+        final subjectId = r['subject_offering_id']?.toString() ?? '';
+        return <String, String>{
+          'id': r['id']?.toString() ?? '',
+          'subject': subjectNameMap[subjectId] ?? '',
+          'subject_offering_id': subjectId,
+          'body': snippet,
+          'fullText': content,
+          'date': dateStr,
+        };
+      }).toList();
+      notifyListeners();
+    } catch (_) {
+      // Keep existing state on error
+    }
   }
 
-  void deleteAnnouncement(Map<String, String> ann) {
+  void addAnnouncement(String subject, String text, DateTime date) async {
+    // Legacy method — now saves to DB
+    try {
+      final client = Supabase.instance.client;
+      final uid = client.auth.currentUser?.id;
+      if (uid == null) return;
+
+      // Find the subject offering ID by name
+      final subjectRows = await client
+          .from('subject_offerings')
+          .select('id')
+          .eq('subject_name', subject)
+          .eq('professor_profile_id', uid)
+          .limit(1);
+
+      if ((subjectRows as List).isEmpty) return;
+      final subjectId = subjectRows.first['id'].toString();
+
+      await client.from('announcements').insert({
+        'subject_offering_id': subjectId,
+        'content': text.trim(),
+        'posted_by': uid,
+      });
+
+      await loadAnnouncements();
+    } catch (_) {
+      // Fallback: add locally
+      final dateStr = _formatAnnouncementDate(date);
+      final snippet = text.length > 80 ? '${text.substring(0, 80)}...' : text;
+      _announcements.insert(0, {
+        'subject': subject,
+        'body': snippet,
+        'date': dateStr,
+        'fullText': text,
+      });
+      notifyListeners();
+    }
+  }
+
+  void deleteAnnouncement(Map<String, String> ann) async {
+    final id = ann['id'];
+    if (id != null && id.isNotEmpty) {
+      try {
+        await Supabase.instance.client.from('announcements').delete().eq('id', id);
+      } catch (_) {}
+    }
     _announcements.remove(ann);
     notifyListeners();
   }
@@ -430,29 +532,55 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  // Global meetings list
-  final List<Map<String, dynamic>> _meetings = [
-    {
-      'id': 'meet_1',
-      'subject': 'Ethics',
-      'title': 'Ethics Online Discussion',
-      'platform': 'Google Meet',
-      'link': 'https://meet.google.com/abc-defg-hij',
-      'date': '2026-06-15',
-      'time': '10:00 AM',
-    },
-    {
-      'id': 'meet_2',
-      'subject': 'Capstone',
-      'title': 'Weekly Capstone Consultation',
-      'platform': 'Zoom',
-      'link': 'https://zoom.us/j/123456789',
-      'date': '2026-06-20',
-      'time': '02:00 PM',
-    }
-  ];
+  // Global meetings list (loaded from DB)
+  List<Map<String, dynamic>> _meetings = [];
 
   List<Map<String, dynamic>> get meetings => _meetings;
+
+  /// Load meetings from the database
+  Future<void> loadMeetings() async {
+    try {
+      final client = Supabase.instance.client;
+      final rows = await client
+          .from('meetings')
+          .select('id,subject_offering_id,title,platform,link,meeting_date,meeting_time')
+          .order('meeting_date', ascending: false)
+          .limit(50);
+
+      if ((rows as List).isEmpty) {
+        _meetings = [];
+        notifyListeners();
+        return;
+      }
+
+      final subjectIds = rows.map((r) => r['subject_offering_id']?.toString()).whereType<String>().toSet().toList();
+      final subjectRows = await client
+          .from('subject_offerings')
+          .select('id,subject_name')
+          .inFilter('id', subjectIds);
+      final Map<String, String> subjectNameMap = {};
+      for (final r in (subjectRows as List)) {
+        subjectNameMap[r['id'].toString()] = r['subject_name']?.toString() ?? '';
+      }
+
+      _meetings = rows.map((r) {
+        final subjectId = r['subject_offering_id']?.toString() ?? '';
+        return <String, dynamic>{
+          'id': r['id']?.toString() ?? '',
+          'subject': subjectNameMap[subjectId] ?? '',
+          'subject_offering_id': subjectId,
+          'title': r['title']?.toString() ?? '',
+          'platform': r['platform']?.toString() ?? '',
+          'link': r['link']?.toString() ?? '',
+          'date': r['meeting_date']?.toString() ?? '',
+          'time': r['meeting_time']?.toString() ?? '',
+        };
+      }).toList();
+      notifyListeners();
+    } catch (_) {
+      // Keep existing state on error
+    }
+  }
 
   void addMeeting({
     required String subject,
@@ -461,20 +589,56 @@ class AppState extends ChangeNotifier {
     required String link,
     required String date,
     required String time,
-  }) {
-    _meetings.insert(0, {
-      'id': 'meet_${DateTime.now().millisecondsSinceEpoch}',
-      'subject': subject,
-      'title': title,
-      'platform': platform,
-      'link': link,
-      'date': date,
-      'time': time,
-    });
-    notifyListeners();
+  }) async {
+    // Legacy method — now saves to DB
+    try {
+      final client = Supabase.instance.client;
+      final uid = client.auth.currentUser?.id;
+      if (uid == null) return;
+
+      // Find the subject offering ID by name
+      final subjectRows = await client
+          .from('subject_offerings')
+          .select('id')
+          .eq('subject_name', subject)
+          .eq('professor_profile_id', uid)
+          .limit(1);
+
+      if ((subjectRows as List).isEmpty) return;
+      final subjectId = subjectRows.first['id'].toString();
+
+      await client.from('meetings').insert({
+        'subject_offering_id': subjectId,
+        'title': title.trim(),
+        'platform': platform.trim(),
+        if (link.trim().isNotEmpty) 'link': link.trim(),
+        'meeting_date': date,
+        'meeting_time': time.trim(),
+        'created_by': uid,
+      });
+
+      await loadMeetings();
+    } catch (_) {
+      // Fallback: add locally
+      _meetings.insert(0, {
+        'id': 'meet_${DateTime.now().millisecondsSinceEpoch}',
+        'subject': subject,
+        'title': title,
+        'platform': platform,
+        'link': link,
+        'date': date,
+        'time': time,
+      });
+      notifyListeners();
+    }
   }
 
-  void deleteMeeting(String id) {
+  void deleteMeeting(String id) async {
+    if (id.isNotEmpty && !id.startsWith('meet_')) {
+      try {
+        await Supabase.instance.client.from('meetings').delete().eq('id', id);
+      } catch (_) {}
+    }
     _meetings.removeWhere((m) => m['id'] == id);
     notifyListeners();
   }

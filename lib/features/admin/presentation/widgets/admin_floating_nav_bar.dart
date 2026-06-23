@@ -50,13 +50,13 @@ class _AdminFloatingNavBarState extends State<AdminFloatingNavBar> {
               ],
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildNavItem(Icons.layers, 'INSTRUCTOR', 0),
-                _buildNavItem(Icons.group, 'STUDENTS', 1),
-                _buildNavItem(Icons.home, 'DASHBOARD', 2),
-                _buildNavItem(Icons.book, 'SUBJECTS', 3),
-                _buildNavItem(Icons.logout, 'LOGOUT', 4),
+                _buildNavItem(Icons.home, 'DASHBOARD', 0),
+                _buildNavItem(Icons.manage_accounts, 'ROLES', 1),
+                _buildNavItem(Icons.layers, 'INSTRUCTOR', 2),
+                _buildNavItem(Icons.group, 'STUDENTS', 3),
+                _buildNavItem(Icons.book, 'SUBJECTS', 4),
+                _buildNavItem(Icons.logout, 'LOGOUT', 5),
               ],
             ),
           ),
@@ -69,56 +69,65 @@ class _AdminFloatingNavBarState extends State<AdminFloatingNavBar> {
     final bool isHovered = _hoveredIndex == index;
     final bool isActive = widget.currentIndex == index;
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hoveredIndex = index),
-      onExit: (_) => setState(() => _hoveredIndex = null),
-      child: GestureDetector(
-        onTap: () {
-          if (index == 4) {
-            _handleLogout();
-          } else if (index == 0) {
-            context.goNamed(AppRoutes.adminInstructors);
-          } else if (index == 1) {
-            context.goNamed(AppRoutes.adminStudents);
-          } else if (index == 2) {
-            context.goNamed(AppRoutes.adminDashboard);
-          } else if (index == 3) {
-            context.goNamed(AppRoutes.adminSubjects);
-          }
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: isActive 
-                ? Colors.white.withOpacity(0.15) 
-                : (isHovered ? Colors.white.withOpacity(0.08) : Colors.transparent),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon, 
-                color: Colors.white, 
-                size: 24,
+    return Expanded(
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hoveredIndex = index),
+        onExit: (_) => setState(() => _hoveredIndex = null),
+        child: GestureDetector(
+          onTap: () {
+            if (index == 5) {
+              _handleLogout();
+            } else if (index == 0) {
+              context.goNamed(AppRoutes.adminDashboard);
+            } else if (index == 1) {
+              context.goNamed(AppRoutes.adminRoleManager);
+            } else if (index == 2) {
+              context.goNamed(AppRoutes.adminInstructors);
+            } else if (index == 3) {
+              context.goNamed(AppRoutes.adminStudents);
+            } else if (index == 4) {
+              context.goNamed(AppRoutes.adminSubjects);
+            }
+          },
+          behavior: HitTestBehavior.opaque,
+          child: Center(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: isActive 
+                    ? Colors.white.withOpacity(0.15) 
+                    : (isHovered ? Colors.white.withOpacity(0.08) : Colors.transparent),
+                borderRadius: BorderRadius.circular(16),
               ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 9,
-                  fontWeight: (isHovered || isActive) ? FontWeight.bold : FontWeight.normal,
-                  letterSpacing: 0.5,
-                ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    icon, 
+                    color: Colors.white, 
+                    size: 20,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 8.5,
+                      fontWeight: (isHovered || isActive) ? FontWeight.bold : FontWeight.w500,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
+
 
   Future<void> _handleLogout() async {
     AppDialog.confirm(
