@@ -166,6 +166,7 @@ class SupabaseAuthRepository implements AuthRepository {
           user.email?.split('@').first ??
           (fallbackDisplay.isEmpty ? null : fallbackDisplay),
       isEmailVerified: user.emailConfirmedAt != null,
+      mustChangePassword: user.userMetadata?['must_change_password'] == true,
     );
   }
 }

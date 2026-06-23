@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/router/app_router.dart';
+import '../../../../core/state/app_state.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../../../../core/widgets/studfy_header.dart';
 
@@ -48,17 +51,31 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
     setState(() => _isLoading = true);
     try {
+      // Update the password and clear the forced-change flag in one call.
       await Supabase.instance.client.auth.updateUser(
-        UserAttributes(password: newPassword),
+        UserAttributes(password: newPassword, data: {'must_change_password': false}),
       );
       if (!mounted) return;
+
+      final appState = context.read<AppState>();
+      final wasForced = appState.currentUser?.mustChangePassword ?? false;
+
       await AppDialog.result(
         context,
         type: DialogType.success,
         message: 'Password updated successfully.',
       );
       if (!mounted) return;
-      context.goNamed('login');
+
+      if (wasForced && appState.currentUser != null) {
+        // First-login reset: clear the flag locally and continue into the app.
+        final updated = appState.currentUser!.copyWith(mustChangePassword: false);
+        appState.syncAuthState(updated);
+        if (!mounted) return;
+        context.go(AppRoutes.pathForRole(updated.role));
+      } else {
+        context.goNamed('login');
+      }
     } on AuthApiException catch (e) {
       if (!mounted) return;
       AppDialog.alert(context, title: 'Error', message: e.message);

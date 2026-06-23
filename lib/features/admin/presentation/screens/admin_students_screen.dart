@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide AuthException;
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
+import '../../../../core/utils/upper_case_text_formatter.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../../../auth/domain/models/auth_exception.dart';
 import '../../domain/models/student.dart';
@@ -571,6 +572,8 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: courseCtrl,
+                    textCapitalization: TextCapitalization.characters,
+                    inputFormatters: const [UpperCaseTextFormatter()],
                     decoration: InputDecoration(
                       labelText: 'Course (e.g. BSIT)',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
@@ -592,6 +595,8 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: yearSecCtrl,
+                    textCapitalization: TextCapitalization.characters,
+                    inputFormatters: const [UpperCaseTextFormatter()],
                     decoration: InputDecoration(
                       labelText: 'Year & Section (e.g. 2-A)',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
@@ -960,6 +965,8 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: courseCtrl,
+                    textCapitalization: TextCapitalization.characters,
+                    inputFormatters: const [UpperCaseTextFormatter()],
                     decoration: InputDecoration(
                       labelText: 'Course (e.g. BSIT)',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
@@ -981,6 +988,8 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: yearSecCtrl,
+                    textCapitalization: TextCapitalization.characters,
+                    inputFormatters: const [UpperCaseTextFormatter()],
                     decoration: InputDecoration(
                       labelText: 'Year & Section (e.g. 2-A)',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),

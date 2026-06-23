@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/state/app_state.dart';
+import '../../../../core/utils/upper_case_text_formatter.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../widgets/admin_floating_nav_bar.dart';
 import '../../domain/models/student.dart';
@@ -558,9 +559,9 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
                     if (_isEditing) ...[
                       _buildEditField('Full Name', _nameController),
                       const SizedBox(height: 8),
-                      _buildEditField('Course (e.g. BSIT)', _courseController),
+                      _buildEditField('Course (e.g. BSIT)', _courseController, uppercase: true),
                       const SizedBox(height: 8),
-                      _buildEditField('Year & Section (e.g. 1-1)', _yearSectionController),
+                      _buildEditField('Year & Section (e.g. 1-1)', _yearSectionController, uppercase: true),
                     ] else ...[
                       Text(
                         _currentStudent!.name,
@@ -636,9 +637,11 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
     );
   }
 
-  Widget _buildEditField(String label, TextEditingController controller) {
+  Widget _buildEditField(String label, TextEditingController controller, {bool uppercase = false}) {
     return TextField(
       controller: controller,
+      textCapitalization: uppercase ? TextCapitalization.characters : TextCapitalization.none,
+      inputFormatters: uppercase ? const [UpperCaseTextFormatter()] : null,
       decoration: InputDecoration(
         labelText: label,
         isDense: true,

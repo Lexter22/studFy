@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/state/app_state.dart';
+import '../../../../core/utils/upper_case_text_formatter.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../../domain/models/instructor.dart';
 import '../widgets/admin_floating_nav_bar.dart';
@@ -507,7 +508,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
                     if (_isEditing) ...[
                       _buildEditField('Instructor Name', _nameCtrl),
                       const SizedBox(height: 8),
-                      _buildEditField('Department (e.g. BSIT)', _deptCtrl),
+                      _buildEditField('Department (e.g. BSIT)', _deptCtrl, uppercase: true),
                     ] else ...[
                       Text(
                         widget.instructor.name,
@@ -566,9 +567,11 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
     );
   }
 
-  Widget _buildEditField(String label, TextEditingController controller) {
+  Widget _buildEditField(String label, TextEditingController controller, {bool uppercase = false}) {
     return TextField(
       controller: controller,
+      textCapitalization: uppercase ? TextCapitalization.characters : TextCapitalization.none,
+      inputFormatters: uppercase ? const [UpperCaseTextFormatter()] : null,
       decoration: InputDecoration(
         labelText: label,
         isDense: true,

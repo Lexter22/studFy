@@ -21,38 +21,50 @@ Deno.serve(async (req) => {
     const { code } = await req.json()
     if (!code) return json({ error: 'Missing enrollment code' }, 400)
 
-    const { data: enrollment, error: codeError } = await admin
-      .from('enrollment_codes')
-      .select('*')
-      .eq('code', code.trim().toUpperCase())
-      .eq('is_active', true)
-      .single()
-    if (codeError || !enrollment) return json({ error: 'Invalid or inactive enrollment code.' }, 400)
-
-    if (enrollment.expires_at && new Date(enrollment.expires_at) < new Date())
-      return json({ error: 'This enrollment code has expired.' }, 400)
-
-    if (enrollment.max_uses !== null && enrollment.current_uses >= enrollment.max_uses)
-      return json({ error: 'This enrollment code has reached its maximum uses.' }, 400)
-
+    // Prevent duplicate student profiles before consuming a code use
     const { data: existing } = await admin.from('student_profiles').select('profile_id').eq('profile_id', user.id).maybeSingle()
     if (existing) return json({ error: 'You already have a student profile.' }, 400)
 
+    // Atomically validate + consume one use of the code (race-safe via row lock in the RPC)
+    const { data: consumeRows, error: consumeError } = await admin
+      .rpc('consume_enrollment_code', { p_code: code.trim() })
+    if (consumeError) return json({ error: consumeError.message }, 400)
+
+    const consumed = Array.isArray(consumeRows) ? consumeRows[0] : consumeRows
+    const status = consumed?.status ?? 'invalid'
+    if (status !== 'ok') {
+      const messages: Record<string, string> = {
+        invalid: 'Invalid enrollment code.',
+        inactive: 'This enrollment code is inactive.',
+        expired: 'This enrollment code has expired.',
+        exhausted: 'This enrollment code has reached its maximum uses.',
+      }
+      return json({ error: messages[status] ?? 'Invalid or inactive enrollment code.' }, 400)
+    }
+
+    const courseCode = consumed.course_code as string
+    const yearSection = consumed.year_section as string
+
+    // Deterministic, collision-free student number derived from the user id
     const year = new Date().getFullYear()
-    const randomNum = String(Math.floor(Math.random() * 99999) + 1).padStart(5, '0')
+    const uidPart = user.id.replace(/-/g, '').substring(0, 8).toUpperCase()
+    const studentNumber = `${year}-${uidPart}-BN-0`
 
     const { error: studentError } = await admin.from('student_profiles').insert({
       profile_id: user.id,
-      student_number: `${year}-${randomNum}-BN-0`,
-      course_code: enrollment.course_code,
-      year_section: enrollment.year_section,
+      student_number: studentNumber,
+      course_code: courseCode,
+      year_section: yearSection,
     })
-    if (studentError) return json({ error: studentError.message }, 400)
+    if (studentError) {
+      // Compensate: release the use we just consumed
+      await admin.rpc('release_enrollment_code', { p_code: code.trim() })
+      return json({ error: studentError.message }, 400)
+    }
 
     await admin.from('profiles').update({ role: 'student' }).eq('id', user.id)
-    await admin.from('enrollment_codes').update({ current_uses: enrollment.current_uses + 1 }).eq('id', enrollment.id)
 
-    return json({ success: true, course_code: enrollment.course_code, year_section: enrollment.year_section })
+    return json({ success: true, course_code: courseCode, year_section: yearSection })
   } catch (err) {
     return json({ error: String(err) }, 500)
   }

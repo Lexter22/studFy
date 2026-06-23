@@ -19,6 +19,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   final StudentRepository _repo = const StudentRepository();
   bool _loading = true;
   List<StudentSubject> _subjects = [];
+  List<Map<String, String>> _announcements = [];
+  List<Map<String, dynamic>> _meetings = [];
   Map<String, dynamic>? _studentProfile;
 
   // Selected date for calendar
@@ -170,10 +172,20 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     try {
       final profile = await _repo.fetchStudentProfile();
       final subjects = await _repo.fetchEnrolledSubjects();
+      List<Map<String, String>> announcements = [];
+      List<Map<String, dynamic>> meetings = [];
+      try {
+        announcements = await _repo.fetchMyAnnouncements();
+      } catch (_) {}
+      try {
+        meetings = await _repo.fetchMyMeetings();
+      } catch (_) {}
       if (!mounted) return;
       setState(() {
         _studentProfile = profile;
         _subjects = subjects;
+        _announcements = announcements;
+        _meetings = meetings;
         _loading = false;
       });
     } catch (_) {
@@ -260,22 +272,25 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   // Announcement Section
                   _buildSectionTitle('Announcement'),
                   const SizedBox(height: 10),
-                  ...context.watch<AppState>().announcements.map((ann) => _buildAnnouncementCard(ann)),
+                  if (_announcements.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Text('No announcements yet.', style: TextStyle(color: Colors.grey, fontSize: 14)),
+                    )
+                  else
+                    ..._announcements.map((ann) => _buildAnnouncementCard(ann)),
 
                   const SizedBox(height: 24),
-                  // Upcoming Events & Classes Section
-                  _buildSectionTitle('Upcoming Events & Classes'),
+                  // Upcoming Meetings Section
+                  _buildSectionTitle('Upcoming Meetings'),
                   const SizedBox(height: 10),
-                  _buildEventCard(
-                    icon: Icons.videocam_rounded,
-                    title: 'Ethics',
-                    subtitle: 'Monday 3pm - 7pm',
-                  ),
-                  _buildEventCard(
-                    icon: Icons.school_rounded,
-                    title: 'Ethics',
-                    subtitle: 'Monday 3pm - 7pm',
-                  ),
+                  if (_meetings.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Text('No upcoming meetings.', style: TextStyle(color: Colors.grey, fontSize: 14)),
+                    )
+                  else
+                    ..._meetings.map((m) => _buildMeetingCard(m)),
 
                   const SizedBox(height: 24),
                   // Course List Section
@@ -395,6 +410,64 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMeetingCard(Map<String, dynamic> m) {
+    final title = m['title']?.toString() ?? '';
+    final subject = m['subject']?.toString() ?? '';
+    final platform = m['platform']?.toString() ?? '';
+    final date = m['date']?.toString() ?? '';
+    final time = m['time']?.toString() ?? '';
+
+    // Format date
+    String displayDate = date;
+    final dt = DateTime.tryParse(date);
+    if (dt != null) {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      displayDate = '${months[dt.month - 1]} ${dt.day}';
+    }
+
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 10),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Color(0xFFEEEEEE)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0A5C36).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.video_camera_front_rounded, color: Color(0xFF0A5C36), size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87)),
+                  const SizedBox(height: 4),
+                  Text('$subject - $platform', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(displayDate, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0A5C36))),
+                Text(time, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+              ],
+            ),
+          ],
         ),
       ),
     );

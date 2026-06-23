@@ -25,6 +25,7 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
   final StudentRepository _repo = const StudentRepository();
   bool _submitting = false;
   bool _submitted = false;
+  bool _justSubmitted = false;
   String? _selectedFile;
   Uint8List? _selectedFileBytes;
 
@@ -72,6 +73,7 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
         setState(() {
           _submitting = false;
           _submitted = true;
+          _justSubmitted = true;
         });
       }
     } catch (_) {
@@ -428,8 +430,8 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
             ),
           ),
 
-          // Green Success Banner popup
-          if (_submitted && !_submitting)
+          // Green Success Banner popup — only right after a fresh submit
+          if (_justSubmitted && !_submitting)
             _buildSuccessOverlay(),
 
           const StudentFloatingNavBar(currentIndex: 1),
@@ -485,9 +487,9 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
                       borderRadius: BorderRadius.circular(20),
                     ),
                   ),
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => setState(() => _justSubmitted = false),
                   child: const Text(
-                    'Done',
+                    'View My Submission',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),

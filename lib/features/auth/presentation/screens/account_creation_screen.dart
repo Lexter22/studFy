@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/utils/upper_case_text_formatter.dart';
 import '../../../../core/widgets/studfy_header.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/app_dialog.dart';
@@ -394,7 +395,7 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
 
   List<Widget> _instructorFields() => [
         _buildLabel('Instructor ID'),
-        _buildTextField(controller: _instructorIdController),
+        _buildTextField(controller: _instructorIdController, uppercase: true),
         const SizedBox(height: 14),
         _buildLabel('First Name'),
         _buildTextField(controller: _firstNameController),
@@ -406,7 +407,7 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
         _buildTextField(controller: _lastNameController),
         const SizedBox(height: 14),
         _buildLabel('Department'),
-        _buildTextField(controller: _departmentController),
+        _buildTextField(controller: _departmentController, uppercase: true),
         const SizedBox(height: 14),
       ];
 
@@ -414,7 +415,7 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
 
   List<Widget> _studentFields() => [
         _buildLabel('Student Number'),
-        _buildTextField(controller: _studentNumberController),
+        _buildTextField(controller: _studentNumberController, uppercase: true),
         const SizedBox(height: 14),
         _buildLabel('First Name'),
         _buildTextField(controller: _firstNameController),
@@ -426,10 +427,10 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
         _buildTextField(controller: _lastNameController),
         const SizedBox(height: 14),
         _buildLabel('Course'),
-        _buildTextField(controller: _courseController),
+        _buildTextField(controller: _courseController, uppercase: true),
         const SizedBox(height: 14),
         _buildLabel('Year & Section'),
-        _buildTextField(controller: _yearSectionController),
+        _buildTextField(controller: _yearSectionController, uppercase: true),
         const SizedBox(height: 14),
       ];
 
@@ -475,10 +476,12 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
     );
   }
 
-  Widget _buildTextField({required TextEditingController controller}) {
+  Widget _buildTextField({required TextEditingController controller, bool uppercase = false}) {
     return TextFormField(
       controller: controller,
       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black87),
+      textCapitalization: uppercase ? TextCapitalization.characters : TextCapitalization.none,
+      inputFormatters: uppercase ? const [UpperCaseTextFormatter()] : null,
       decoration: _inputDecoration(),
     );
   }

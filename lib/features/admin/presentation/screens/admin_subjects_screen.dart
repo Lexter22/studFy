@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/state/app_state.dart';
+import '../../../../core/utils/upper_case_text_formatter.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../../../auth/domain/models/auth_exception.dart';
 import '../widgets/admin_floating_nav_bar.dart';
@@ -583,6 +584,8 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                           Expanded(
                             child: TextField(
                               controller: customSectionCtrl,
+                              textCapitalization: TextCapitalization.characters,
+                              inputFormatters: const [UpperCaseTextFormatter()],
                               decoration: InputDecoration(
                                 hintText: 'Add custom section...',
                                 hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 12),
@@ -737,6 +740,8 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: courseCodeCtrl,
+                    textCapitalization: TextCapitalization.characters,
+                    inputFormatters: const [UpperCaseTextFormatter()],
                     decoration: InputDecoration(
                       labelText: 'Course Code (e.g. BSIT)',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),

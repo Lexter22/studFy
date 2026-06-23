@@ -168,11 +168,21 @@ All configs pass `--dart-define-from-file=.env` automatically.
 
 ## Known Limitations
 
-- Professor and Student dashboards are in early development
 - Google OAuth sign-in works but requires pre-existing profile (no self-registration via Google)
 - No offline support
 - No automated tests yet
-- Subject data is not semester/academic-year scoped
+
+## Scope: Single Semester
+
+StudFy is intentionally scoped to **one active semester**. There is no academic-year/term model: subjects, enrollments, attendance, grades, and quizzes all live in a single current term. The `subject_offerings` table has optional `semester` / `academic_year` columns, but no application logic reads or filters by them — they are reserved for a future multi-term feature. For now, treat the whole system as a single semester; to start a new term you would archive/reset data rather than switch terms in-app.
+
+---
+
+## Backend Features Missing a Frontend
+
+These have working backend (Edge Function + repository + state) but no UI to trigger them:
+
+- **Bulk student import** — `bulk-import-students` Edge Function, `SupabaseAdminRepository.bulkImportStudents`, and `AppState.bulkImportStudents` all exist, but there is no admin UI (button, CSV file picker, preview, or results dialog) that calls them. Admins can currently only add students one at a time. The flow is exercised only via `supabase/scripts/test_bulk_import.sh`.
 
 ---
 

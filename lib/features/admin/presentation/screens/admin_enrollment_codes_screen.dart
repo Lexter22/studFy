@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide AuthException;
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/state/app_state.dart';
+import '../../../../core/utils/upper_case_text_formatter.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../../../auth/domain/models/auth_exception.dart';
 import '../widgets/admin_drawer.dart';
@@ -23,7 +24,7 @@ class AdminEnrollmentCodesScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Create Enrollment Code'),
+          title: const Text('Create Registration Code'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -31,17 +32,22 @@ class AdminEnrollmentCodesScreen extends StatelessWidget {
                 TextField(
                   controller: codeCtrl,
                   textCapitalization: TextCapitalization.characters,
+                  inputFormatters: const [UpperCaseTextFormatter()],
                   decoration: const InputDecoration(
                     labelText: 'Code (e.g. BSIT2A2024)',
-                    helperText: 'Will be auto-uppercased',
+                    helperText: 'Always uppercase',
                   ),
                 ),
                 TextField(
                   controller: courseCtrl,
+                  textCapitalization: TextCapitalization.characters,
+                  inputFormatters: const [UpperCaseTextFormatter()],
                   decoration: const InputDecoration(labelText: 'Course Code (e.g. BSIT)'),
                 ),
                 TextField(
                   controller: sectionCtrl,
+                  textCapitalization: TextCapitalization.characters,
+                  inputFormatters: const [UpperCaseTextFormatter()],
                   decoration: const InputDecoration(labelText: 'Year & Section (e.g. 2-A)'),
                 ),
                 TextField(
@@ -77,7 +83,7 @@ class AdminEnrollmentCodesScreen extends StatelessWidget {
                         );
                         if (!ctx.mounted) return;
                         Navigator.pop(ctx);
-                        AppDialog.result(context, type: DialogType.success, message: 'Enrollment code created.');
+                        AppDialog.result(context, type: DialogType.success, message: 'Registration code created.');
                       } on AuthException catch (e) {
                         if (!ctx.mounted) return;
                         Navigator.pop(ctx);
@@ -143,7 +149,7 @@ class AdminEnrollmentCodesScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'Enrollment Codes',
+                      'Registration Codes',
                       style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF800000)),
                     ),
                     Text('Total: ${codes.length}',
@@ -160,7 +166,7 @@ class AdminEnrollmentCodesScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Center(
-                      child: Text('No enrollment codes yet.',
+                      child: Text('No registration codes yet.',
                           style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
                     ),
                   )
@@ -219,7 +225,7 @@ class _CodeCard extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                'Delete enrollment code "${code['code']}"? This cannot be undone.',
+                'Delete registration code "${code['code']}"? This cannot be undone.',
                 style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.normal),
               ),
               const SizedBox(height: 12),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/state/app_state.dart';
@@ -28,44 +27,22 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
       return;
     }
 
-    AppDialog.password(
+    // Safe confirmation gate (no re-authentication / no hardcoded credentials).
+    AppDialog.confirm(
       context,
-      title: 'Confirm Password',
-      message: 'Please enter your password to confirm $actionDescription.',
-      hintText: 'Enter your password',
-      onConfirm: (password) async {
-        try {
-          if (user.email != null && user.email!.toLowerCase() == 'prof@studfy.com') {
-            if (password == 'password123') {
-              await action();
-              return;
-            } else {
-              throw Exception('Invalid password.');
-            }
-          }
-
-          // Verify password with Supabase by signing in again
-          await Supabase.instance.client.auth.signInWithPassword(
-            email: user.email!,
-            password: password,
-          );
-          
-          await action();
-        } catch (e) {
-          if (mounted) {
-            AppDialog.result(
-              context,
-              type: DialogType.error,
-              message: 'Authentication failed: ${e.toString().replaceAll('Exception: ', '')}',
-            );
-          }
-        }
+      title: 'Please Confirm',
+      message: 'Are you sure you want to proceed with $actionDescription? This action cannot be undone.',
+      type: DialogType.warning,
+      confirmLabel: 'Confirm',
+      onConfirm: () async {
+        await action();
       },
     );
   }
 
   List<ProfessorSubject> _subjects = [];
   List<Map<String, dynamic>> _dashboardAssignments = [];
+  List<Map<String, String>> _reminders = [];
   bool _loading = true;
 
   // Selected date for calendar starting at June 2026
@@ -73,19 +50,16 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
   final List<int> _eventDays = [9, 13];
   DateTime? _selectedDate = DateTime(2026, 6, 11);
 
-  // Key format: "yyyy-MM-dd" -> List of reminder maps
-  Map<String, List<Map<String, String>>>? __customReminders;
+  // Computed from _reminders (DB-backed)
   Map<String, List<Map<String, String>>> get _customReminders {
-    __customReminders ??= {
-      '2026-06-11': [
-        {
-          'title': 'Submit Ethics Grades',
-          'time': '11:00 AM',
-          'description': 'Submit the final grades for Ethics block 1 to the registrar.',
-        }
-      ]
-    };
-    return __customReminders!;
+    final Map<String, List<Map<String, String>>> map = {};
+    for (final r in _reminders) {
+      final dateKey = r['date'] ?? '';
+      if (dateKey.isEmpty) continue;
+      map.putIfAbsent(dateKey, () => []);
+      map[dateKey]!.add(r);
+    }
+    return map;
   }
 
   void _showAddReminderDialog(DateTime date) {
@@ -259,23 +233,23 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               elevation: 0,
                             ),
-                            onPressed: () {
+                            onPressed: () async {
                               if (titleController.text.trim().isEmpty) return;
                               
-                              final dateKey = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-                              
-                              setState(() {
-                                if (!_customReminders.containsKey(dateKey)) {
-                                  _customReminders[dateKey] = [];
-                                }
-                                _customReminders[dateKey]!.add({
-                                  'title': titleController.text.trim(),
-                                  'time': selectedTime.format(context),
-                                  'description': descController.text.trim(),
-                                });
-                              });
-                              
                               Navigator.pop(dialogCtx);
+                              try {
+                                await _repo.createReminder(
+                                  title: titleController.text.trim(),
+                                  description: descController.text.trim(),
+                                  date: date,
+                                  time: selectedTime.format(context),
+                                );
+                                await _load();
+                              } catch (e) {
+                                if (mounted) {
+                                  AppDialog.result(context, type: DialogType.error, message: 'Failed to save reminder: $e');
+                                }
+                              }
                             },
                             child: const Text(
                               'Save',
@@ -321,11 +295,18 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
           });
         }
       }
+
+      // Load reminders from DB
+      List<Map<String, String>> reminders = [];
+      try {
+        reminders = await _repo.fetchReminders();
+      } catch (_) {}
       
       if (mounted) {
         setState(() {
           _subjects = subjects;
           _dashboardAssignments = loadedAssignments;
+          _reminders = reminders;
           _loading = false;
         });
       }
@@ -1100,9 +1081,15 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                   icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
                   onPressed: () {
                     _verifyPasswordAndExecute('deleting reminder "${rem['title'] ?? ''}"', () async {
-                      setState(() {
-                        _customReminders[dateKey]!.removeAt(idx);
-                      });
+                      try {
+                        final remId = rem['id'];
+                        if (remId != null && remId.isNotEmpty) {
+                          await _repo.deleteReminder(remId);
+                        }
+                        await _load();
+                      } catch (e) {
+                        if (mounted) AppDialog.result(context, type: DialogType.error, message: 'Failed: $e');
+                      }
                     });
                   },
                 ),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/state/app_state.dart';
@@ -107,38 +106,15 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
       return;
     }
 
-    AppDialog.password(
+    // Safe confirmation gate (no re-authentication / no hardcoded credentials).
+    AppDialog.confirm(
       context,
-      title: 'Confirm Password',
-      message: 'Please enter your password to confirm $actionDescription.',
-      hintText: 'Enter your password',
-      onConfirm: (password) async {
-        try {
-          if (user.email != null && user.email!.toLowerCase() == 'prof@studfy.com') {
-            if (password == 'password123') {
-              await action();
-              return;
-            } else {
-              throw Exception('Invalid password.');
-            }
-          }
-
-          // Verify password with Supabase by signing in again
-          await Supabase.instance.client.auth.signInWithPassword(
-            email: user.email!,
-            password: password,
-          );
-          
-          await action();
-        } catch (e) {
-          if (mounted) {
-            AppDialog.result(
-              context,
-              type: DialogType.error,
-              message: 'Authentication failed: ${e.toString().replaceAll('Exception: ', '')}',
-            );
-          }
-        }
+      title: 'Please Confirm',
+      message: 'Are you sure you want to proceed with $actionDescription? This action cannot be undone.',
+      type: DialogType.warning,
+      confirmLabel: 'Confirm',
+      onConfirm: () async {
+        await action();
       },
     );
   }
@@ -155,20 +131,6 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
     }
 
     if (!mounted) return;
-
-    String getClassCode(String id) {
-      if (id.contains('ethics')) return 'a5NhJk';
-      if (id.contains('programming')) return 'a5NhJk';
-      final hash = id.hashCode.abs();
-      const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      final result = StringBuffer();
-      var temp = hash;
-      for (int i = 0; i < 6; i++) {
-        result.write(chars[temp % chars.length]);
-        temp = temp ~/ chars.length;
-      }
-      return result.toString();
-    }
 
     String searchQuery = '';
 
@@ -222,7 +184,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Class Code: ${getClassCode(sub.id)}',
+                  'Class Code: ${sub.joinCode ?? '------'}',
                   style: const TextStyle(
                     fontSize: 13,
                     color: Color(0xFF64748B),
@@ -369,8 +331,12 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
   void _showAttendanceDialog(ProfessorSubject sub) async {
     setState(() => _loading = true);
     List<Map<String, String>> students = [];
+    List<AttendanceSummary> historyData = [];
+    List<StudentAttendanceSummary> summaryData = [];
     try {
       students = await _repo.fetchEnrolledStudents(sub.id);
+      historyData = await _repo.fetchAttendanceHistory(sub.id);
+      summaryData = await _repo.fetchStudentAttendanceSummaries(sub.id);
     } catch (_) {
       students = [];
     } finally {
@@ -379,12 +345,21 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
 
     if (!mounted) return;
 
+    // Pre-fill today's attendance from DB if already recorded
     final attendance = <String, String>{};
+    try {
+      final todayRecords = await _repo.fetchAttendanceByDate(sub.id, DateTime.now());
+      for (final r in todayRecords) {
+        attendance[r.studentProfileId] = r.status;
+      }
+    } catch (_) {}
+    // Default remaining students to 'present'
     for (final s in students) {
-      attendance[s['profileId']!] = 'present'; // Present by default
+      attendance.putIfAbsent(s['profileId']!, () => 'present');
     }
 
     String activeView = 'sheet'; // 'sheet', 'history', 'summary'
+    bool submitting = false;
 
     showDialog(
       context: context,
@@ -451,11 +426,8 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
             );
           }
 
-          Widget buildHistoryRow(String date, int total) {
-            // Scale dynamically and ensure stats are always positive
-            final int present = total > 0 ? (total * 0.9).round() : 0;
-            final int late = total > 0 ? (total * 0.05).round() : 0;
-            final int absent = total - present - late;
+          Widget buildHistoryRow(AttendanceSummary summary) {
+            final dateStr = '${summary.date.month.toString().padLeft(2, '0')}/${summary.date.day.toString().padLeft(2, '0')}/${summary.date.year}';
 
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -466,16 +438,16 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    date,
+                    dateStr,
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
                   ),
                   Row(
                     children: [
-                      _buildStatBadge('$present Present', const Color(0xFFE0F2F1), const Color(0xFF00796B)),
+                      _buildStatBadge('${summary.presentCount} Present', const Color(0xFFE0F2F1), const Color(0xFF00796B)),
                       const SizedBox(width: 6),
-                      _buildStatBadge('$late Late', const Color(0xFFFFF3E0), const Color(0xFFEF6C00)),
+                      _buildStatBadge('${summary.lateCount} Late', const Color(0xFFFFF3E0), const Color(0xFFEF6C00)),
                       const SizedBox(width: 6),
-                      _buildStatBadge('$absent Absent', const Color(0xFFFFEBEE), const Color(0xFFC62828)),
+                      _buildStatBadge('${summary.absentCount} Absent', const Color(0xFFFFEBEE), const Color(0xFFC62828)),
                     ],
                   ),
                 ],
@@ -626,15 +598,16 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                           const Divider(height: 1),
                           ConstrainedBox(
                             constraints: const BoxConstraints(maxHeight: 300),
-                            child: ListView(
-                              shrinkWrap: true,
-                              children: [
-                                buildHistoryRow('05/26/2026', sub.studentCount),
-                                buildHistoryRow('05/25/2026', sub.studentCount),
-                                buildHistoryRow('05/24/2026', sub.studentCount),
-                                buildHistoryRow('05/20/2026', sub.studentCount),
-                              ],
-                            ),
+                            child: historyData.isEmpty
+                                ? const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 24),
+                                    child: Center(child: Text('No attendance records yet.', style: TextStyle(color: Colors.grey))),
+                                  )
+                                : ListView.builder(
+                                    shrinkWrap: true,
+                                    itemCount: historyData.length,
+                                    itemBuilder: (_, i) => buildHistoryRow(historyData[i]),
+                                  ),
                           ),
                         ],
                       ),
@@ -659,50 +632,52 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                           const Divider(height: 1),
                           ConstrainedBox(
                             constraints: const BoxConstraints(maxHeight: 300),
-                            child: ListView.builder(
-                              shrinkWrap: true,
-                              itemCount: students.length,
-                              itemBuilder: (_, i) {
-                                final s = students[i];
-                                final int present = 10 + (i % 3);
-                                final int late = i % 2;
-                                final int absent = 12 - present - late;
-                                final double pct = (present / 12) * 100;
-                                return Container(
-                                  color: i % 2 == 0 ? Colors.grey.shade50 : Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          s['name'] ?? '',
-                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87),
-                                        ),
-                                      ),
-                                      Row(
-                                        children: [
-                                          Text(
-                                            '${pct.toStringAsFixed(0)}%',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w800,
-                                              color: pct > 85 ? const Color(0xFF00796B) : const Color(0xFFEF6C00),
+                            child: summaryData.isEmpty
+                                ? const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 24),
+                                    child: Center(child: Text('No attendance data yet.', style: TextStyle(color: Colors.grey))),
+                                  )
+                                : ListView.builder(
+                                    shrinkWrap: true,
+                                    itemCount: summaryData.length,
+                                    itemBuilder: (_, i) {
+                                      final s = summaryData[i];
+                                      final pct = s.attendanceRate;
+                                      return Container(
+                                        color: i % 2 == 0 ? Colors.grey.shade50 : Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                s.studentName,
+                                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87),
+                                              ),
                                             ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          _buildStatBadge('$present P', const Color(0xFFE0F2F1), const Color(0xFF00796B)),
-                                          const SizedBox(width: 4),
-                                          _buildStatBadge('$late L', const Color(0xFFFFF3E0), const Color(0xFFEF6C00)),
-                                          const SizedBox(width: 4),
-                                          _buildStatBadge('$absent A', const Color(0xFFFFEBEE), const Color(0xFFC62828)),
-                                        ],
-                                      ),
-                                    ],
+                                            Row(
+                                              children: [
+                                                Text(
+                                                  '${pct.toStringAsFixed(0)}%',
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w800,
+                                                    color: pct > 85 ? const Color(0xFF00796B) : const Color(0xFFEF6C00),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                _buildStatBadge('${s.totalPresent} P', const Color(0xFFE0F2F1), const Color(0xFF00796B)),
+                                                const SizedBox(width: 4),
+                                                _buildStatBadge('${s.totalLate} L', const Color(0xFFFFF3E0), const Color(0xFFEF6C00)),
+                                                const SizedBox(width: 4),
+                                                _buildStatBadge('${s.totalAbsent} A', const Color(0xFFFFEBEE), const Color(0xFFC62828)),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
                                   ),
-                                );
-                              },
-                            ),
                           ),
                         ],
                       ),
@@ -862,21 +837,35 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                         elevation: 0,
                       ),
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        final presentCount = attendance.values.where((v) => v == 'present').length;
-                        final lateCount = attendance.values.where((v) => v == 'late').length;
-                        final absentCount = attendance.values.where((v) => v == 'absent').length;
-                        AppDialog.result(
-                          context,
-                          type: DialogType.success,
-                          message: 'Attendance submitted!\n$presentCount Present, $lateCount Late, $absentCount Absent.',
-                          buttonLabel: 'Done',
-                        );
+                      onPressed: submitting ? null : () async {
+                        setS(() => submitting = true);
+                        try {
+                          await _repo.saveAttendance(
+                            subjectId: sub.id,
+                            date: DateTime.now(),
+                            attendance: attendance,
+                          );
+                          if (!ctx.mounted) return;
+                          Navigator.pop(ctx);
+                          final presentCount = attendance.values.where((v) => v == 'present').length;
+                          final lateCount = attendance.values.where((v) => v == 'late').length;
+                          final absentCount = attendance.values.where((v) => v == 'absent').length;
+                          AppDialog.result(
+                            context,
+                            type: DialogType.success,
+                            message: 'Attendance saved!\n$presentCount Present, $lateCount Late, $absentCount Absent.',
+                            buttonLabel: 'Done',
+                          );
+                        } catch (e) {
+                          setS(() => submitting = false);
+                          if (ctx.mounted) {
+                            AppDialog.result(ctx, type: DialogType.error, message: 'Failed to save: $e');
+                          }
+                        }
                       },
-                      child: const Text(
-                        'Submit Attendance',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                      child: Text(
+                        submitting ? 'Saving...' : 'Submit Attendance',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                     ),
                   ],
