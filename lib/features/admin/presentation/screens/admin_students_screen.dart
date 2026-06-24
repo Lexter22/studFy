@@ -1,6 +1,9 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:excel/excel.dart' as xl;
 import 'dart:math' as math;
 
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthException;
@@ -183,6 +186,18 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                                   label: const Text('Add Student', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.adminPrimary,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    elevation: 0,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton.icon(
+                                  onPressed: _handleImportExcel,
+                                  icon: const Icon(Icons.upload_file_rounded, color: Colors.white, size: 18),
+                                  label: const Text('Import Excel', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF2E7D32),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                     elevation: 0,
@@ -1064,6 +1079,432 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
               child: isLoading
                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
                   : const Text('Create Student', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Safely extract a string value from an excel Data cell.
+  String _cellValue(dynamic cell) {
+    if (cell == null) return '';
+    try {
+      final value = cell.value;
+      if (value == null) return '';
+      return value.toString().trim();
+    } catch (_) {
+      return '';
+    }
+  }
+
+  Future<void> _handleImportExcel() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xlsx', 'xls'],
+        withData: true,
+      );
+
+      if (result == null || result.files.isEmpty) return;
+
+      final file = result.files.first;
+      final Uint8List? bytes = file.bytes;
+
+      if (bytes == null) {
+        if (!mounted) return;
+        await AppDialog.alert(context, title: 'Error', message: 'Could not read the selected file.');
+        return;
+      }
+
+      // Parse Excel — convert to List<int> for web compatibility
+      final xl.Excel excel = xl.Excel.decodeBytes(bytes.toList());
+
+      if (excel.tables.isEmpty) {
+        if (!mounted) return;
+        await AppDialog.alert(context, title: 'Empty File', message: 'The Excel file contains no sheets.');
+        return;
+      }
+
+      final sheet = excel.tables.values.first;
+      if (sheet.rows.length < 2) {
+        if (!mounted) return;
+        await AppDialog.alert(context, title: 'Empty File', message: 'The Excel file has no data rows.');
+        return;
+      }
+
+      // Get headers (row 0)
+      final headers = sheet.rows.first
+          .map((cell) => _cellValue(cell).toLowerCase())
+          .toList();
+
+      final nameIdx = headers.indexOf('name');
+      final emailIdx = headers.indexOf('email');
+      final courseIdx = headers.indexOf('course');
+      final yearSecIdx = headers.indexOf('yearsection');
+      final studentNumIdx = headers.indexOf('studentnumber');
+
+      if (nameIdx == -1 || emailIdx == -1 || courseIdx == -1 || yearSecIdx == -1) {
+        if (!mounted) return;
+        await AppDialog.alert(
+          context,
+          title: 'Invalid Format',
+          message: 'The Excel file must have columns: name, email, course, yearSection.\n\nstudentNumber is optional.\n\nFound headers: ${headers.where((h) => h.isNotEmpty).join(", ")}',
+        );
+        return;
+      }
+
+      // Parse data rows
+      final List<Map<String, String>> students = [];
+      for (int i = 1; i < sheet.rows.length; i++) {
+        final row = sheet.rows[i];
+        final name = row.length > nameIdx ? _cellValue(row[nameIdx]) : '';
+        final email = row.length > emailIdx ? _cellValue(row[emailIdx]) : '';
+        final course = row.length > courseIdx ? _cellValue(row[courseIdx]) : '';
+        final yearSec = row.length > yearSecIdx ? _cellValue(row[yearSecIdx]) : '';
+        final studentNum = studentNumIdx >= 0 && row.length > studentNumIdx
+            ? _cellValue(row[studentNumIdx])
+            : '';
+
+        if (name.isEmpty && email.isEmpty) continue; // skip empty rows
+
+        students.add({
+          'name': name,
+          'email': email,
+          'course': course,
+          'yearSection': yearSec,
+          'studentNumber': studentNum,
+        });
+      }
+
+      if (students.isEmpty) {
+        if (!mounted) return;
+        await AppDialog.alert(context, title: 'No Data', message: 'No valid student rows found in the file.');
+        return;
+      }
+
+      // Show confirmation dialog
+      if (!mounted) return;
+      _showImportConfirmation(students, file.name);
+    } catch (e) {
+      if (!mounted) return;
+      await AppDialog.alert(context, title: 'Error', message: 'Failed to read file: $e');
+    }
+  }
+
+  void _showImportConfirmation(List<Map<String, String>> students, String fileName) {
+    bool isImporting = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2E7D32).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.upload_file_rounded, color: Color(0xFF2E7D32), size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Import Students',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.adminPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'File: $fileName',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.normal),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${students.length} student(s) found. Default password: Studfy@123',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.normal),
+              ),
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+            ],
+          ),
+          content: SizedBox(
+            width: 500,
+            height: 300,
+            child: ListView.separated(
+              itemCount: students.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (_, i) {
+                final s = students[i];
+                return ListTile(
+                  dense: true,
+                  leading: CircleAvatar(
+                    radius: 16,
+                    backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                    child: Text(
+                      '${i + 1}',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.adminPrimary),
+                    ),
+                  ),
+                  title: Text(s['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  subtitle: Text(
+                    '${s['email']}  •  ${s['course']} ${s['yearSection']}',
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: isImporting ? null : () => Navigator.pop(dialogCtx),
+              child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2E7D32),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: isImporting
+                  ? null
+                  : () async {
+                      setDialogState(() => isImporting = true);
+                      try {
+                        final result = await context.read<AppState>().bulkImportStudents(students);
+                        if (!mounted) return;
+                        Navigator.pop(dialogCtx);
+                        _showImportResults(result);
+                      } catch (e) {
+                        setDialogState(() => isImporting = false);
+                        if (!mounted) return;
+                        await AppDialog.alert(dialogCtx, title: 'Import Failed', message: e.toString());
+                      }
+                    },
+              icon: isImporting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                    )
+                  : const Icon(Icons.upload_rounded, size: 18),
+              label: Text(
+                isImporting ? 'Importing...' : 'Import ${students.length} Students',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showImportResults(Map<String, dynamic> result) {
+    final summary = result['summary'] as Map<String, dynamic>? ?? {};
+    final results = (result['results'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+
+    final int total = (summary['total'] as num?)?.toInt() ?? 0;
+    final int created = (summary['created'] as num?)?.toInt() ?? 0;
+    final int skipped = (summary['skipped'] as num?)?.toInt() ?? 0;
+    final int errors = (summary['errors'] as num?)?.toInt() ?? 0;
+
+    final successList = results.where((r) => r['status'] == 'created').toList();
+    final skippedList = results.where((r) => r['status'] == 'skipped').toList();
+    final errorList = results.where((r) => r['status'] == 'error').toList();
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: created > 0
+                        ? const Color(0xFF2E7D32).withOpacity(0.1)
+                        : Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    created > 0 ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+                    color: created > 0 ? const Color(0xFF2E7D32) : Colors.orange,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Import Results',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.adminPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Summary chips
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _summaryChip('Total', total, Colors.grey),
+                _summaryChip('Created', created, const Color(0xFF2E7D32)),
+                _summaryChip('Already Exist', skipped, Colors.orange),
+                if (errors > 0) _summaryChip('Errors', errors, Colors.red),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+          ],
+        ),
+        content: SizedBox(
+          width: 500,
+          height: 350,
+          child: ListView(
+            children: [
+              if (successList.isNotEmpty) ...[
+                _resultSectionHeader('Successfully Imported', Icons.check_circle_outline, const Color(0xFF2E7D32)),
+                ...successList.map((r) => _resultTile(
+                  r['name']?.toString() ?? r['email']?.toString() ?? '',
+                  r['email']?.toString() ?? '',
+                  Icons.check_circle_rounded,
+                  const Color(0xFF2E7D32),
+                )),
+                const SizedBox(height: 12),
+              ],
+              if (skippedList.isNotEmpty) ...[
+                _resultSectionHeader('Already Exist in System', Icons.info_outline, Colors.orange),
+                ...skippedList.map((r) => _resultTile(
+                  r['name']?.toString() ?? r['email']?.toString() ?? '',
+                  r['reason']?.toString() ?? 'Already registered',
+                  Icons.info_rounded,
+                  Colors.orange,
+                )),
+                const SizedBox(height: 12),
+              ],
+              if (errorList.isNotEmpty) ...[
+                _resultSectionHeader('Failed to Import', Icons.error_outline, Colors.red),
+                ...errorList.map((r) => _resultTile(
+                  r['name']?.toString() ?? r['email']?.toString() ?? '',
+                  r['reason']?.toString() ?? 'Unknown error',
+                  Icons.error_rounded,
+                  Colors.red,
+                )),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.adminPrimary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Done', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryChip(String label, int count, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$count',
+            style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 14),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(color: color, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _resultSectionHeader(String title, IconData icon, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8, top: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            title,
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _resultTile(String name, String subtitle, IconData icon, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.04),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                ],
+              ),
             ),
           ],
         ),
