@@ -755,7 +755,10 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildBackButton(),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: _buildBackButton(),
+                    ),
                     const SizedBox(height: 12),
                     if (widget.pendingRequest != null && !_isRequestHandled) ...[
                       _buildPendingRequestBanner(),
