@@ -301,33 +301,6 @@ Widget build(BuildContext context) {
                           },
                         ),
                         
-                        // --- NEW CODE START ---
-                        const SizedBox(height: 32),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "Don't have an account? ",
-                              style: TextStyle(fontSize: 14, color: Colors.grey.shade700, fontWeight: FontWeight.w500),
-                            ),
-                            MouseRegion(
-                              cursor: SystemMouseCursors.click,
-                              child: GestureDetector(
-                                onTap: () {
-                                  context.goNamed(AppRoutes.accountCreation);
-                                },
-                                child: const Text(
-                                  "Create an account",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.authPrimary,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
                         // --- NEW CODE END ---
                       ],
                     ),
