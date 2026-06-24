@@ -68,6 +68,8 @@ class _AdminFloatingNavBarState extends State<AdminFloatingNavBar> {
   Widget _buildNavItem(IconData icon, String label, int index) {
     final bool isHovered = _hoveredIndex == index;
     final bool isActive = widget.currentIndex == index;
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 500;
 
     return Expanded(
       child: MouseRegion(
@@ -93,7 +95,10 @@ class _AdminFloatingNavBarState extends State<AdminFloatingNavBar> {
           child: Center(
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 4 : 10,
+                vertical: 6,
+              ),
               decoration: BoxDecoration(
                 color: isActive 
                     ? Colors.white.withOpacity(0.15) 
@@ -107,16 +112,18 @@ class _AdminFloatingNavBarState extends State<AdminFloatingNavBar> {
                   Icon(
                     icon, 
                     color: Colors.white, 
-                    size: 20,
+                    size: isMobile ? 18 : 20,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 3),
                   Text(
                     label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 8.5,
+                      fontSize: isMobile ? 7.5 : 8.5,
                       fontWeight: (isHovered || isActive) ? FontWeight.bold : FontWeight.w500,
-                      letterSpacing: 0.3,
+                      letterSpacing: 0.2,
                     ),
                   ),
                 ],

@@ -66,6 +66,8 @@ class _StudentFloatingNavBarState extends State<StudentFloatingNavBar> {
   Widget _buildNavItem(IconData icon, String label, int index) {
     final bool isHovered = _hoveredIndex == index;
     final bool isActive = widget.currentIndex == index;
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 500;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hoveredIndex = index),
@@ -92,7 +94,10 @@ class _StudentFloatingNavBarState extends State<StudentFloatingNavBar> {
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 8 : 16,
+            vertical: 8,
+          ),
           decoration: BoxDecoration(
             color: isActive 
                 ? Colors.white.withOpacity(0.15) 
@@ -105,14 +110,16 @@ class _StudentFloatingNavBarState extends State<StudentFloatingNavBar> {
               Icon(
                 icon, 
                 color: Colors.white, 
-                size: 22,
+                size: isMobile ? 18 : 22,
               ),
               const SizedBox(height: 4),
               Text(
                 label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 9,
+                  fontSize: isMobile ? 7.5 : 9,
                   fontWeight: (isHovered || isActive) ? FontWeight.bold : FontWeight.normal,
                   letterSpacing: 0.5,
                 ),

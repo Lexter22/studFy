@@ -404,76 +404,84 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
           ),
         ),
         const SizedBox(height: 10),
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFFF5F5F5),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.black.withOpacity(0.05)),
-          ),
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            children: [
-              // Header Row
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-                child: Row(
-                  children: const [
-                    Expanded(flex: 3, child: Text('Class', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF1D4E8F)))),
-                    Expanded(flex: 3, child: Text('Assignment', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF1D4E8F)))),
-                    Expanded(flex: 2, child: Text('Progress', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF1D4E8F)))),
-                    Expanded(flex: 2, child: Text('Due Date', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF1D4E8F)))),
-                  ],
-                ),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final bool isMobile = constraints.maxWidth < 500;
+            return Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.black.withOpacity(0.05)),
               ),
-              const SizedBox(height: 8),
-              if (_dashboardAssignments.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: Text(
-                      'No assignments found.',
-                      style: TextStyle(color: Colors.grey, fontSize: 14),
+              padding: EdgeInsets.all(isMobile ? 6 : 12),
+              child: Column(
+                children: [
+                  // Header Row
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 6, horizontal: isMobile ? 8 : 16),
+                    child: Row(
+                      children: const [
+                        Expanded(flex: 3, child: Text('Class', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFF1D4E8F)))),
+                        Expanded(flex: 3, child: Text('Assignment', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFF1D4E8F)))),
+                        Expanded(flex: 2, child: Text('Progress', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFF1D4E8F)))),
+                        Expanded(flex: 2, child: Text('Due Date', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFF1D4E8F)))),
+                      ],
                     ),
                   ),
-                )
-              else
-                ..._dashboardAssignments.map((item) {
-                  final ProfessorSubject sub = item['subject'];
-                  final SubjectAssignment a = item['assignment'];
-                  final int subCount = item['submissionCount'];
-                  final int totalStudents = sub.studentCount > 0 ? sub.studentCount : 1;
-                  final double progressVal = subCount / totalStudents;
-                  
-                  final String dueDateStr = a.deadline != null 
-                      ? '${a.deadline!.month.toString().padLeft(2, '0')}/${a.deadline!.day.toString().padLeft(2, '0')}/${a.deadline!.year}'
-                      : 'No Deadline';
+                  const SizedBox(height: 8),
+                  if (_dashboardAssignments.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: Text(
+                          'No assignments found.',
+                          style: TextStyle(color: Colors.grey, fontSize: 14),
+                        ),
+                      ),
+                    )
+                  else
+                    ..._dashboardAssignments.map((item) {
+                      final ProfessorSubject sub = item['subject'];
+                      final SubjectAssignment a = item['assignment'];
+                      final int subCount = item['submissionCount'];
+                      final int totalStudents = sub.studentCount > 0 ? sub.studentCount : 1;
+                      final double progressVal = subCount / totalStudents;
                       
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: _buildAssignmentRow(
-                      '${sub.courseCode} ${sub.yearLevel}-${sub.section}',
-                      sub.name,
-                      a.title,
-                      '$subCount/${sub.studentCount}',
-                      progressVal.clamp(0.0, 1.0),
-                      dueDateStr,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => AssignmentDetailScreen(
-                              assignment: a,
-                              subjectName: sub.name,
-                              totalStudents: sub.studentCount,
-                            ),
-                          ),
-                        ).then((_) => _load());
-                      },
-                    ),
-                  );
-                }),
-            ],
-          ),
+                      final String yearStr = a.deadline != null
+                          ? (isMobile ? '${a.deadline!.year % 100}' : '${a.deadline!.year}')
+                          : '';
+                      final String dueDateStr = a.deadline != null 
+                          ? '${a.deadline!.month.toString().padLeft(2, '0')}/${a.deadline!.day.toString().padLeft(2, '0')}/$yearStr'
+                          : 'No Deadline';
+                          
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _buildAssignmentRow(
+                          '${sub.courseCode} ${sub.yearLevel}-${sub.section}',
+                          sub.name,
+                          a.title,
+                          '$subCount/${sub.studentCount}',
+                          progressVal.clamp(0.0, 1.0),
+                          dueDateStr,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => AssignmentDetailScreen(
+                                  assignment: a,
+                                  subjectName: sub.name,
+                                  totalStudents: sub.studentCount,
+                                ),
+                              ),
+                            ).then((_) => _load());
+                          },
+                        ),
+                      );
+                    }),
+                ],
+              ),
+            );
+          }
         ),
       ],
     );
@@ -488,6 +496,9 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
     String dueDate, {
     required VoidCallback onTap,
   }) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 500;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -507,25 +518,32 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 8 : 16,
+              vertical: isMobile ? 10 : 14,
+            ),
             child: Row(
               children: [
                 Expanded(
                   flex: 3,
                   child: Padding(
-                    padding: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.only(right: 6),
                     child: Text(
                       classCode,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF2C3E50)),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: isMobile ? 11 : 13,
+                        color: const Color(0xFF2C3E50),
+                      ),
                     ),
                   ),
                 ),
                 Expanded(
                   flex: 3,
                   child: Padding(
-                    padding: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.only(right: 6),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -533,14 +551,21 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                           title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: isMobile ? 11 : 13,
+                            color: Colors.black87,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           subtitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: isMobile ? 9 : 11,
+                          ),
                         ),
                       ],
                     ),
@@ -553,12 +578,16 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                     children: [
                       Text(
                         progressText,
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87),
+                        style: TextStyle(
+                          fontSize: isMobile ? 10 : 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       SizedBox(
-                        width: 70,
-                        height: 6,
+                        width: isMobile ? 50 : 70,
+                        height: isMobile ? 4 : 6,
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(3),
                           child: LinearProgressIndicator(
@@ -573,9 +602,16 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                 ),
                 Expanded(
                   flex: 2,
-                  child: Text(
-                    dueDate,
-                    style: const TextStyle(color: Colors.black87, fontSize: 12, fontWeight: FontWeight.bold),
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: Text(
+                      dueDate,
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontSize: isMobile ? 10.5 : 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -618,6 +654,9 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
   }
 
   Widget _buildClassCard(ProfessorSubject sub) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 500;
+
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 12),
@@ -638,14 +677,18 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Container(
-                width: 120,
-                padding: const EdgeInsets.all(16),
+                width: isMobile ? 100 : 120,
+                padding: EdgeInsets.all(isMobile ? 8 : 16),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      '${sub.courseCode} ${sub.yearLevel} - ${sub.section}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                      '${sub.courseCode} ${sub.yearLevel}-${sub.section}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: isMobile ? 12 : 14,
+                        color: Colors.black87,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 6),
@@ -670,12 +713,15 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
               ),
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isMobile ? 12 : 16,
+                    vertical: isMobile ? 14 : 20,
+                  ),
                   alignment: Alignment.center,
                   child: Text(
                     sub.name,
-                    style: const TextStyle(
-                      fontSize: 16,
+                    style: TextStyle(
+                      fontSize: isMobile ? 14 : 16,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),

@@ -248,25 +248,32 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   // --- OVERVIEW WIDGETS ---
   Widget _buildOverviewCards(AppState appState) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _buildStatCard(
-          Icons.assignment_ind,
-          'Total\nInstructor',
-          '${appState.instructors.length}',
-          Colors.blue,
+        Expanded(
+          child: _buildStatCard(
+            Icons.assignment_ind,
+            'Instructors',
+            '${appState.instructors.length}',
+            Colors.blue,
+          ),
         ),
-        _buildStatCard(
-          Icons.book,
-          'Total\nSubjects',
-          '${appState.subjectOfferings.length}',
-          Colors.orange,
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildStatCard(
+            Icons.book,
+            'Subjects',
+            '${appState.subjectOfferings.length}',
+            Colors.orange,
+          ),
         ),
-        _buildStatCard(
-          Icons.group,
-          'Total\nStudents',
-          '${appState.students.length}',
-          Colors.green,
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildStatCard(
+            Icons.group,
+            'Students',
+            '${appState.students.length}',
+            Colors.green,
+          ),
         ),
       ],
     );
@@ -278,17 +285,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     String count,
     Color color,
   ) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 500;
+
     return Container(
-      width: MediaQuery.of(context).size.width * 0.30,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 8 : 12,
+        vertical: isMobile ? 12 : 16,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -297,34 +309,35 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         children: [
           Row(
             children: [
-              Icon(icon, size: 22, color: color),
-              const SizedBox(width: 8),
+              Icon(icon, size: isMobile ? 18 : 20, color: color),
+              const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   label,
-                  style: const TextStyle(
-                    fontSize: 14,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: isMobile ? 11 : 13,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
-                    height: 1.2,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: EdgeInsets.symmetric(vertical: isMobile ? 8 : 10),
             decoration: BoxDecoration(
               color: color,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Center(
               child: Text(
                 count,
-                style: const TextStyle(
-                  fontSize: 26,
+                style: TextStyle(
+                  fontSize: isMobile ? 20 : 24,
                   fontWeight: FontWeight.w900,
                   color: Colors.white,
                 ),
