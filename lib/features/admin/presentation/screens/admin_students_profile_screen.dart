@@ -460,12 +460,14 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: _buildBackButton(),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _buildSectionTitle('Student Profile'),
+                              _buildBackButton(),
+                            ],
                           ),
                           const SizedBox(height: 12),
-                          _buildSectionTitle('Student Profile'),
                           _buildProfileCard(),
                           const SizedBox(height: 28),
                           Wrap(

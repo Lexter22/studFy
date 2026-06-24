@@ -427,12 +427,14 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: _buildBackButton(),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _sectionTitle('Instructor Information'),
+                        _buildBackButton(),
+                      ],
                     ),
                     const SizedBox(height: 12),
-                    _sectionTitle('Instructor Information'),
                     _buildProfileCard(),
                     const SizedBox(height: 28),
                     Wrap(

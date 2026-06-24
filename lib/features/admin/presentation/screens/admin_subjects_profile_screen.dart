@@ -755,17 +755,18 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: _buildBackButton(),
-                    ),
-                    const SizedBox(height: 12),
                     if (widget.pendingRequest != null && !_isRequestHandled) ...[
                       _buildPendingRequestBanner(),
                       const SizedBox(height: 16),
                     ],
-
-                    _buildSectionTitle('Subject Information'),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildSectionTitle('Subject Information'),
+                        _buildBackButton(),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
                     _buildProfileCard(),
                     const SizedBox(height: 28),
 
