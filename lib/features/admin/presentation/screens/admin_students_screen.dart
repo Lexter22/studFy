@@ -475,23 +475,6 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                   ],
                 ),
               ),
-
-              // Action buttons
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined, size: 20, color: Colors.blue),
-                    onPressed: () => _showEditStudentDialog(student),
-                    tooltip: 'Edit details',
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline_rounded, size: 20, color: Colors.red),
-                    onPressed: () => _showDeleteStudentDialog(student),
-                    tooltip: 'Delete student',
-                  ),
-                ],
-              ),
             ],
           ),
         ),

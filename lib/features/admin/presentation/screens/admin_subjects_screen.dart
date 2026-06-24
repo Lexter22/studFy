@@ -154,7 +154,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                         ),
                         const SizedBox(height: 24),
 
-                        _buildSectionTitle('Pending Applications'),
+                        _buildSectionTitle('Pending Requests'),
                         const SizedBox(height: 8),
 
                         ValueListenableBuilder<List<Map<String, String>>>(
@@ -171,7 +171,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                                 ),
                                 alignment: Alignment.center,
                                 child: Text(
-                                  'No pending applications',
+                                  'No pending requests',
                                   style: TextStyle(
                                     color: Colors.grey.shade500,
                                     fontSize: 13,

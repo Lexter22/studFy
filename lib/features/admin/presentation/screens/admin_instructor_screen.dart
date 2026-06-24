@@ -156,7 +156,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
                     const SizedBox(height: 24),
 
                     // Pending requests section
-                    _sectionLabel('Pending Applications'),
+                    _sectionLabel('Pending Requests'),
                     const SizedBox(height: 8),
                     _buildPendingRequests(appState),
                     const SizedBox(height: 28),
@@ -288,7 +288,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
                 Icon(Icons.check_circle_outline_rounded, size: 36, color: Colors.green.shade300),
                 const SizedBox(height: 8),
                 Text(
-                  'All instructor applications resolved',
+                  'All instructor requests resolved',
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.bold),
                 ),
               ],
