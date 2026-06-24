@@ -499,11 +499,39 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
   }
 
   Widget _buildBackButton() {
-    return TextButton.icon(
-      onPressed: () => context.pop(),
-      icon: const Icon(Icons.arrow_back_rounded, color: AppColors.adminPrimary, size: 18),
-      label: const Text('Back to Directory', style: TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold)),
-      style: TextButton.styleFrom(padding: EdgeInsets.zero),
+    return InkWell(
+      onTap: () => context.pop(),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.arrow_back_rounded, color: AppColors.adminPrimary, size: 18),
+            SizedBox(width: 8),
+            Text(
+              'Back to Directory',
+              style: TextStyle(
+                color: AppColors.adminPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
