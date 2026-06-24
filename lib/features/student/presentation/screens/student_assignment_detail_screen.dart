@@ -149,12 +149,27 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
                       // Back navigation row
                       Row(
                         children: [
-                          IconButton(
-                            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF0A5C36), size: 20),
-                            tooltip: 'Back to Modules',
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                          const SizedBox(width: 8),
+                            InkWell(
+                              onTap: () => Navigator.pop(context),
+                              borderRadius: BorderRadius.circular(100),
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.grey.shade100,
+                                  border: Border.all(color: Colors.grey.shade200, width: 1),
+                                ),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.arrow_back_ios_new_rounded,
+                                    color: Color(0xFF0A5C36),
+                                    size: 14,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
                           const Text(
                             'Assignment Details',
                             style: TextStyle(

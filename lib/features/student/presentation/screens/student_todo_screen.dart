@@ -314,7 +314,7 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
                   ),
                 ),
                 child: Icon(
-                  ass.id.contains('quiz') ? Icons.quiz_rounded : Icons.edit_note_rounded,
+                  ass.id.contains('quiz') ? Icons.fact_check_rounded : Icons.assignment_rounded,
                   color: isMissing ? Colors.red : const Color(0xFF0A5C36),
                   size: 26,
                 ),
@@ -349,7 +349,7 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
 
               // Due Date label
               Text(
-                ass.deadline != null ? 'May 09' : 'May 09', // Static like the design
+                _formatDeadline(ass.deadline),
                 style: const TextStyle(
                   fontSize: 11,
                   color: Colors.black54,
@@ -361,6 +361,15 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
         ),
       ),
     );
+  }
+
+  String _formatDeadline(DateTime? deadline) {
+    if (deadline == null) return 'No deadline';
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final localDeadline = deadline.toLocal();
+    final monthStr = months[localDeadline.month - 1];
+    final dayStr = localDeadline.day.toString().padLeft(2, '0');
+    return '$monthStr $dayStr';
   }
 
   void _handleAssignmentTap(StudentSubject sub, SubjectAssignment ass) async {

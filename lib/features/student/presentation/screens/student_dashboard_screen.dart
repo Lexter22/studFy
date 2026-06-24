@@ -23,6 +23,10 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   List<Map<String, dynamic>> _meetings = [];
   Map<String, dynamic>? _studentProfile;
 
+  final ScrollController _announcementScrollController = ScrollController();
+  final ScrollController _meetingScrollController = ScrollController();
+  final ScrollController _courseScrollController = ScrollController();
+
   // Selected date for calendar
   DateTime _calendarDate = DateTime.now();
   final List<int> _eventDays = [9, 13];
@@ -167,6 +171,14 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     _loadData();
   }
 
+  @override
+  void dispose() {
+    _announcementScrollController.dispose();
+    _meetingScrollController.dispose();
+    _courseScrollController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadData() async {
     setState(() => _loading = true);
     try {
@@ -278,7 +290,22 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       child: Text('No announcements yet.', style: TextStyle(color: Colors.grey, fontSize: 14)),
                     )
                   else
-                    ..._announcements.map((ann) => _buildAnnouncementCard(ann)),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 276),
+                      child: Scrollbar(
+                        controller: _announcementScrollController,
+                        thumbVisibility: true,
+                        child: ListView.builder(
+                          controller: _announcementScrollController,
+                          shrinkWrap: true,
+                          padding: const EdgeInsets.only(right: 12),
+                          itemCount: _announcements.length,
+                          itemBuilder: (context, index) {
+                            return _buildAnnouncementCard(_announcements[index]);
+                          },
+                        ),
+                      ),
+                    ),
 
                   const SizedBox(height: 24),
                   // Upcoming Meetings Section
@@ -290,7 +317,22 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       child: Text('No upcoming meetings.', style: TextStyle(color: Colors.grey, fontSize: 14)),
                     )
                   else
-                    ..._meetings.map((m) => _buildMeetingCard(m)),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 234),
+                      child: Scrollbar(
+                        controller: _meetingScrollController,
+                        thumbVisibility: true,
+                        child: ListView.builder(
+                          controller: _meetingScrollController,
+                          shrinkWrap: true,
+                          padding: const EdgeInsets.only(right: 12),
+                          itemCount: _meetings.length,
+                          itemBuilder: (context, index) {
+                            return _buildMeetingCard(_meetings[index]);
+                          },
+                        ),
+                      ),
+                    ),
 
                   const SizedBox(height: 24),
                   // Course List Section
@@ -300,8 +342,21 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       ? const Center(child: CircularProgressIndicator())
                       : _subjects.isEmpty
                           ? const Center(child: Text('No courses found.'))
-                          : Column(
-                              children: _subjects.map((sub) => _buildCourseCard(sub)).toList(),
+                          : ConstrainedBox(
+                              constraints: const BoxConstraints(maxHeight: 234),
+                              child: Scrollbar(
+                                controller: _courseScrollController,
+                                thumbVisibility: true,
+                                child: ListView.builder(
+                                  controller: _courseScrollController,
+                                  shrinkWrap: true,
+                                  padding: const EdgeInsets.only(right: 12),
+                                  itemCount: _subjects.length,
+                                  itemBuilder: (context, index) {
+                                    return _buildCourseCard(_subjects[index]);
+                                  },
+                                ),
+                              ),
                             ),
 
                   const SizedBox(height: 24),

@@ -204,16 +204,31 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
                   child: Row(
                     children: [
                       if (_selectedSubject != null) ...[
-                        IconButton(
-                          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF0A5C36), size: 20),
-                          tooltip: 'Back to Courses',
-                          onPressed: () {
+                        InkWell(
+                          onTap: () {
                             setState(() {
                               _selectedSubject = null;
                             });
                           },
+                          borderRadius: BorderRadius.circular(100),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.grey.shade100,
+                              border: Border.all(color: Colors.grey.shade200, width: 1),
+                            ),
+                            child: const Center(
+                              child: Icon(
+                                Icons.arrow_back_ios_new_rounded,
+                                color: Color(0xFF0A5C36),
+                                size: 14,
+                              ),
+                            ),
+                          ),
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: 10),
                       ],
                       Text(
                         _selectedSubject == null ? 'Learning Modules' : _selectedSubject!.name.toUpperCase(),
@@ -327,7 +342,7 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
               child: _buildQuickAccessButton(
                 icon: Icons.grade_rounded,
                 label: 'My Grades',
-                color: const Color(0xFF7C3AED),
+                color: const Color(0xFF0A5C36),
                 onTap: () {
                   Navigator.push(context, MaterialPageRoute(
                     builder: (_) => StudentGradesScreen(subject: _selectedSubject),
@@ -424,7 +439,7 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
 
                 // Quizzes
                 ...mQuizzes.map((quiz) => _buildStudentContentRow(
-                      Icons.quiz_rounded,
+                      Icons.fact_check_rounded,
                       quiz.title,
                       'Quiz',
                       () {

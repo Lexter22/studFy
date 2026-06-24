@@ -55,11 +55,21 @@ class StudentRepository {
           try {
             final profRow = await _client
                 .from('profiles')
-                .select('display_name')
+                .select('display_name,first_name,last_name')
                 .eq('id', profId)
                 .maybeSingle();
-            if (profRow != null && profRow['display_name'] != null) {
-              profName = profRow['display_name'].toString();
+            if (profRow != null) {
+              final dispName = profRow['display_name']?.toString().trim() ?? '';
+              if (dispName.isNotEmpty) {
+                profName = dispName;
+              } else {
+                final firstName = profRow['first_name']?.toString().trim() ?? '';
+                final lastName = profRow['last_name']?.toString().trim() ?? '';
+                final fallback = [firstName, lastName].where((v) => v.isNotEmpty).join(' ').trim();
+                if (fallback.isNotEmpty) {
+                  profName = fallback;
+                }
+              }
             }
           } catch (_) {}
         }
