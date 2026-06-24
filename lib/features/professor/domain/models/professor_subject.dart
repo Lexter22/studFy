@@ -20,6 +20,19 @@ class ProfessorSubject {
     this.joinCode,
     required this.studentCount,
   });
+
+  String get classLabel {
+    if (section.contains('-')) {
+      return '$courseCode $section';
+    } else if (section.trim().isEmpty) {
+      if (yearLevel > 0) {
+        return '$courseCode $yearLevel';
+      }
+      return courseCode;
+    } else {
+      return '$courseCode $yearLevel-$section';
+    }
+  }
 }
 
 class SubjectModule {

@@ -77,7 +77,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
         // Filter by Course & Section
         if (_selectedCourseSection != null) {
           final filterStr = _selectedCourseSection!.toLowerCase();
-          final classCode = '${sub.courseCode} ${sub.yearLevel}-${sub.section}'.toLowerCase();
+          final classCode = sub.classLabel.toLowerCase();
           if (!classCode.contains(filterStr)) {
             return false;
           }
@@ -175,7 +175,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  '${sub.courseCode} ${sub.yearLevel}-${sub.section}',
+                  sub.classLabel,
                   style: const TextStyle(
                     fontSize: 14,
                     color: Color(0xFF475569),
@@ -537,7 +537,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  '${sub.name} - ${sub.courseCode} ${sub.yearLevel}-${sub.section}',
+                  '${sub.name} - ${sub.classLabel}',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -886,7 +886,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
     final subjectNames = _allSubjects.map((s) => s.name).toSet().toList();
     // Get unique course codes for filter
     final courseSections = _allSubjects
-        .map((s) => '${s.courseCode} ${s.yearLevel}-${s.section}')
+        .map((s) => s.classLabel)
         .toSet()
         .toList();
 
@@ -1153,7 +1153,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${sub.courseCode} ${sub.yearLevel}-${sub.section}',
+                      sub.classLabel,
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.blueGrey.shade800,

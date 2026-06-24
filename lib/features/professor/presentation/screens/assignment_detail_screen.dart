@@ -12,12 +12,14 @@ class AssignmentDetailScreen extends StatefulWidget {
   final SubjectAssignment assignment;
   final String subjectName;
   final int totalStudents;
+  final String courseYearSection;
 
   const AssignmentDetailScreen({
     super.key,
     required this.assignment,
     required this.subjectName,
     required this.totalStudents,
+    required this.courseYearSection,
   });
 
   @override
@@ -195,6 +197,11 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                                   Text(
                                     widget.subjectName,
                                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF1565C0)),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    widget.courseYearSection,
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1565C0)),
                                   ),
                                 ],
                               ),

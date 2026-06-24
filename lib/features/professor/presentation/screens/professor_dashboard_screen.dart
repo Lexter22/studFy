@@ -440,44 +440,61 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                       ),
                     )
                   else
-                    ..._dashboardAssignments.map((item) {
-                      final ProfessorSubject sub = item['subject'];
-                      final SubjectAssignment a = item['assignment'];
-                      final int subCount = item['submissionCount'];
-                      final int totalStudents = sub.studentCount > 0 ? sub.studentCount : 1;
-                      final double progressVal = subCount / totalStudents;
-                      
-                      final String yearStr = a.deadline != null
-                          ? (isMobile ? '${a.deadline!.year % 100}' : '${a.deadline!.year}')
-                          : '';
-                      final String dueDateStr = a.deadline != null 
-                          ? '${a.deadline!.month.toString().padLeft(2, '0')}/${a.deadline!.day.toString().padLeft(2, '0')}/$yearStr'
-                          : 'No Deadline';
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: _dashboardAssignments.length > 3
+                            ? (isMobile ? 220.0 : 255.0)
+                            : double.infinity,
+                      ),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        padding: EdgeInsets.zero,
+                        physics: _dashboardAssignments.length > 3
+                            ? const BouncingScrollPhysics()
+                            : const NeverScrollableScrollPhysics(),
+                        itemCount: _dashboardAssignments.length,
+                        itemBuilder: (context, index) {
+                          final item = _dashboardAssignments[index];
+                          final ProfessorSubject sub = item['subject'];
+                          final SubjectAssignment a = item['assignment'];
+                          final int subCount = item['submissionCount'];
+                          final int totalStudents = sub.studentCount > 0 ? sub.studentCount : 1;
+                          final double progressVal = subCount / totalStudents;
                           
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: _buildAssignmentRow(
-                          '${sub.courseCode} ${sub.yearLevel}-${sub.section}',
-                          sub.name,
-                          a.title,
-                          '$subCount/${sub.studentCount}',
-                          progressVal.clamp(0.0, 1.0),
-                          dueDateStr,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => AssignmentDetailScreen(
-                                  assignment: a,
-                                  subjectName: sub.name,
-                                  totalStudents: sub.studentCount,
-                                ),
-                              ),
-                            ).then((_) => _load());
-                          },
-                        ),
-                      );
-                    }),
+                          final String yearStr = a.deadline != null
+                              ? (isMobile ? '${a.deadline!.year % 100}' : '${a.deadline!.year}')
+                              : '';
+                          final String dueDateStr = a.deadline != null 
+                              ? '${a.deadline!.month.toString().padLeft(2, '0')}/${a.deadline!.day.toString().padLeft(2, '0')}/$yearStr'
+                              : 'No Deadline';
+                              
+                           return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _buildAssignmentRow(
+                              sub.classLabel,
+                              sub.name,
+                              a.title,
+                              '$subCount/${sub.studentCount}',
+                              progressVal.clamp(0.0, 1.0),
+                              dueDateStr,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => AssignmentDetailScreen(
+                                      assignment: a,
+                                      subjectName: sub.name,
+                                      totalStudents: sub.studentCount,
+                                      courseYearSection: sub.classLabel,
+                                    ),
+                                  ),
+                                ).then((_) => _load());
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                 ],
               ),
             );
@@ -646,8 +663,22 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
             ),
           )
         else
-          Column(
-            children: subjects.map((sub) => _buildClassCard(sub)).toList(),
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: subjects.length > 3 ? 285.0 : double.infinity,
+            ),
+            child: ListView.builder(
+              shrinkWrap: true,
+              padding: EdgeInsets.zero,
+              physics: subjects.length > 3
+                  ? const BouncingScrollPhysics()
+                  : const NeverScrollableScrollPhysics(),
+              itemCount: subjects.length,
+              itemBuilder: (context, index) {
+                final sub = subjects[index];
+                return _buildClassCard(sub);
+              },
+            ),
           ),
       ],
     );
@@ -683,7 +714,7 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      '${sub.courseCode} ${sub.yearLevel}-${sub.section}',
+                      sub.classLabel,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: isMobile ? 12 : 14,
@@ -772,113 +803,43 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFF121212), // Sleek dark theme
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withOpacity(0.3),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
         ],
-        border: Border.all(color: const Color(0xFFF3F3F3)),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            // Calendar Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.chevron_left_rounded, color: Colors.black87, size: 24),
+                  icon: const Icon(Icons.chevron_left_rounded, color: Colors.white, size: 24),
                   onPressed: () {
                     setState(() {
                       _calendarDate = DateTime(_calendarDate.year, _calendarDate.month - 1, 1);
                     });
                   },
                 ),
-                Row(
-                  children: [
-                    PopupMenuButton<int>(
-                      tooltip: 'Select Month',
-                      initialValue: _calendarDate.month,
-                      onSelected: (int selectedMonth) {
-                        setState(() {
-                          _calendarDate = DateTime(_calendarDate.year, selectedMonth, 1);
-                        });
-                      },
-                      itemBuilder: (BuildContext context) {
-                        const monthsList = [
-                          'January', 'February', 'March', 'April', 'May', 'June',
-                          'July', 'August', 'September', 'October', 'November', 'December'
-                        ];
-                        return List.generate(12, (index) {
-                          return PopupMenuItem<int>(
-                            value: index + 1,
-                            child: Text(monthsList[index]),
-                          );
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF5F5F7),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              monthName,
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87),
-                            ),
-                            const SizedBox(width: 4),
-                            const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Colors.black54),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    PopupMenuButton<int>(
-                      tooltip: 'Select Year',
-                      initialValue: _calendarDate.year,
-                      onSelected: (int selectedYear) {
-                        setState(() {
-                          _calendarDate = DateTime(selectedYear, _calendarDate.month, 1);
-                        });
-                      },
-                      itemBuilder: (BuildContext context) {
-                        final currentYear = DateTime.now().year;
-                        return List.generate(11, (index) {
-                          final yr = (currentYear - 5) + index;
-                          return PopupMenuItem<int>(
-                            value: yr,
-                            child: Text(yr.toString()),
-                          );
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF5F5F7),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              yearString,
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87),
-                            ),
-                            const SizedBox(width: 4),
-                            const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Colors.black54),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                Text(
+                  monthName.substring(0, 3).toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: 1.5,
+                  ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.chevron_right_rounded, color: Colors.black87, size: 24),
+                  icon: const Icon(Icons.chevron_right_rounded, color: Colors.white, size: 24),
                   onPressed: () {
                     setState(() {
                       _calendarDate = DateTime(_calendarDate.year, _calendarDate.month + 1, 1);
@@ -887,131 +848,146 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            const Row(
+            const SizedBox(height: 16),
+            // Weekday labels
+            Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _DayName('Su'),
-                _DayName('Mo'),
-                _DayName('Tu'),
-                _DayName('We'),
-                _DayName('Th'),
-                _DayName('Fr'),
-                _DayName('Sa'),
+                _DayName('S', color: const Color(0xFFE57373)),
+                _DayName('M', color: const Color(0xFF888888)),
+                _DayName('T', color: const Color(0xFF888888)),
+                _DayName('W', color: const Color(0xFF888888)),
+                _DayName('T', color: const Color(0xFF888888)),
+                _DayName('F', color: const Color(0xFF888888)),
+                _DayName('S', color: const Color(0xFF888888)),
               ],
             ),
             const SizedBox(height: 12),
+            // Grid of days
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: 42,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 7,
-                mainAxisSpacing: 6,
+                mainAxisSpacing: 8,
                 crossAxisSpacing: 6,
+                childAspectRatio: 0.6, // Tall and narrow cells
               ),
               itemBuilder: (context, index) {
                 final int dayNumber = index - offset + 1;
+                int displayDay = dayNumber;
+                bool isCurrentMonth = true;
+
                 if (dayNumber <= 0) {
-                  return const SizedBox.shrink();
+                  final prevDaysInMonth = DateTime(_calendarDate.year, _calendarDate.month, 0).day;
+                  displayDay = prevDaysInMonth + dayNumber;
+                  isCurrentMonth = false;
+                } else if (dayNumber > daysInMonth) {
+                  displayDay = dayNumber - daysInMonth;
+                  isCurrentMonth = false;
                 }
 
-                final bool isSelected = _selectedDate != null &&
+                final bool isSelected = isCurrentMonth &&
+                    _selectedDate != null &&
                     _selectedDate!.year == _calendarDate.year &&
                     _selectedDate!.month == _calendarDate.month &&
-                    _selectedDate!.day == dayNumber;
+                    _selectedDate!.day == displayDay;
 
-                final bool isEvent = dynamicEventDays.contains(dayNumber);
-                final bool isToday = now.year == _calendarDate.year &&
+                final bool isEvent = isCurrentMonth && dynamicEventDays.contains(displayDay);
+                final bool isToday = isCurrentMonth &&
+                    now.year == _calendarDate.year &&
                     now.month == _calendarDate.month &&
-                    now.day == dayNumber;
-
-                if (dayNumber > daysInMonth) {
-                  final nextMonthDay = dayNumber - daysInMonth;
-                  return Center(
-                    child: Text(
-                      nextMonthDay.toString(),
-                      style: const TextStyle(
-                        color: Colors.black26,
-                        fontSize: 13,
-                      ),
-                    ),
-                  );
-                }
+                    now.day == displayDay;
 
                 return InkWell(
-                  onTap: () {
-                    setState(() {
-                      if (isSelected) {
-                        _selectedDate = null;
-                      } else {
-                        _selectedDate = DateTime(_calendarDate.year, _calendarDate.month, dayNumber);
-                      }
-                    });
-                  },
-                  borderRadius: BorderRadius.circular(20),
-                  child: Center(
-                    child: Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppColors.authPrimary
-                            : isEvent
-                                ? AppColors.authPrimary.withOpacity(0.08)
-                                : Colors.transparent,
-                        shape: BoxShape.circle,
-                        border: isToday && !isSelected
-                            ? Border.all(color: AppColors.authPrimary, width: 1.5)
-                            : null,
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: AppColors.authPrimary.withOpacity(0.2),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 3),
-                                )
-                              ]
-                            : null,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            dayNumber.toString(),
+                  onTap: !isCurrentMonth
+                      ? null
+                      : () {
+                          setState(() {
+                            if (isSelected) {
+                              _selectedDate = null;
+                            } else {
+                              _selectedDate = DateTime(_calendarDate.year, _calendarDate.month, displayDay);
+                            }
+                          });
+                        },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E1E1E), // Dark cell background
+                      borderRadius: BorderRadius.circular(8),
+                      border: isSelected
+                          ? Border.all(color: Colors.white.withOpacity(0.8), width: 1.5)
+                          : isToday
+                              ? Border.all(color: AppColors.authPrimary, width: 1.5)
+                              : null,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            displayDay.toString(),
                             style: TextStyle(
-                              color: isSelected
-                                  ? Colors.white
-                                  : isEvent
-                                      ? AppColors.authPrimary
-                                      : Colors.black87,
-                              fontWeight: (isSelected || isEvent || isToday) ? FontWeight.bold : FontWeight.normal,
+                              color: !isCurrentMonth
+                                  ? const Color(0xFF444444) // Muted previous/next month day
+                                  : index % 7 == 0
+                                      ? const Color(0xFFE57373) // Red Sunday
+                                      : Colors.white,
+                              fontWeight: (isSelected || isToday) ? FontWeight.bold : FontWeight.normal,
                               fontSize: 13,
                             ),
                           ),
-                          if (isEvent) ...[
-                            const SizedBox(height: 2),
-                            Container(
-                              width: 4,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: isSelected ? Colors.white : AppColors.authPrimary,
-                                shape: BoxShape.circle,
-                              ),
+                        ),
+                        if (isCurrentMonth && (isEvent || isSelected))
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Icon(
+                              Icons.sentiment_satisfied_alt_outlined,
+                              color: isSelected ? Colors.white : AppColors.authPrimary,
+                              size: 14,
                             ),
-                          ] else
-                            const SizedBox(height: 6),
-                        ],
-                      ),
+                          )
+                        else
+                          const SizedBox(height: 14),
+                      ],
                     ),
                   ),
                 );
               },
             ),
-            if (_selectedDate != null) ...[
-              const Divider(height: 40, thickness: 1, color: Color(0xFFF1F1F1)),
-              _buildSelectedDateEvents(),
-            ],
+            const SizedBox(height: 16),
+            // Pill add reminder button at bottom
+            GestureDetector(
+              onTap: () {
+                final targetDate = _selectedDate ?? DateTime(_calendarDate.year, _calendarDate.month, 1);
+                _showAddReminderDialog(targetDate);
+              },
+              child: Container(
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF333333),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Add on ${_getMonthName((_selectedDate ?? now).month).substring(0, 3)} ${(_selectedDate ?? now).day}',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const Icon(Icons.add, color: Colors.white70, size: 20),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -1169,7 +1145,7 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                   style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                 ),
                 subtitle: Text(
-                  'Due for Class: ${sub.name} (${sub.courseCode} ${sub.yearLevel}-${sub.section})',
+                  'Due for Class: ${sub.name} (${sub.classLabel})',
                   style: const TextStyle(fontSize: 11, color: Colors.black54),
                 ),
                 trailing: const Icon(Icons.chevron_right_rounded, size: 18, color: Colors.black38),
@@ -1181,6 +1157,7 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                         assignment: a,
                         subjectName: sub.name,
                         totalStudents: sub.studentCount,
+                        courseYearSection: sub.classLabel,
                       ),
                     ),
                   );
@@ -1201,7 +1178,8 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
 
 class _DayName extends StatelessWidget {
   final String name;
-  const _DayName(this.name);
+  final Color? color;
+  const _DayName(this.name, {this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -1212,7 +1190,7 @@ class _DayName extends StatelessWidget {
         name,
         textAlign: TextAlign.center,
         style: TextStyle(
-          color: isWeekend ? Colors.redAccent.withOpacity(0.8) : Colors.black54,
+          color: color ?? (isWeekend ? Colors.redAccent.withOpacity(0.8) : Colors.black54),
           fontWeight: FontWeight.bold,
           fontSize: 12,
         ),

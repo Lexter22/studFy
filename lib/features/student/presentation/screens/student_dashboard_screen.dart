@@ -1137,7 +1137,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
 
 class _DayName extends StatelessWidget {
   final String name;
-  const _DayName(this.name);
+  final Color? color;
+  const _DayName(this.name, {this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -1148,7 +1149,7 @@ class _DayName extends StatelessWidget {
         name,
         textAlign: TextAlign.center,
         style: TextStyle(
-          color: isWeekend ? Colors.redAccent.withOpacity(0.8) : Colors.black54,
+          color: color ?? (isWeekend ? Colors.redAccent.withOpacity(0.8) : Colors.black54),
           fontWeight: FontWeight.bold,
           fontSize: 12,
         ),

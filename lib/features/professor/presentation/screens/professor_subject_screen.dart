@@ -1385,7 +1385,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                       style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.authPrimary)),
                   const SizedBox(height: 2),
                   Text(
-                    '${widget.subject.courseCode} ${widget.subject.yearLevel}-${widget.subject.section}',
+                    widget.subject.classLabel,
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -1521,7 +1521,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '${widget.subject.name} - ${widget.subject.courseCode} ${widget.subject.yearLevel}-${widget.subject.section}',
+                    '${widget.subject.name} - ${widget.subject.classLabel}',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -2059,6 +2059,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                                   assignment: a,
                                   subjectName: widget.subject.name,
                                   totalStudents: widget.subject.studentCount,
+                                  courseYearSection: widget.subject.classLabel,
                                 ),
                               )),
                               onDelete: () => _confirmDeleteAssignment(a),
@@ -2123,6 +2124,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                     assignment: a,
                     subjectName: widget.subject.name,
                     totalStudents: widget.subject.studentCount,
+                    courseYearSection: widget.subject.classLabel,
                   ),
                 )),
                 onDelete: () => _confirmDeleteAssignment(a),

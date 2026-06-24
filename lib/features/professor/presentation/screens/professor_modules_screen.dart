@@ -69,7 +69,7 @@ class _ProfessorModulesScreenState extends State<ProfessorModulesScreen> {
         // Filter by Course & Section
         if (_selectedCourseSection != null) {
           final filterStr = _selectedCourseSection!.toLowerCase();
-          final classCode = '${sub.courseCode} ${sub.yearLevel}-${sub.section}'.toLowerCase();
+          final classCode = sub.classLabel.toLowerCase();
           if (!classCode.contains(filterStr)) {
             return false;
           }
@@ -95,7 +95,7 @@ class _ProfessorModulesScreenState extends State<ProfessorModulesScreen> {
     final subjectNames = _allSubjects.map((s) => s.name).toSet().toList();
     // Get unique course codes for filter
     final courseSections = _allSubjects
-        .map((s) => '${s.courseCode} ${s.yearLevel}-${s.section}')
+        .map((s) => s.classLabel)
         .toSet()
         .toList();
 
@@ -388,7 +388,7 @@ class _ProfessorModulesScreenState extends State<ProfessorModulesScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                '${sub.courseCode} ${sub.yearLevel}-${sub.section}',
+                sub.classLabel,
                 style: TextStyle(
                   fontSize: 11,
                   color: Colors.blueGrey.shade900,

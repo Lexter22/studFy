@@ -39,7 +39,7 @@ class _ProfessorAssignmentsScreenState extends State<ProfessorAssignmentsScreen>
           temp.add(_AssignmentRowData(
             subjectId: sub.id,
             subjectName: sub.name,
-            classCode: '${sub.courseCode} ${sub.yearLevel}-${sub.section}',
+            classCode: sub.classLabel,
             title: a.title,
             progressText: '$count/${sub.studentCount}',
             progressValue: sub.studentCount > 0 ? count / sub.studentCount : 0.0,
@@ -237,6 +237,7 @@ class _ProfessorAssignmentsScreenState extends State<ProfessorAssignmentsScreen>
                 assignment: aData.assignment,
                 subjectName: aData.subjectName,
                 totalStudents: aData.studentCount,
+                courseYearSection: aData.classCode,
               ),
             ),
           ).then((_) => _load());
