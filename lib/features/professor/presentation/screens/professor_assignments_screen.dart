@@ -18,7 +18,8 @@ class ProfessorAssignmentsScreen extends StatefulWidget {
 class _ProfessorAssignmentsScreenState extends State<ProfessorAssignmentsScreen> {
   final _repo = const ProfessorRepository();
   bool _loading = true;
-  List<_AssignmentRowData> _assignments = [];
+  List<_AssignmentRowData> _activeAssignments = [];
+  List<_AssignmentRowData> _inactiveAssignments = [];
 
   @override
   void initState() {
@@ -30,13 +31,15 @@ class _ProfessorAssignmentsScreenState extends State<ProfessorAssignmentsScreen>
     setState(() => _loading = true);
     try {
       final subjects = await _repo.fetchMySubjects();
-      final List<_AssignmentRowData> temp = [];
+      final List<_AssignmentRowData> activeTemp = [];
+      final List<_AssignmentRowData> inactiveTemp = [];
+      final now = DateTime.now();
 
       for (final sub in subjects) {
         final assignList = await _repo.fetchAssignments(sub.id);
         for (final a in assignList) {
           final count = await _repo.fetchAssignmentSubmissionCount(a.id);
-          temp.add(_AssignmentRowData(
+          final row = _AssignmentRowData(
             subjectId: sub.id,
             subjectName: sub.name,
             classCode: sub.classLabel,
@@ -48,13 +51,41 @@ class _ProfessorAssignmentsScreenState extends State<ProfessorAssignmentsScreen>
                 : 'No Deadline',
             assignment: a,
             studentCount: sub.studentCount,
-          ));
+          );
+
+          if (a.deadline == null || !now.isAfter(a.deadline!)) {
+            activeTemp.add(row);
+          } else {
+            inactiveTemp.add(row);
+          }
         }
+      }
+
+      // Auto-delete inactive assignments past 30 days
+      final List<_AssignmentRowData> remainingInactive = [];
+      for (final row in inactiveTemp) {
+        final deadline = row.assignment.deadline!;
+        if (now.difference(deadline).inDays > 30) {
+          await _repo.deleteAssignment(row.assignment.id);
+        } else {
+          remainingInactive.add(row);
+        }
+      }
+
+      // Limit inactive assignments to 30 (delete oldest if > 30)
+      if (remainingInactive.length > 30) {
+        remainingInactive.sort((x, y) => x.assignment.deadline!.compareTo(y.assignment.deadline!));
+        final toDeleteCount = remainingInactive.length - 30;
+        for (int i = 0; i < toDeleteCount; i++) {
+          await _repo.deleteAssignment(remainingInactive[i].assignment.id);
+        }
+        remainingInactive.removeRange(0, toDeleteCount);
       }
 
       if (mounted) {
         setState(() {
-          _assignments = temp;
+          _activeAssignments = activeTemp;
+          _inactiveAssignments = remainingInactive;
           _loading = false;
         });
       }
@@ -63,10 +94,6 @@ class _ProfessorAssignmentsScreenState extends State<ProfessorAssignmentsScreen>
         setState(() => _loading = false);
       }
     }
-  }
-
-  List<_AssignmentRowData> get _displayAssignments {
-    return _assignments;
   }
 
   @override
@@ -131,89 +158,157 @@ class _ProfessorAssignmentsScreenState extends State<ProfessorAssignmentsScreen>
                       children: [
                         // Title
                         const Text(
-                          'Assignment',
+                          'Assignments',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: AppColors.authPrimary,
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 20),
 
-                        // Assignment Table Container
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF5F5F5),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.black.withOpacity(0.05)),
-                          ),
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            children: [
-                              // Header Row
-                              Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-                                child: Row(
-                                  children: const [
-                                    Expanded(
-                                      flex: 2,
-                                      child: Text(
-                                        'Class',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                          color: Color(0xFF1D4E8F),
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      flex: 3,
-                                      child: Text(
-                                        'Assignment',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                          color: Color(0xFF1D4E8F),
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      flex: 3,
-                                      child: Text(
-                                        'Progress',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                          color: Color(0xFF1D4E8F),
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      flex: 2,
-                                      child: Text(
-                                        'Due Date',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                          color: Color(0xFF1D4E8F),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                        // Active Assignments Title
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade50,
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              const SizedBox(height: 8),
-
-                              // Dynamic or Fallback Rows
-                              ..._displayAssignments.map((aData) => _buildTableRow(aData)),
-                            ],
-                          ),
+                              child: const Icon(Icons.assignment_turned_in_rounded, color: Colors.green, size: 18),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Active Assignments',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1E293B),
+                              ),
+                            ),
+                          ],
                         ),
+                        const SizedBox(height: 10),
+                        _buildAssignmentTable(_activeAssignments, 'No active assignments.'),
+
+                        const SizedBox(height: 24),
+
+                        // Inactive Assignments Title
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.assignment_late_rounded, color: Colors.red, size: 18),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Inactive Assignments (Past Deadline)',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1E293B),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        _buildAssignmentTable(_inactiveAssignments, 'No inactive assignments.'),
                       ],
                     ),
                   ),
           ),
           const ProfessorFloatingNavBar(currentIndex: 3),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAssignmentTable(List<_AssignmentRowData> list, String emptyMessage) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.black.withOpacity(0.05)),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        children: [
+          // Header Row
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+            child: Row(
+              children: const [
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'Class',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: Color(0xFF1D4E8F),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    'Assignment',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: Color(0xFF1D4E8F),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    'Progress',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: Color(0xFF1D4E8F),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'Due Date',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: Color(0xFF1D4E8F),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Dynamic or Fallback Rows
+          if (list.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: Text(
+                  emptyMessage,
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 13,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            )
+          else
+            ...list.map((aData) => _buildTableRow(aData)),
         ],
       ),
     );

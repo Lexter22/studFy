@@ -229,6 +229,10 @@ class ProfessorRepository {
     )).toList();
   }
 
+  Future<void> deleteAssignment(String assignmentId) async {
+    await _client.from('assignments').delete().eq('id', assignmentId);
+  }
+
   Future<void> createAssignment({
     required String subjectId,
     required String title,
