@@ -503,30 +503,23 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
       onTap: () => context.pop(),
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Colors.transparent,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.02),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          border: Border.all(color: AppColors.adminPrimary, width: 1.5),
         ),
         child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.arrow_back_rounded, color: AppColors.adminPrimary, size: 18),
+            Icon(Icons.arrow_back, color: AppColors.adminPrimary, size: 18),
             SizedBox(width: 8),
             Text(
-              'Back to Directory',
+              'Back',
               style: TextStyle(
                 color: AppColors.adminPrimary,
                 fontWeight: FontWeight.bold,
-                fontSize: 13,
+                fontSize: 14,
               ),
             ),
           ],
