@@ -175,14 +175,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
                           return _buildFixedList(
                             pendingRequests.map((request) {
-                              final requestId = request['id'] ?? '';
-                              final name = request['name'] ?? '';
-                              final status = request['status'] ?? '';
-                              return _buildActionListItem(
-                                requestId,
-                                name,
-                                status,
-                              );
+                              return _buildActionListItem(request);
                             }).toList(),
                           );
                         },
@@ -369,7 +362,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   // UPDATED ACTION ITEM (Matching Image 2 Style)
-  Widget _buildActionListItem(String requestId, String name, String status) {
+  Widget _buildActionListItem(Map<String, String> request) {
+    final requestId = request['id'] ?? '';
+    final name = request['name'] ?? '';
+    final status = request['status'] ?? '';
+    final kind = request['kind'] ?? '';
+    final isUnenroll = kind == 'student_unenroll';
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -444,23 +443,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildViewDetailsBtn(() {
-                  context.goNamed(
-                    AppRoutes.adminInstructorProfile,
-                    extra: <String, dynamic>{
-                      'instructor': Instructor(
-                        profileId: '', // Pending instructors have no assigned ID yet
-                        name: name,
-                        course: 'Pending',
-                        subject: status,
-                      ),
-                      'request': status,
-                    },
-                  );
-                }),
-              ),
+              if (!isUnenroll) ...[
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildViewDetailsBtn(() {
+                    context.goNamed(
+                      AppRoutes.adminInstructorProfile,
+                      extra: <String, dynamic>{
+                        'instructor': Instructor(
+                          profileId: '', // Pending instructors have no assigned ID yet
+                          name: name,
+                          course: 'Pending',
+                          subject: status,
+                        ),
+                        'request': status,
+                      },
+                    );
+                  }),
+                ),
+              ],
             ],
           ),
         ],

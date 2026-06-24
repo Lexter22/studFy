@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../auth/domain/models/auth_exception.dart' as app_auth;
@@ -177,6 +178,36 @@ class SupabaseAdminRepository {
     required String requestId,
     required bool approve,
   }) async {
+    try {
+      final reqRows = await _client.from('requests').select('kind, metadata').eq('id', requestId);
+      if (reqRows != null && (reqRows as List).isNotEmpty) {
+        final req = reqRows.first;
+        final kind = req['kind']?.toString();
+        if (kind == 'student_unenroll') {
+          // Handle student unenroll request
+          await _client.from('requests').update({
+            'status': approve ? 'approved' : 'rejected',
+            'resolved_at': DateTime.now().toIso8601String(),
+          }).eq('id', requestId);
+
+          if (approve) {
+            final metadata = req['metadata'] is Map ? req['metadata'] as Map : {};
+            final studentId = metadata['student_id']?.toString();
+            final subjectId = metadata['subject_id']?.toString();
+            if (studentId != null && subjectId != null) {
+              await unenrollStudentFromSubject(
+                studentProfileId: studentId,
+                subjectOfferingId: subjectId,
+              );
+            }
+          }
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint('Failed in local resolveRoleRequest check: $e');
+    }
+
     final response = await _client.functions.invoke(
       'resolve-role-request',
       body: {'requestId': requestId, 'approve': approve},
@@ -514,6 +545,7 @@ class SupabaseAdminRepository {
       case 'account_edit': return 'Account Edit Request';
       case 'class_creation': return 'Class Creation Request';
       case 'schedule_conflict': return 'Schedule Conflict Request';
+      case 'student_unenroll': return 'Student Unenrollment Request';
       case 'role_assignment':
         final requestedRole = (metadata['requested_role']?.toString() ?? '').toLowerCase();
         if (requestedRole == 'student') return 'Student Registration Request';

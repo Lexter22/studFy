@@ -30,6 +30,9 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
   int _contentIndex = 0;
   bool _createMenuOpen = false;
 
+  final _meetingsScrollController = ScrollController();
+  final _gradesScrollController = ScrollController();
+
   List<SubjectModule> _modules = [];
   List<SubjectQuiz> _quizzes = [];
   List<SubjectAssignment> _assignments = [];
@@ -48,6 +51,8 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
 
   @override
   void dispose() {
+    _meetingsScrollController.dispose();
+    _gradesScrollController.dispose();
     super.dispose();
   }
 
@@ -214,7 +219,136 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
     );
   }
 
-  void _verifyPasswordAndExecute(String actionDescription, Future<void> Function() action) {
+  void _showEditModuleDialog(SubjectModule module) {
+    final titleCtrl = TextEditingController(text: module.title);
+    final descCtrl = TextEditingController(text: module.description ?? '');
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          width: 450,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.authPrimary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.edit_rounded, color: AppColors.authPrimary, size: 24),
+                    ),
+                    const SizedBox(width: 14),
+                    const Text(
+                      'Edit Module',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: titleCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Module Title',
+                    labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.authPrimary, width: 2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: descCtrl,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    labelText: 'Description (optional)',
+                    labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.authPrimary, width: 2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.grey.shade600,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (titleCtrl.text.trim().isEmpty) {
+                          AppDialog.result(ctx, type: DialogType.error, message: 'All fields must be inputted');
+                          return;
+                        }
+                        Navigator.pop(ctx);
+                        try {
+                          await _repo.updateModule(
+                            moduleId: module.id,
+                            title: titleCtrl.text,
+                            description: descCtrl.text,
+                          );
+                          await _load();
+                          if (mounted) AppDialog.result(context, type: DialogType.success, message: 'Module updated.');
+                        } catch (e) {
+                          if (mounted) AppDialog.result(context, type: DialogType.error, message: e.toString());
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.authPrimary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                      child: const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _verifyPasswordAndExecute(String actionDescription, Future<void> Function() action, {String confirmLabel = 'Confirm'}) {
     final user = context.read<AppState>().currentUser;
     if (user == null) {
       AppDialog.result(context, type: DialogType.error, message: 'User session not found.');
@@ -227,7 +361,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
       title: 'Please Confirm',
       message: 'Are you sure you want to proceed with $actionDescription? This action cannot be undone.',
       type: DialogType.warning,
-      confirmLabel: 'Confirm',
+      confirmLabel: confirmLabel,
       onConfirm: () async {
         await action();
       },
@@ -384,11 +518,13 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                         const SizedBox(height: 8),
                         InkWell(
                           onTap: () async {
+                            final now = DateTime.now();
+                            final todayStart = DateTime(now.year, now.month, now.day);
                             final picked = await showDatePicker(
                               context: ctx,
-                              initialDate: deadline ?? DateTime.now().add(const Duration(days: 7)),
-                              firstDate: DateTime.now(),
-                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                              initialDate: deadline ?? todayStart.add(const Duration(days: 7)),
+                              firstDate: todayStart,
+                              lastDate: todayStart.add(const Duration(days: 365)),
                               builder: (context, child) {
                                 return Theme(
                                   data: Theme.of(context).copyWith(
@@ -519,7 +655,20 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                     const SizedBox(width: 12),
                     ElevatedButton(
                       onPressed: () async {
-                        if (titleCtrl.text.trim().isEmpty) return;
+                        if (titleCtrl.text.trim().isEmpty) {
+                          AppDialog.result(context, type: DialogType.error, message: 'Quiz title is required.');
+                          return;
+                        }
+                        if (deadline == null) {
+                          AppDialog.result(context, type: DialogType.error, message: 'Deadline is required.');
+                          return;
+                        }
+                        final now = DateTime.now();
+                        final todayStart = DateTime(now.year, now.month, now.day);
+                        if (deadline!.isBefore(todayStart)) {
+                          AppDialog.result(context, type: DialogType.error, message: 'Deadline cannot be in the past.');
+                          return;
+                        }
                         Navigator.pop(ctx);
                         try {
                           await _repo.createQuiz(
@@ -689,11 +838,13 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                   const SizedBox(height: 8),
                   InkWell(
                     onTap: () async {
+                      final now = DateTime.now();
+                      final todayStart = DateTime(now.year, now.month, now.day);
                       final picked = await showDatePicker(
                         context: ctx,
-                        initialDate: DateTime.now().add(const Duration(days: 7)),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                        initialDate: deadline ?? todayStart.add(const Duration(days: 7)),
+                        firstDate: todayStart,
+                        lastDate: todayStart.add(const Duration(days: 365)),
                         builder: (context, child) {
                           return Theme(
                             data: Theme.of(context).copyWith(
@@ -836,7 +987,20 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                       const SizedBox(width: 12),
                       ElevatedButton(
                         onPressed: uploading ? null : () async {
-                          if (titleCtrl.text.trim().isEmpty) return;
+                          if (titleCtrl.text.trim().isEmpty) {
+                            AppDialog.result(context, type: DialogType.error, message: 'Assignment title is required.');
+                            return;
+                          }
+                          if (deadline == null) {
+                            AppDialog.result(context, type: DialogType.error, message: 'Deadline is required.');
+                            return;
+                          }
+                          final now = DateTime.now();
+                          final todayStart = DateTime(now.year, now.month, now.day);
+                          if (deadline!.isBefore(todayStart)) {
+                            AppDialog.result(context, type: DialogType.error, message: 'Deadline cannot be in the past.');
+                            return;
+                          }
                           Navigator.pop(ctx);
                           try {
                             await _repo.createAssignment(
@@ -1383,6 +1547,15 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                 children: [
                   Text(widget.subject.name,
                       style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.authPrimary)),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.subject.courseCode,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
                   const SizedBox(height: 2),
                   Text(
                     widget.subject.classLabel,
@@ -1852,8 +2025,10 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
           ConstrainedBox(
             constraints: const BoxConstraints(maxHeight: 200),
             child: Scrollbar(
+              controller: _meetingsScrollController,
               thumbVisibility: true,
               child: ListView.builder(
+                controller: _meetingsScrollController,
                 shrinkWrap: true,
                 padding: const EdgeInsets.only(right: 8),
                 itemCount: subjectMeetings.length,
@@ -1933,10 +2108,21 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                         children: [
                           Text('Module ${i + 1} - ${m.title}',
                               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87)),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
-                            padding: EdgeInsets.zero, constraints: const BoxConstraints(),
-                            onPressed: () => _confirmDeleteModule(m),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined, color: Colors.blue, size: 18),
+                                padding: EdgeInsets.zero, constraints: const BoxConstraints(),
+                                onPressed: () => _showEditModuleDialog(m),
+                              ),
+                              const SizedBox(width: 8),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                                padding: EdgeInsets.zero, constraints: const BoxConstraints(),
+                                onPressed: () => _confirmDeleteModule(m),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -2343,15 +2529,36 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
 
 
   void _confirmUnenroll(Map<String, String> student) {
-    _verifyPasswordAndExecute('unenrolling student "${student['name'] ?? ''}"', () async {
-      try {
-        await _repo.unenrollStudent(widget.subject.id, student['profileId']!);
-        await _load();
-        if (mounted) AppDialog.result(context, type: DialogType.success, message: 'Student unenrolled.');
-      } catch (e) {
-        if (mounted) AppDialog.result(context, type: DialogType.error, message: e.toString());
-      }
-    });
+    _verifyPasswordAndExecute(
+      'unenrolling student "${student['name'] ?? ''}"',
+      () async {
+        try {
+          await _repo.requestUnenrollStudent(
+            subjectId: widget.subject.id,
+            studentProfileId: student['profileId']!,
+            studentName: student['name'] ?? 'Student',
+            subjectName: widget.subject.name,
+            classLabel: widget.subject.classLabel,
+          );
+          if (mounted) {
+            AppDialog.result(
+              context,
+              type: DialogType.success,
+              message: 'Unenrollment request submitted for admin approval.',
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            AppDialog.result(
+              context,
+              type: DialogType.error,
+              message: e.toString(),
+            );
+          }
+        }
+      },
+      confirmLabel: 'Confirm Request',
+    );
   }
 
   // Legacy tab methods removed — content now in _buildModulesContent()
@@ -2636,11 +2843,13 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                         const SizedBox(height: 8),
                         InkWell(
                           onTap: () async {
+                            final now = DateTime.now();
+                            final todayStart = DateTime(now.year, now.month, now.day);
                             final picked = await showDatePicker(
                               context: ctx,
-                              initialDate: deadline ?? DateTime.now().add(const Duration(days: 7)),
-                              firstDate: DateTime.now(),
-                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                              initialDate: deadline ?? todayStart.add(const Duration(days: 7)),
+                              firstDate: todayStart,
+                              lastDate: todayStart.add(const Duration(days: 365)),
                               builder: (context, child) {
                                 return Theme(
                                   data: Theme.of(context).copyWith(
@@ -2771,7 +2980,20 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                     const SizedBox(width: 12),
                     ElevatedButton(
                       onPressed: () {
-                        if (titleCtrl.text.trim().isEmpty) return;
+                        if (titleCtrl.text.trim().isEmpty) {
+                          AppDialog.result(context, type: DialogType.error, message: 'Quiz title is required.');
+                          return;
+                        }
+                        if (deadline == null) {
+                          AppDialog.result(context, type: DialogType.error, message: 'Deadline is required.');
+                          return;
+                        }
+                        final now = DateTime.now();
+                        final todayStart = DateTime(now.year, now.month, now.day);
+                        if (deadline!.isBefore(todayStart)) {
+                          AppDialog.result(context, type: DialogType.error, message: 'Deadline cannot be in the past.');
+                          return;
+                        }
                         AppDialog.confirm(
                           context,
                           title: 'Save Changes',
@@ -2868,6 +3090,12 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
   // Internal floating nav removed — replaced by global ProfessorFloatingNavBar
 
   Widget _buildMeetingCard(Map<String, dynamic> meet) {
+    final rawPlatform = meet['platform']?.toString() ?? '';
+    final bool isOnline = !rawPlatform.startsWith('f2f|');
+    final String displayPlatform = rawPlatform.contains('|')
+        ? rawPlatform.substring(rawPlatform.indexOf('|') + 1)
+        : rawPlatform;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -2897,10 +3125,10 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                       style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                     const SizedBox(width: 12),
-                    const Icon(Icons.link_rounded, size: 12, color: Colors.blue),
+                    Icon(isOnline ? Icons.videocam_rounded : Icons.groups_rounded, size: 12, color: Colors.blue),
                     const SizedBox(width: 4),
                     Text(
-                      meet['platform'] ?? '',
+                      '${isOnline ? "[Online] " : "[F2F] "}$displayPlatform',
                       style: const TextStyle(fontSize: 12, color: Colors.blue, fontWeight: FontWeight.w500),
                     ),
                   ],
@@ -2997,8 +3225,10 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
           ConstrainedBox(
             constraints: const BoxConstraints(maxHeight: 120),
             child: Scrollbar(
+              controller: _gradesScrollController,
               thumbVisibility: true,
               child: ListView.builder(
+                controller: _gradesScrollController,
                 shrinkWrap: true,
                 itemCount: _gradeSummaries.length,
                 itemBuilder: (ctx, i) {
@@ -3081,6 +3311,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
     final linkCtrl = TextEditingController();
     DateTime meetingDate = DateTime.now();
     TimeOfDay meetingTime = TimeOfDay.now();
+    String meetingType = 'online';
 
     showDialog(
       context: context,
@@ -3137,11 +3368,46 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: meetingType,
+                  decoration: InputDecoration(
+                    labelText: 'Meeting Type',
+                    labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: AppColors.authPrimary, width: 2.0),
+                    ),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'online', child: Text('Online')),
+                    DropdownMenuItem(value: 'f2f', child: Text('Face-to-Face')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) {
+                      setS(() {
+                        meetingType = val;
+                        if (val == 'online') {
+                          platformCtrl.text = 'Google Meet';
+                        } else {
+                          platformCtrl.text = 'Room 402';
+                        }
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
                 TextField(
                   controller: platformCtrl,
                   decoration: InputDecoration(
-                    labelText: 'Platform / Location',
-                    hintText: 'e.g., Google Meet, Room 402',
+                    labelText: meetingType == 'online' ? 'Platform' : 'Location',
+                    hintText: meetingType == 'online' ? 'e.g., Google Meet, Zoom' : 'e.g., Room 402, Gym',
                     labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
                     filled: true,
                     fillColor: Colors.white,
@@ -3187,11 +3453,13 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                           const SizedBox(height: 6),
                           InkWell(
                             onTap: () async {
+                              final now = DateTime.now();
+                              final todayStart = DateTime(now.year, now.month, now.day);
                               final picked = await showDatePicker(
                                 context: context,
-                                initialDate: meetingDate,
-                                firstDate: DateTime.now(),
-                                lastDate: DateTime.now().add(const Duration(days: 365)),
+                                initialDate: meetingDate.isBefore(todayStart) ? todayStart : meetingDate,
+                                firstDate: todayStart,
+                                lastDate: todayStart.add(const Duration(days: 365)),
                                 builder: (context, child) {
                                   return Theme(
                                     data: Theme.of(context).copyWith(
@@ -3330,12 +3598,18 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                             return;
                           }
                           final timeStr = meetingTime.format(context);
+                          final now = DateTime.now();
+                          final todayStart = DateTime(now.year, now.month, now.day);
+                          if (meetingDate.isBefore(todayStart)) {
+                            AppDialog.result(context, type: DialogType.error, message: 'Meeting date cannot be in the past.');
+                            return;
+                          }
 
                           try {
                             await _repo.createMeeting(
                               subjectId: widget.subject.id,
                               title: titleCtrl.text.trim(),
-                              platform: platformCtrl.text.trim(),
+                              platform: '$meetingType|${platformCtrl.text.trim()}',
                               link: linkCtrl.text.trim(),
                               date: meetingDate,
                               time: timeStr,
@@ -3779,15 +4053,32 @@ class _GradesContentWidgetState extends State<_GradesContentWidget> {
                     const SizedBox(width: 12),
                     ElevatedButton(
                       onPressed: () async {
-                        if (titleCtrl.text.trim().isEmpty) return;
-                        final maxScore = double.tryParse(maxScoreCtrl.text) ?? 100;
-                        final Map<String, double> scores = {};
-                        for (final entry in scoreControllers.entries) {
-                          final val = double.tryParse(entry.value.text);
-                          if (val != null) scores[entry.key] = val;
+                        if (titleCtrl.text.trim().isEmpty || maxScoreCtrl.text.trim().isEmpty) {
+                          AppDialog.result(context, type: DialogType.error, message: 'All fields must be inputted.');
+                          return;
                         }
-                        if (scores.isEmpty) {
-                          AppDialog.result(context, type: DialogType.error, message: 'Enter at least one score.');
+                        final maxScore = double.tryParse(maxScoreCtrl.text);
+                        if (maxScore == null) {
+                          AppDialog.result(context, type: DialogType.error, message: 'All fields must be inputted.');
+                          return;
+                        }
+                        final Map<String, double> scores = {};
+                        bool anyEmpty = false;
+                        for (final s in widget.students) {
+                          final controller = scoreControllers[s['profileId']];
+                          if (controller == null || controller.text.trim().isEmpty) {
+                            anyEmpty = true;
+                            break;
+                          }
+                          final val = double.tryParse(controller.text);
+                          if (val == null) {
+                            anyEmpty = true;
+                            break;
+                          }
+                          scores[s['profileId']!] = val;
+                        }
+                        if (anyEmpty) {
+                          AppDialog.result(context, type: DialogType.error, message: 'All fields must be inputted.');
                           return;
                         }
                         Navigator.pop(ctx);
@@ -3844,6 +4135,282 @@ class _GradesContentWidgetState extends State<_GradesContentWidget> {
           if (mounted) AppDialog.result(context, type: DialogType.error, message: 'Failed: $e');
         }
       },
+    );
+  }
+
+  void _showEditGradesBatchDialog(String oldTitle, String oldCategory, double oldMaxScore) {
+    final titleCtrl = TextEditingController(text: oldTitle);
+    final maxScoreCtrl = TextEditingController(text: oldMaxScore.toStringAsFixed(0));
+    String selectedCategory = oldCategory;
+
+    final groupGrades = _allGrades.where((x) => x.title == oldTitle && x.category == oldCategory).toList();
+
+    final Map<String, TextEditingController> scoreControllers = {};
+    for (final s in widget.students) {
+      final pid = s['profileId']!;
+      StudentGrade? match;
+      for (final x in groupGrades) {
+        if (x.studentProfileId == pid) {
+          match = x;
+          break;
+        }
+      }
+      final initialScore = match != null ? match.score.toStringAsFixed(match.score == match.score.roundToDouble() ? 0 : 1) : '';
+      scoreControllers[pid] = TextEditingController(text: initialScore);
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            width: 450,
+            height: 600,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.authPrimary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.grade_rounded, color: AppColors.authPrimary, size: 24),
+                    ),
+                    const SizedBox(width: 14),
+                    const Text(
+                      'Edit Grades',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: titleCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Grade Title (e.g., Quiz 1, Midterm Exam)',
+                    labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.authPrimary, width: 2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: selectedCategory,
+                        decoration: InputDecoration(
+                          labelText: 'Category',
+                          labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppColors.authPrimary, width: 2),
+                          ),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'quiz', child: Text('Quiz')),
+                          DropdownMenuItem(value: 'assignment', child: Text('Assignment')),
+                          DropdownMenuItem(value: 'exam', child: Text('Exam')),
+                          DropdownMenuItem(value: 'project', child: Text('Project')),
+                          DropdownMenuItem(value: 'general', child: Text('General')),
+                        ],
+                        onChanged: (v) => setS(() => selectedCategory = v ?? 'general'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 120,
+                      child: TextField(
+                        controller: maxScoreCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Max Score',
+                          labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppColors.authPrimary, width: 2),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Student Scores',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: widget.students.isEmpty
+                        ? const Center(child: Text('No students enrolled.', style: TextStyle(color: Colors.grey)))
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(8),
+                            itemCount: widget.students.length,
+                            itemBuilder: (_, i) {
+                              final s = widget.students[i];
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 3,
+                                      child: Text(
+                                        s['name'] ?? '',
+                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    SizedBox(
+                                      width: 80,
+                                      child: TextField(
+                                        controller: scoreControllers[s['profileId']],
+                                        keyboardType: TextInputType.number,
+                                        textAlign: TextAlign.center,
+                                        decoration: InputDecoration(
+                                          hintText: '0',
+                                          hintStyle: TextStyle(color: Colors.grey.shade400),
+                                          isDense: true,
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                            borderSide: BorderSide(color: Colors.grey.shade300),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                            borderSide: const BorderSide(color: AppColors.authPrimary, width: 1.5),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.grey.shade600,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (titleCtrl.text.trim().isEmpty || maxScoreCtrl.text.trim().isEmpty) {
+                          AppDialog.result(context, type: DialogType.error, message: 'All fields must be inputted.');
+                          return;
+                        }
+                        final maxScore = double.tryParse(maxScoreCtrl.text);
+                        if (maxScore == null) {
+                          AppDialog.result(context, type: DialogType.error, message: 'All fields must be inputted.');
+                          return;
+                        }
+                        final Map<String, double> scores = {};
+                        bool anyEmpty = false;
+                        for (final s in widget.students) {
+                          final controller = scoreControllers[s['profileId']];
+                          if (controller == null || controller.text.trim().isEmpty) {
+                            anyEmpty = true;
+                            break;
+                          }
+                          final val = double.tryParse(controller.text);
+                          if (val == null) {
+                            anyEmpty = true;
+                            break;
+                          }
+                          scores[s['profileId']!] = val;
+                        }
+                        if (anyEmpty) {
+                          AppDialog.result(context, type: DialogType.error, message: 'All fields must be inputted.');
+                          return;
+                        }
+                        Navigator.pop(ctx);
+                        try {
+                          await widget.repo.updateBatchGrades(
+                            subjectId: widget.subject.id,
+                            oldTitle: oldTitle,
+                            oldCategory: oldCategory,
+                            newTitle: titleCtrl.text.trim(),
+                            newCategory: selectedCategory,
+                            newMaxScore: maxScore,
+                            studentScores: scores,
+                          );
+                          await _loadGrades();
+                          widget.onGradeChanged();
+                          if (mounted) {
+                            AppDialog.result(context, type: DialogType.success, message: 'Grades updated successfully.');
+                          }
+                        } catch (e) {
+                          if (mounted) AppDialog.result(context, type: DialogType.error, message: 'Failed to update: $e');
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.authPrimary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                      child: const Text('Save Grades', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -4070,14 +4637,15 @@ class _GradesContentWidgetState extends State<_GradesContentWidget> {
                         ),
                       ),
                       const SizedBox(width: 4),
-                      InkWell(
-                        onTap: () => _confirmDeleteGrade(g),
+                       InkWell(
+                        onTap: () => _showEditGradesBatchDialog(g.title, g.category, g.maxScore),
                         borderRadius: BorderRadius.circular(4),
                         child: const Padding(
                           padding: EdgeInsets.all(4),
-                          child: Icon(Icons.close, size: 14, color: Colors.red),
+                          child: Icon(Icons.edit_rounded, size: 14, color: Colors.blue),
                         ),
                       ),
+
                     ],
                   ),
                 )),

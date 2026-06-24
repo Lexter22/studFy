@@ -304,6 +304,8 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
     final requestId = r['id'] ?? '';
     final name = r['name'] ?? '';
     final status = r['status'] ?? '';
+    final kind = r['kind'] ?? '';
+    final isUnenroll = kind == 'student_unenroll';
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -351,20 +353,22 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
               Expanded(child: _actionBtn('Approve', Icons.check, Colors.green, () => _resolveRequest(requestId: requestId, approve: true, action: 'Approve'))),
               const SizedBox(width: 8),
               Expanded(child: _actionBtn('Reject', Icons.close, Colors.red, () => _resolveRequest(requestId: requestId, approve: false, action: 'Reject'))),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _actionBtn(
-                  'View Profile',
-                  Icons.arrow_forward_rounded,
-                  AppColors.adminPrimary,
-                  () {
-                    final instructors = context.read<AppState>().instructors;
-                    if (instructors.isEmpty) return;
-                    final instructor = instructors.firstWhere((i) => i.name == name, orElse: () => instructors.first);
-                    _goToProfile(instructor);
-                  },
+              if (!isUnenroll) ...[
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _actionBtn(
+                    'View Profile',
+                    Icons.arrow_forward_rounded,
+                    AppColors.adminPrimary,
+                    () {
+                      final instructors = context.read<AppState>().instructors;
+                      if (instructors.isEmpty) return;
+                      final instructor = instructors.firstWhere((i) => i.name == name, orElse: () => instructors.first);
+                      _goToProfile(instructor);
+                    },
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ],

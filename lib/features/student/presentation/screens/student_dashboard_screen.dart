@@ -418,9 +418,14 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   Widget _buildMeetingCard(Map<String, dynamic> m) {
     final title = m['title']?.toString() ?? '';
     final subject = m['subject']?.toString() ?? '';
-    final platform = m['platform']?.toString() ?? '';
+    final rawPlatform = m['platform']?.toString() ?? '';
     final date = m['date']?.toString() ?? '';
     final time = m['time']?.toString() ?? '';
+
+    final bool isOnline = !rawPlatform.startsWith('f2f|');
+    final String displayPlatform = rawPlatform.contains('|')
+        ? rawPlatform.substring(rawPlatform.indexOf('|') + 1)
+        : rawPlatform;
 
     // Format date
     String displayDate = date;
@@ -444,10 +449,14 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFF0A5C36).withOpacity(0.1),
+                color: (isOnline ? const Color(0xFF0A5C36) : Colors.blue.shade700).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.video_camera_front_rounded, color: Color(0xFF0A5C36), size: 24),
+              child: Icon(
+                isOnline ? Icons.videocam_rounded : Icons.groups_rounded,
+                color: isOnline ? const Color(0xFF0A5C36) : Colors.blue.shade700,
+                size: 24,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -456,7 +465,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 children: [
                   Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87)),
                   const SizedBox(height: 4),
-                  Text('$subject - $platform', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                  Text('$subject - ${isOnline ? "[Online] " : "[F2F] "}$displayPlatform', style: const TextStyle(fontSize: 12, color: Colors.black54)),
                 ],
               ),
             ),
@@ -587,7 +596,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   // Interactive Custom Calendar Widget matching Screenshot 1
   Widget _buildCalendarWidget() {
     final String monthName = _getMonthName(_calendarDate.month);
-    final String yearString = _calendarDate.year.toString();
 
     // Get number of days in month
     final int daysInMonth = DateTime(_calendarDate.year, _calendarDate.month + 1, 0).day;
@@ -644,84 +652,14 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     });
                   },
                 ),
-                Row(
-                  children: [
-                    PopupMenuButton<int>(
-                      tooltip: 'Select Month',
-                      initialValue: _calendarDate.month,
-                      onSelected: (int selectedMonth) {
-                        setState(() {
-                          _calendarDate = DateTime(_calendarDate.year, selectedMonth, 1);
-                        });
-                      },
-                      itemBuilder: (BuildContext context) {
-                        const monthsList = [
-                          'January', 'February', 'March', 'April', 'May', 'June',
-                          'July', 'August', 'September', 'October', 'November', 'December'
-                        ];
-                        return List.generate(12, (index) {
-                          return PopupMenuItem<int>(
-                            value: index + 1,
-                            child: Text(monthsList[index]),
-                          );
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF5F5F7),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              monthName,
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87),
-                            ),
-                            const SizedBox(width: 4),
-                            const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Colors.black54),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    PopupMenuButton<int>(
-                      tooltip: 'Select Year',
-                      initialValue: _calendarDate.year,
-                      onSelected: (int selectedYear) {
-                        setState(() {
-                          _calendarDate = DateTime(selectedYear, _calendarDate.month, 1);
-                        });
-                      },
-                      itemBuilder: (BuildContext context) {
-                        final currentYear = DateTime.now().year;
-                        return List.generate(11, (index) {
-                          final yr = (currentYear - 5) + index;
-                          return PopupMenuItem<int>(
-                            value: yr,
-                            child: Text(yr.toString()),
-                          );
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF5F5F7),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              yearString,
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87),
-                            ),
-                            const SizedBox(width: 4),
-                            const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Colors.black54),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                Text(
+                  '${monthName.toUpperCase()} ${_calendarDate.year}',
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.black87,
+                    letterSpacing: 1.5,
+                  ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.chevron_right_rounded, color: Colors.black87, size: 24),
@@ -737,13 +675,13 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             const Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _DayName('Su'),
-                _DayName('Mo'),
-                _DayName('Tu'),
-                _DayName('We'),
-                _DayName('Th'),
-                _DayName('Fr'),
-                _DayName('Sa'),
+                _DayName('S', color: Color(0xFFE57373)),
+                _DayName('M', color: Colors.black54),
+                _DayName('T', color: Colors.black54),
+                _DayName('W', color: Colors.black54),
+                _DayName('T', color: Colors.black54),
+                _DayName('F', color: Colors.black54),
+                _DayName('S', color: Colors.black54),
               ],
             ),
             const SizedBox(height: 12),
@@ -753,90 +691,89 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               itemCount: 42,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 7,
-                mainAxisSpacing: 6,
+                mainAxisSpacing: 8,
                 crossAxisSpacing: 6,
+                childAspectRatio: 0.6,
               ),
               itemBuilder: (context, index) {
                 final int dayNumber = index - offset + 1;
-                if (dayNumber <= 0 || dayNumber > daysInMonth) {
-                  return const SizedBox.shrink();
+                int displayDay = dayNumber;
+                bool isCurrentMonth = true;
+
+                if (dayNumber <= 0) {
+                  final prevDaysInMonth = DateTime(_calendarDate.year, _calendarDate.month, 0).day;
+                  displayDay = prevDaysInMonth + dayNumber;
+                  isCurrentMonth = false;
+                } else if (dayNumber > daysInMonth) {
+                  displayDay = dayNumber - daysInMonth;
+                  isCurrentMonth = false;
                 }
 
-                final bool isSelected = _selectedDate != null &&
+                final bool isSelected = isCurrentMonth &&
+                    _selectedDate != null &&
                     _selectedDate!.year == _calendarDate.year &&
                     _selectedDate!.month == _calendarDate.month &&
-                    _selectedDate!.day == dayNumber;
+                    _selectedDate!.day == displayDay;
 
-                final bool isEvent = dynamicEventDays.contains(dayNumber);
-                final bool isToday = now.year == _calendarDate.year &&
+                final bool isEvent = isCurrentMonth && dynamicEventDays.contains(displayDay);
+                final bool isToday = isCurrentMonth &&
+                    now.year == _calendarDate.year &&
                     now.month == _calendarDate.month &&
-                    now.day == dayNumber;
+                    now.day == displayDay;
 
                 return InkWell(
-                  onTap: () {
-                    setState(() {
-                      if (isSelected) {
-                        _selectedDate = null;
-                      } else {
-                        _selectedDate = DateTime(_calendarDate.year, _calendarDate.month, dayNumber);
-                      }
-                    });
-                  },
-                  borderRadius: BorderRadius.circular(20),
-                  hoverColor: const Color(0xFF0A5C36).withValues(alpha: 0.08),
-                  child: Center(
-                    child: Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? const Color(0xFF0A5C36)
-                            : isEvent
-                                ? const Color(0xFF0A5C36).withOpacity(0.08)
-                                : Colors.transparent,
-                        shape: BoxShape.circle,
-                        border: isToday && !isSelected
-                            ? Border.all(color: const Color(0xFF0A5C36), width: 1.5)
-                            : null,
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: const Color(0xFF0A5C36).withOpacity(0.2),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 3),
-                                )
-                              ]
-                            : null,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            dayNumber.toString(),
+                  onTap: !isCurrentMonth
+                      ? null
+                      : () {
+                          setState(() {
+                            if (isSelected) {
+                              _selectedDate = null;
+                            } else {
+                              _selectedDate = DateTime(_calendarDate.year, _calendarDate.month, displayDay);
+                            }
+                          });
+                        },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F7),
+                      borderRadius: BorderRadius.circular(8),
+                      border: isSelected
+                          ? Border.all(color: const Color(0xFF0A5C36), width: 1.5)
+                          : isToday
+                              ? Border.all(color: const Color(0xFF0A5C36).withOpacity(0.5), width: 1.5)
+                              : null,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            displayDay.toString(),
                             style: TextStyle(
-                              color: isSelected
-                                  ? Colors.white
-                                  : isEvent
-                                      ? const Color(0xFF0A5C36)
+                              color: !isCurrentMonth
+                                  ? const Color(0xFFCCCCCC)
+                                  : index % 7 == 0
+                                      ? const Color(0xFFE57373)
                                       : Colors.black87,
-                              fontWeight: (isSelected || isEvent || isToday) ? FontWeight.bold : FontWeight.normal,
+                              fontWeight: (isSelected || isToday) ? FontWeight.bold : FontWeight.normal,
                               fontSize: 13,
                             ),
                           ),
-                          if (isEvent) ...[
-                            const SizedBox(height: 2),
-                            Container(
-                              width: 4,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: isSelected ? Colors.white : const Color(0xFF0A5C36),
-                                shape: BoxShape.circle,
-                              ),
+                        ),
+                        if (isCurrentMonth && (isEvent || isSelected))
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Icon(
+                              Icons.calendar_today_outlined,
+                              color: const Color(0xFF0A5C36),
+                              size: 12,
                             ),
-                          ] else
-                            const SizedBox(height: 6),
-                        ],
-                      ),
+                          )
+                        else
+                          const SizedBox(height: 14),
+                      ],
                     ),
                   ),
                 );

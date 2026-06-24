@@ -769,7 +769,6 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
 
   Widget _buildCalendarWidget() {
     final String monthName = _getMonthName(_calendarDate.month);
-    final String yearString = _calendarDate.year.toString();
 
     // Get number of days in month
     final int daysInMonth = DateTime(_calendarDate.year, _calendarDate.month + 1, 0).day;
@@ -803,18 +802,19 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF121212), // Sleek dark theme
+        color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
         ],
+        border: Border.all(color: const Color(0xFFF3F3F3)),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
             // Calendar Header
@@ -822,7 +822,7 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.chevron_left_rounded, color: Colors.white, size: 24),
+                  icon: const Icon(Icons.chevron_left_rounded, color: Colors.black87, size: 24),
                   onPressed: () {
                     setState(() {
                       _calendarDate = DateTime(_calendarDate.year, _calendarDate.month - 1, 1);
@@ -830,16 +830,16 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                   },
                 ),
                 Text(
-                  monthName.substring(0, 3).toUpperCase(),
+                  '${monthName.toUpperCase()} ${_calendarDate.year}',
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
-                    color: Colors.white,
+                    color: Colors.black87,
                     letterSpacing: 1.5,
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.chevron_right_rounded, color: Colors.white, size: 24),
+                  icon: const Icon(Icons.chevron_right_rounded, color: Colors.black87, size: 24),
                   onPressed: () {
                     setState(() {
                       _calendarDate = DateTime(_calendarDate.year, _calendarDate.month + 1, 1);
@@ -848,18 +848,18 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             // Weekday labels
-            Row(
+            const Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _DayName('S', color: const Color(0xFFE57373)),
-                _DayName('M', color: const Color(0xFF888888)),
-                _DayName('T', color: const Color(0xFF888888)),
-                _DayName('W', color: const Color(0xFF888888)),
-                _DayName('T', color: const Color(0xFF888888)),
-                _DayName('F', color: const Color(0xFF888888)),
-                _DayName('S', color: const Color(0xFF888888)),
+                _DayName('S', color: Color(0xFFE57373)),
+                _DayName('M', color: Colors.black54),
+                _DayName('T', color: Colors.black54),
+                _DayName('W', color: Colors.black54),
+                _DayName('T', color: Colors.black54),
+                _DayName('F', color: Colors.black54),
+                _DayName('S', color: Colors.black54),
               ],
             ),
             const SizedBox(height: 12),
@@ -915,12 +915,12 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E1E1E), // Dark cell background
+                      color: const Color(0xFFF5F5F7), // Light grey cell background
                       borderRadius: BorderRadius.circular(8),
                       border: isSelected
-                          ? Border.all(color: Colors.white.withOpacity(0.8), width: 1.5)
+                          ? Border.all(color: AppColors.authPrimary, width: 1.5)
                           : isToday
-                              ? Border.all(color: AppColors.authPrimary, width: 1.5)
+                              ? Border.all(color: AppColors.authPrimary.withOpacity(0.5), width: 1.5)
                               : null,
                     ),
                     child: Column(
@@ -932,10 +932,10 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                             displayDay.toString(),
                             style: TextStyle(
                               color: !isCurrentMonth
-                                  ? const Color(0xFF444444) // Muted previous/next month day
+                                  ? const Color(0xFFCCCCCC) // Muted previous/next month day
                                   : index % 7 == 0
                                       ? const Color(0xFFE57373) // Red Sunday
-                                      : Colors.white,
+                                      : Colors.black87,
                               fontWeight: (isSelected || isToday) ? FontWeight.bold : FontWeight.normal,
                               fontSize: 13,
                             ),
@@ -945,9 +945,9 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                           Padding(
                             padding: const EdgeInsets.only(bottom: 6),
                             child: Icon(
-                              Icons.sentiment_satisfied_alt_outlined,
-                              color: isSelected ? Colors.white : AppColors.authPrimary,
-                              size: 14,
+                              Icons.calendar_today_outlined,
+                              color: AppColors.authPrimary,
+                              size: 12,
                             ),
                           )
                         else
@@ -968,7 +968,7 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
               child: Container(
                 height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF333333),
+                  color: AppColors.authPrimary,
                   borderRadius: BorderRadius.circular(24),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -978,16 +978,20 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                     Text(
                       'Add on ${_getMonthName((_selectedDate ?? now).month).substring(0, 3)} ${(_selectedDate ?? now).day}',
                       style: const TextStyle(
-                        color: Colors.white70,
+                        color: Colors.white,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
                     ),
-                    const Icon(Icons.add, color: Colors.white70, size: 20),
+                    const Icon(Icons.add, color: Colors.white, size: 20),
                   ],
                 ),
               ),
             ),
+            if (_selectedDate != null) ...[
+              const Divider(height: 40, thickness: 1, color: Color(0xFFF1F1F1)),
+              _buildSelectedDateEvents(),
+            ],
           ],
         ),
       ),

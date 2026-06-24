@@ -397,6 +397,7 @@ class AppState extends ChangeNotifier {
     switch (request['kind']) {
       case 'account_edit':
       case 'role_assignment':
+      case 'student_unenroll':
         return true;
       default:
         return false;

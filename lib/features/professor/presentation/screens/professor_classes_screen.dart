@@ -99,7 +99,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
 
 
 
-  void _verifyPasswordAndExecute(String actionDescription, Future<void> Function() action) {
+  void _verifyPasswordAndExecute(String actionDescription, Future<void> Function() action, {String confirmLabel = 'Confirm'}) {
     final user = context.read<AppState>().currentUser;
     if (user == null) {
       AppDialog.result(context, type: DialogType.error, message: 'User session not found.');
@@ -112,7 +112,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
       title: 'Please Confirm',
       message: 'Are you sure you want to proceed with $actionDescription? This action cannot be undone.',
       type: DialogType.warning,
-      confirmLabel: 'Confirm',
+      confirmLabel: confirmLabel,
       onConfirm: () async {
         await action();
       },
@@ -286,15 +286,34 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                                       icon: const Icon(Icons.delete_outline, color: Colors.red),
                                       iconSize: 20,
                                       onPressed: () {
-                                        _verifyPasswordAndExecute('un-enrolling student "${s['name'] ?? ''}"', () async {
-                                          await _repo.unenrollStudent(sub.id, s['profileId']!);
-                                          setS(() {
-                                            students.remove(s);
-                                          });
-                                          setState(() {
-                                            sub.studentCount = students.length;
-                                          });
-                                        });
+                                        _verifyPasswordAndExecute(
+                                          'un-enrolling student "${s['name'] ?? ''}"',
+                                          () async {
+                                            try {
+                                              await _repo.requestUnenrollStudent(
+                                                subjectId: sub.id,
+                                                studentProfileId: s['profileId']!,
+                                                studentName: s['name'] ?? 'Student',
+                                                subjectName: sub.name,
+                                                classLabel: sub.classLabel,
+                                              );
+                                              if (!mounted) return;
+                                              AppDialog.result(
+                                                context,
+                                                type: DialogType.success,
+                                                message: 'Unenrollment request submitted for admin approval.',
+                                              );
+                                            } catch (e) {
+                                              if (!mounted) return;
+                                              AppDialog.result(
+                                                context,
+                                                type: DialogType.error,
+                                                message: e.toString(),
+                                              );
+                                            }
+                                          },
+                                          confirmLabel: 'Confirm Request',
+                                        );
                                       },
                                     ),
                                   ],
