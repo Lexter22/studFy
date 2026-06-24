@@ -64,10 +64,12 @@ class SupabaseAdminRepository {
 
       return rows.map((row) {
         final professorId = row['professor_profile_id']?.toString() ?? '';
+        final rawCourse = row['course_code']?.toString() ?? '';
+        final cleanedCourse = (rawCourse == 'IT 001' || rawCourse.toLowerCase().contains('it 0')) ? 'BSIT' : rawCourse;
         return <String, String>{
           'id': row['id']?.toString() ?? '',
           'name': row['subject_name']?.toString() ?? '',
-          'course': row['course_code']?.toString() ?? '',
+          'course': cleanedCourse,
           'section': row['section']?.toString() ?? '',
           'professor': professorNames[professorId] ?? 'Unassigned',
         };
@@ -412,6 +414,7 @@ class SupabaseAdminRepository {
     String? academicYear,
     String? room,
     String? scheduleLabel,
+    String? professorProfileId,
   }) async {
     try {
       await _client.from('subject_offerings').insert({
@@ -423,6 +426,7 @@ class SupabaseAdminRepository {
         if (academicYear != null && academicYear.trim().isNotEmpty) 'academic_year': academicYear.trim(),
         if (room != null && room.trim().isNotEmpty) 'room': room.trim(),
         if (scheduleLabel != null && scheduleLabel.trim().isNotEmpty) 'schedule_label': scheduleLabel.trim(),
+        if (professorProfileId != null && professorProfileId.isNotEmpty) 'professor_profile_id': professorProfileId,
         'status': 'active',
       });
     } on PostgrestException catch (error) {

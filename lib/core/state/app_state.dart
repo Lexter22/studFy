@@ -147,6 +147,7 @@ class AppState extends ChangeNotifier {
     String? academicYear,
     String? room,
     String? scheduleLabel,
+    String? professorProfileId,
   }) async {
     await _adminRepository.createSubject(
       subjectName: subjectName,
@@ -157,6 +158,7 @@ class AppState extends ChangeNotifier {
       academicYear: academicYear,
       room: room,
       scheduleLabel: scheduleLabel,
+      professorProfileId: professorProfileId,
     );
     await loadAdminData();
   }

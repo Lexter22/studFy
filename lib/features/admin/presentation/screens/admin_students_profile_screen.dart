@@ -519,6 +519,18 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
         ? _currentStudent!.name.trim().split(' ').map((e) => e[0]).take(2).join('').toUpperCase()
         : 'S';
 
+    final courseList = context.read<AppState>().students.map((s) => s.course).toSet().where((c) => c.isNotEmpty).toList()..sort();
+    if (!courseList.contains('BSIT')) courseList.add('BSIT');
+    if (!courseList.contains('BSCS')) courseList.add('BSCS');
+    if (!courseList.contains('BSCPE')) courseList.add('BSCPE');
+    courseList.sort();
+
+    final yearSecList = context.read<AppState>().students.map((s) => s.yearSection).toSet().where((y) => y.isNotEmpty).toList()..sort();
+    for (final def in ['1-1', '1-2', '1-3', '2-1', '2-2', '2-3', '3-1', '3-2', '3-3', '4-1', '4-2', '4-3']) {
+      if (!yearSecList.contains(def)) yearSecList.add(def);
+    }
+    yearSecList.sort();
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -559,9 +571,47 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
                     if (_isEditing) ...[
                       _buildEditField('Full Name', _nameController),
                       const SizedBox(height: 8),
-                      _buildEditField('Course (e.g. BSIT)', _courseController, uppercase: true),
+                      DropdownButtonFormField<String>(
+                        value: courseList.contains(_courseController.text) ? _courseController.text : null,
+                        decoration: InputDecoration(
+                          labelText: 'Course',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        items: courseList.map((course) {
+                          return DropdownMenuItem(
+                            value: course,
+                            child: Text(course, style: const TextStyle(fontSize: 14)),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            _courseController.text = val;
+                          }
+                        },
+                      ),
                       const SizedBox(height: 8),
-                      _buildEditField('Year & Section (e.g. 1-1)', _yearSectionController, uppercase: true),
+                      DropdownButtonFormField<String>(
+                        value: yearSecList.contains(_yearSectionController.text) ? _yearSectionController.text : null,
+                        decoration: InputDecoration(
+                          labelText: 'Year & Section',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        items: yearSecList.map((ys) {
+                          return DropdownMenuItem(
+                            value: ys,
+                            child: Text(ys, style: const TextStyle(fontSize: 14)),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            _yearSectionController.text = val;
+                          }
+                        },
+                      ),
                     ] else ...[
                       Text(
                         _currentStudent!.name,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../../features/admin/domain/models/instructor.dart';
 import '../../features/admin/domain/models/student.dart';
@@ -184,22 +185,29 @@ GoRouter createAppRouter(AppState appState) {
         pageBuilder: (context, state) => _seamlessPage(state.pageKey, const AdminInstructorScreen()),
       ),
       GoRoute(
-        path: '/admin/instructors/profile',
+        path: '/admin/instructors/profile/:profileId',
         name: AppRoutes.adminInstructorProfile,
         pageBuilder: (context, state) {
+          final profileId = state.pathParameters['profileId']!;
           final extra = state.extra;
           final extraData = extra is Map<String, dynamic> ? extra : <String, dynamic>{};
-          final instructor = extraData['instructor'];
+          
+          Instructor? instructor = extraData['instructor'] as Instructor?;
+          if (instructor == null) {
+            final instructors = context.read<AppState>().instructors;
+            instructor = instructors.where((i) => i.profileId == profileId).firstOrNull;
+          }
           final String? request = extraData['request']?.toString();
 
-          // Guard: if extra is missing or malformed, bounce back to instructors list
-          if (instructor is! Instructor) {
+          // Guard: if instructor is missing/not found, bounce back to instructors list
+          if (instructor == null) {
             return _seamlessPage(state.pageKey, const AdminInstructorScreen());
           }
 
           return _seamlessPage(
             state.pageKey,
             AdminInstructorProfileScreen(
+              profileId: profileId,
               instructor: instructor,
               initialRequest: request,
             ),

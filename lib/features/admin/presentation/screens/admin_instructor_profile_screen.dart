@@ -12,12 +12,14 @@ import '../../domain/models/instructor.dart';
 import '../widgets/admin_floating_nav_bar.dart';
 
 class AdminInstructorProfileScreen extends StatefulWidget {
-  final Instructor instructor;
+  final String profileId;
+  final Instructor? instructor;
   final String? initialRequest;
 
   const AdminInstructorProfileScreen({
     super.key,
-    required this.instructor,
+    required this.profileId,
+    this.instructor,
     this.initialRequest,
   });
 
@@ -31,12 +33,17 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
   bool _isEditing = false;
   bool _isLoadingSubjects = true;
   List<Map<String, String>> _assignedSubjects = [];
+  Instructor? _currentInstructor;
 
   @override
   void initState() {
     super.initState();
-    _nameCtrl = TextEditingController(text: widget.instructor.name);
-    _deptCtrl = TextEditingController(text: widget.instructor.course);
+    final appState = context.read<AppState>();
+    _currentInstructor = widget.instructor ??
+        appState.instructors.where((i) => i.profileId == widget.profileId).firstOrNull;
+
+    _nameCtrl = TextEditingController(text: _currentInstructor?.name ?? '');
+    _deptCtrl = TextEditingController(text: _currentInstructor?.course ?? '');
     _loadAssignedSubjects();
   }
 
@@ -48,10 +55,11 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
   }
 
   void _loadAssignedSubjects() {
+    if (_currentInstructor == null) return;
     final subjects = context.read<AppState>().subjectOfferings;
     setState(() {
       _assignedSubjects = subjects
-          .where((s) => s['professor'] == widget.instructor.name)
+          .where((s) => s['professor'] == _currentInstructor!.name)
           .toList();
       _isLoadingSubjects = false;
     });
@@ -60,7 +68,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
   Future<void> _saveEdits() async {
     try {
       await context.read<AppState>().updateInstructor(
-        profileId: widget.instructor.profileId,
+        profileId: widget.profileId,
         name: _nameCtrl.text.trim(),
         department: _deptCtrl.text.trim(),
       );
@@ -113,7 +121,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
               ),
               const SizedBox(height: 10),
               Text(
-                'Delete "${widget.instructor.name}"? This will revoke their access and cannot be undone.',
+                'Delete "${_currentInstructor?.name ?? ''}"? This will revoke their access and cannot be undone.',
                 style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.normal),
               ),
               const SizedBox(height: 12),
@@ -205,7 +213,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
                         }
 
                         // Password verified, proceed with deletion
-                        await context.read<AppState>().deleteProfile(widget.instructor.profileId);
+                        await context.read<AppState>().deleteProfile(widget.profileId);
                         if (!mounted) return;
                         Navigator.pop(dialogCtx);
                         context.pop();
@@ -258,7 +266,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Assign Subject to ${widget.instructor.name}',
+                        'Assign Subject to ${_currentInstructor?.name ?? ''}',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -332,7 +340,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
                             try {
                               await context.read<AppState>().assignProfessorToSubject(
                                 subjectId: subject['id']!,
-                                profileId: widget.instructor.profileId,
+                                profileId: widget.profileId,
                               );
                               if (!mounted) return;
                               // Reload subjects from updated AppState
@@ -383,6 +391,16 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final instructor = appState.instructors.where((i) => i.profileId == widget.profileId).firstOrNull ?? _currentInstructor;
+    if (instructor != null && instructor != _currentInstructor) {
+      _currentInstructor = instructor;
+      if (!_isEditing) {
+        _nameCtrl.text = instructor.name;
+        _deptCtrl.text = instructor.course;
+      }
+    }
+
     return Scaffold(
       backgroundColor: AppColors.adminPageBackground,
       appBar: AppBar(
@@ -464,9 +482,18 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
   }
 
   Widget _buildProfileCard() {
-    final String initials = widget.instructor.name.isNotEmpty
-        ? widget.instructor.name.trim().split(' ').map((e) => e[0]).take(2).join('').toUpperCase()
+    final String initials = _currentInstructor?.name.isNotEmpty == true
+        ? _currentInstructor!.name.trim().split(' ').map((e) => e[0]).take(2).join('').toUpperCase()
         : 'I';
+
+    final deptList = context.read<AppState>().instructors.map((i) => i.course).toSet().where((c) => c.isNotEmpty).toList();
+    if (_currentInstructor != null && _currentInstructor!.course.isNotEmpty && !deptList.contains(_currentInstructor!.course)) {
+      deptList.add(_currentInstructor!.course);
+    }
+    if (!deptList.contains('BSIT')) deptList.add('BSIT');
+    if (!deptList.contains('BSCS')) deptList.add('BSCS');
+    if (!deptList.contains('BSCPE')) deptList.add('BSCPE');
+    deptList.sort();
 
     return Container(
       width: double.infinity,
@@ -508,10 +535,29 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
                     if (_isEditing) ...[
                       _buildEditField('Instructor Name', _nameCtrl),
                       const SizedBox(height: 8),
-                      _buildEditField('Department (e.g. BSIT)', _deptCtrl, uppercase: true),
+                      DropdownButtonFormField<String>(
+                        value: deptList.contains(_deptCtrl.text) ? _deptCtrl.text : null,
+                        decoration: InputDecoration(
+                          labelText: 'Department',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        items: deptList.map((dept) {
+                          return DropdownMenuItem(
+                            value: dept,
+                            child: Text(dept, style: const TextStyle(fontSize: 14)),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            _deptCtrl.text = val;
+                          }
+                        },
+                      ),
                     ] else ...[
                       Text(
-                        widget.instructor.name,
+                        _currentInstructor?.name ?? '',
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -529,7 +575,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
                               border: Border.all(color: Colors.grey.shade200),
                             ),
                             child: Text(
-                              widget.instructor.course,
+                              _currentInstructor?.course ?? '',
                               style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,

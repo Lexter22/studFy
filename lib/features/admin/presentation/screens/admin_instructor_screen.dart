@@ -46,6 +46,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
   void _goToProfile(Instructor instructor) {
     context.pushNamed(
       AppRoutes.adminInstructorProfile,
+      pathParameters: {'profileId': instructor.profileId},
       extra: {'instructor': instructor, 'request': null},
     );
   }
@@ -104,23 +105,13 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
                       spacing: 16,
                       runSpacing: 12,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Instructor Directory',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.adminPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Manage registered instructors and applications',
-                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                            ),
-                          ],
+                        const Text(
+                          'Instructor Directory',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.adminPrimary,
+                          ),
                         ),
                         Row(
                           mainAxisSize: MainAxisSize.min,
@@ -526,8 +517,12 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
     final firstNameCtrl = TextEditingController();
     final lastNameCtrl = TextEditingController();
     final emailCtrl = TextEditingController();
-    final deptCtrl = TextEditingController();
-    final instructorIdCtrl = TextEditingController();
+    String? selectedDept;
+    final deptList = context.read<AppState>().instructors.map((i) => i.course).toSet().where((c) => c.isNotEmpty).toList()..sort();
+    if (!deptList.contains('BSIT')) deptList.add('BSIT');
+    if (!deptList.contains('BSCS')) deptList.add('BSCS');
+    if (!deptList.contains('BSCPE')) deptList.add('BSCPE');
+    deptList.sort();
     bool isLoading = false;
 
     showDialog(
@@ -643,12 +638,11 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: deptCtrl,
-                    textCapitalization: TextCapitalization.characters,
-                    inputFormatters: const [UpperCaseTextFormatter()],
+                  DropdownButtonFormField<String>(
+                    value: selectedDept,
+                    hint: Text('Select Department', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                     decoration: InputDecoration(
-                      labelText: 'Department (e.g. BSIT)',
+                      labelText: 'Department',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
                       prefixIcon: Icon(Icons.school_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
@@ -664,29 +658,17 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
                         borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: instructorIdCtrl,
-                    textCapitalization: TextCapitalization.characters,
-                    inputFormatters: const [UpperCaseTextFormatter()],
-                    decoration: InputDecoration(
-                      labelText: 'Instructor ID (Optional)',
-                      labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                      floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.badge_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
-                      filled: true,
-                      fillColor: const Color(0xFFF8F9FC),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
-                      ),
-                    ),
+                    items: deptList.map((dept) {
+                      return DropdownMenuItem(
+                        value: dept,
+                        child: Text(dept, style: const TextStyle(fontSize: 13)),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      setDialogState(() {
+                        selectedDept = val;
+                      });
+                    },
                   ),
                   const SizedBox(height: 8),
                 ],
@@ -714,7 +696,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
               onPressed: isLoading
                   ? null
                   : () async {
-                      if (firstNameCtrl.text.trim().isEmpty || lastNameCtrl.text.trim().isEmpty || emailCtrl.text.trim().isEmpty || deptCtrl.text.trim().isEmpty) {
+                       if (firstNameCtrl.text.trim().isEmpty || lastNameCtrl.text.trim().isEmpty || emailCtrl.text.trim().isEmpty || selectedDept == null) {
                         AppDialog.result(ctx, type: DialogType.error, message: 'Please fill in all required fields.');
                         return;
                       }
@@ -724,8 +706,8 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
                               firstName: firstNameCtrl.text,
                               lastName: lastNameCtrl.text,
                               email: emailCtrl.text,
-                              department: deptCtrl.text,
-                              instructorId: instructorIdCtrl.text,
+                              department: selectedDept!,
+                              instructorId: null,
                             );
                         if (!mounted) return;
                         final email = emailCtrl.text.trim();

@@ -100,30 +100,18 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Header panel
-                        Wrap(
-                          alignment: WrapAlignment.spaceBetween,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: 16,
-                          runSpacing: 12,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Subject Directory',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.adminPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Manage class offerings, schedules, and faculty',
-                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                                ),
-                              ],
+                            const Text(
+                              'Subject Directory',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.adminPrimary,
+                              ),
                             ),
+                            const SizedBox(height: 12),
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -166,7 +154,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                         ),
                         const SizedBox(height: 24),
 
-                        _buildSectionTitle('Pending Requests'),
+                        _buildSectionTitle('Pending Applications'),
                         const SizedBox(height: 8),
 
                         ValueListenableBuilder<List<Map<String, String>>>(
@@ -183,7 +171,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                                 ),
                                 alignment: Alignment.center,
                                 child: Text(
-                                  'No pending requests',
+                                  'No pending applications',
                                   style: TextStyle(
                                     color: Colors.grey.shade500,
                                     fontSize: 13,
@@ -536,137 +524,33 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
 
   void _showCreateSubjectDialog() {
     final subjectNameCtrl = TextEditingController();
-    final courseCodeCtrl = TextEditingController();
-    final yearLevelCtrl = TextEditingController();
-    final semesterCtrl = TextEditingController();
-    final roomCtrl = TextEditingController();
-    final scheduleCtrl = TextEditingController();
+    String? selectedCourseCode;
+    String? selectedSemester;
+    String? selectedProfessorId;
+    String? selectedYearSec;
     
-    // Fetch available sections from current state
+    final List<String> allSections = [
+      '1-1', '1-2', '1-3', '2-1', '2-2', '2-3', '3-1', '3-2', '3-3', '4-1', '4-2', '4-3'
+    ];
     final appState = context.read<AppState>();
-    final sectionsFromStudents = appState.students.map((s) => s.yearSection).toSet();
-    final sectionsFromOfferings = appState.subjectOfferings.map((s) => s['section'] ?? '').toSet();
-    final sectionsFromCodes = appState.enrollmentCodes.map((c) => c['year_section']?.toString() ?? '').toSet();
-    
-    final List<String> allSections = <String>{
-      ...sectionsFromStudents, 
-      ...sectionsFromOfferings, 
-      ...sectionsFromCodes,
-      '1-1', '1-2', '2-1', '2-2', '3-1', '3-2', '4-1', '4-2'
-    }
-        .where((s) => s.isNotEmpty)
-        .toList()
-      ..sort();
 
-    final List<String> selectedSections = [];
     bool isLoading = false;
 
-    void showMultiSectionSelector(BuildContext parentCtx, void Function(void Function()) setDialogState) {
-      final customSectionCtrl = TextEditingController();
-      showDialog(
-        context: parentCtx,
-        builder: (selectCtx) {
-          return StatefulBuilder(
-            builder: (selectCtx, setSelectState) {
-              return AlertDialog(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                title: const Text(
-                  'Select Sections',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.adminPrimary),
-                ),
-                content: Container(
-                  width: 320,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: customSectionCtrl,
-                              textCapitalization: TextCapitalization.characters,
-                              inputFormatters: const [UpperCaseTextFormatter()],
-                              decoration: InputDecoration(
-                                hintText: 'Add custom section...',
-                                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 12),
-                                isDense: true,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            icon: const Icon(Icons.add_circle, color: AppColors.adminPrimary),
-                            onPressed: () {
-                              final text = customSectionCtrl.text.trim();
-                              if (text.isNotEmpty) {
-                                setSelectState(() {
-                                  if (!allSections.contains(text)) {
-                                    allSections.add(text);
-                                    allSections.sort();
-                                  }
-                                  if (!selectedSections.contains(text)) {
-                                    selectedSections.add(text);
-                                  }
-                                  customSectionCtrl.clear();
-                                });
-                                setDialogState(() {});
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      const Divider(height: 1),
-                      const SizedBox(height: 8),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxHeight: 250),
-                        child: SingleChildScrollView(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: allSections.map((sec) {
-                              final isSelected = selectedSections.contains(sec);
-                              return CheckboxListTile(
-                                title: Text(sec, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                                value: isSelected,
-                                activeColor: AppColors.adminPrimary,
-                                contentPadding: EdgeInsets.zero,
-                                controlAffinity: ListTileControlAffinity.leading,
-                                onChanged: (val) {
-                                  setSelectState(() {
-                                    if (val == true) {
-                                      if (!selectedSections.contains(sec)) {
-                                        selectedSections.add(sec);
-                                      }
-                                    } else {
-                                      selectedSections.remove(sec);
-                                    }
-                                  });
-                                  setDialogState(() {});
-                                },
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(selectCtx),
-                    child: const Text('Done', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.adminPrimary)),
-                  ),
-                ],
-              );
-            },
-          );
-        },
-      );
+    final semesterMapping = {
+      '1st Semester': 1,
+      '2nd Semester': 2,
+      'Summer': 3,
+    };
+
+    int inferYearLevel(String sec) {
+      final match = RegExp(r'\d').firstMatch(sec);
+      if (match != null) {
+        return int.tryParse(match.group(0)!) ?? 1;
+      }
+      return 1;
     }
+
+
 
     showDialog(
       context: context,
@@ -703,7 +587,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
               ),
               const SizedBox(height: 10),
               Text(
-                'Enter the details of the subject offering, year level, and schedule.',
+                'Enter the details of the subject offering here.',
                 style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.normal),
               ),
               const SizedBox(height: 12),
@@ -738,12 +622,11 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: courseCodeCtrl,
-                    textCapitalization: TextCapitalization.characters,
-                    inputFormatters: const [UpperCaseTextFormatter()],
+                  DropdownButtonFormField<String>(
+                    value: selectedCourseCode,
+                    hint: Text('Select Course', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                     decoration: InputDecoration(
-                      labelText: 'Course Code (e.g. BSIT)',
+                      labelText: 'Course',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
                       prefixIcon: Icon(Icons.school_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
@@ -759,69 +642,26 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                         borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
                       ),
                     ),
+                    items: const [
+                      DropdownMenuItem(value: 'BSIT', child: Text('BSIT', style: TextStyle(fontSize: 13))),
+                      DropdownMenuItem(value: 'BSCS', child: Text('BSCS', style: TextStyle(fontSize: 13))),
+                      DropdownMenuItem(value: 'BSCPE', child: Text('BSCPE', style: TextStyle(fontSize: 13))),
+                    ],
+                    onChanged: (val) {
+                      setDialogState(() {
+                        selectedCourseCode = val;
+                      });
+                    },
                   ),
                   const SizedBox(height: 16),
-                  GestureDetector(
-                    onTap: () => showMultiSectionSelector(ctx, setDialogState),
-                    child: InputDecorator(
-                      decoration: InputDecoration(
-                        labelText: 'Section(s)',
-                        labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                        floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                        prefixIcon: Icon(Icons.class_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
-                        suffixIcon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
-                        filled: true,
-                        fillColor: const Color(0xFFF8F9FC),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
-                        ),
-                      ),
-                      child: selectedSections.isEmpty
-                          ? Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              child: Text(
-                                'Select Section(s)',
-                                style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-                              ),
-                            )
-                          : Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              child: Wrap(
-                                spacing: 8,
-                                runSpacing: 4,
-                                children: selectedSections.map((sec) => Chip(
-                                  label: Text(
-                                    sec,
-                                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                                  ),
-                                  backgroundColor: AppColors.adminPrimary,
-                                  padding: EdgeInsets.zero,
-                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  onDeleted: () {
-                                    setDialogState(() {
-                                      selectedSections.remove(sec);
-                                    });
-                                  },
-                                  deleteIcon: const Icon(Icons.close, size: 12, color: Colors.white),
-                                )).toList(),
-                              ),
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: yearLevelCtrl,
+                  DropdownButtonFormField<String>(
+                    value: selectedYearSec,
+                    hint: Text('Select Year & Section', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                     decoration: InputDecoration(
-                      labelText: 'Year Level (1-4)',
+                      labelText: 'Year & Section',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.format_list_numbered, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      prefixIcon: Icon(Icons.grid_view_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -834,13 +674,24 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                         borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
                       ),
                     ),
-                    keyboardType: TextInputType.number,
+                    items: allSections.map((ys) {
+                      return DropdownMenuItem(
+                        value: ys,
+                        child: Text(ys, style: const TextStyle(fontSize: 13)),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      setDialogState(() {
+                        selectedYearSec = val;
+                      });
+                    },
                   ),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: semesterCtrl,
+                  DropdownButtonFormField<String>(
+                    value: selectedSemester,
+                    hint: Text('Select Semester', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                     decoration: InputDecoration(
-                      labelText: 'Semester (1 or 2)',
+                      labelText: 'Semester',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
                       prefixIcon: Icon(Icons.calendar_today_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
@@ -856,16 +707,27 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                         borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
                       ),
                     ),
-                    keyboardType: TextInputType.number,
+                    items: semesterMapping.keys.map((sem) {
+                      return DropdownMenuItem(
+                        value: sem,
+                        child: Text(sem, style: const TextStyle(fontSize: 13)),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      setDialogState(() {
+                        selectedSemester = val;
+                      });
+                    },
                   ),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: roomCtrl,
+                  DropdownButtonFormField<String>(
+                    value: selectedProfessorId,
+                    hint: Text('Select Professor (Optional)', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                     decoration: InputDecoration(
-                      labelText: 'Room (Optional)',
+                      labelText: 'Assign Professor',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.meeting_room_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      prefixIcon: Icon(Icons.person_outline_rounded, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -878,27 +740,17 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                         borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: scheduleCtrl,
-                    decoration: InputDecoration(
-                      labelText: 'Schedule (Optional)',
-                      labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                      floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.access_time_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
-                      filled: true,
-                      fillColor: const Color(0xFFF8F9FC),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
-                      ),
-                    ),
+                    items: appState.instructors.map((inst) {
+                      return DropdownMenuItem(
+                        value: inst.profileId,
+                        child: Text(inst.name, style: const TextStyle(fontSize: 13)),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      setDialogState(() {
+                        selectedProfessorId = val;
+                      });
+                    },
                   ),
                   const SizedBox(height: 8),
                 ],
@@ -926,28 +778,25 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
               onPressed: isLoading
                   ? null
                   : () async {
-                      final yearLevel = int.tryParse(yearLevelCtrl.text.trim());
-                      final semester = int.tryParse(semesterCtrl.text.trim());
                       if (subjectNameCtrl.text.trim().isEmpty ||
-                          courseCodeCtrl.text.trim().isEmpty ||
-                          selectedSections.isEmpty ||
-                          yearLevel == null) {
+                          selectedCourseCode == null ||
+                          selectedYearSec == null ||
+                          selectedSemester == null) {
                         AppDialog.alert(ctx, title: 'Error', message: 'Please fill in all required fields.');
                         return;
                       }
                       setDialogState(() => isLoading = true);
                       try {
-                        for (final sec in selectedSections) {
-                          await context.read<AppState>().createSubject(
-                                subjectName: subjectNameCtrl.text,
-                                courseCode: courseCodeCtrl.text,
-                                section: sec,
-                                yearLevel: yearLevel,
-                                semester: semester,
-                                room: roomCtrl.text,
-                                scheduleLabel: scheduleCtrl.text,
-                              );
-                        }
+                        final semesterVal = semesterMapping[selectedSemester];
+                        final yearLevelVal = inferYearLevel(selectedYearSec!);
+                        await context.read<AppState>().createSubject(
+                              subjectName: subjectNameCtrl.text,
+                              courseCode: selectedCourseCode!,
+                              section: selectedYearSec!,
+                              yearLevel: yearLevelVal,
+                              semester: semesterVal,
+                              professorProfileId: selectedProfessorId,
+                            );
                         if (!mounted) return;
                         Navigator.pop(ctx);
                         await AppDialog.result(context, type: DialogType.success, message: 'Subjects created successfully.');

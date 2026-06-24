@@ -47,12 +47,42 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
   List<StudentData> _enrolledStudents = [];
   List<StudentData> _filteredEnrolled = [];
 
+  String? _selectedCourse;
+  String? _selectedSection;
+
   @override
   void initState() {
     super.initState();
     _subjectNameCtrl.text = widget.subjectName;
     _professorNameCtrl.text = widget.professor;
     _courseSectionCtrl.text = widget.courseSection;
+    
+    // Parse course and section from widget.courseSection
+    final parts = widget.courseSection.trim().split(' ');
+    String parsedCourse = 'BSIT';
+    String parsedSection = '1-1';
+    
+    if (parts.isNotEmpty) {
+      final lastPart = parts.last;
+      if (lastPart.contains('-') || RegExp(r'\d').hasMatch(lastPart)) {
+        parsedSection = lastPart;
+        final courseParts = parts.sublist(0, parts.length - 1);
+        final rawCourse = courseParts.join(' ').trim();
+        if (['BSIT', 'BSCS', 'BSCPE'].contains(rawCourse)) {
+          parsedCourse = rawCourse;
+        }
+      } else {
+        if (['BSIT', 'BSCS', 'BSCPE'].contains(parts.first)) {
+          parsedCourse = parts.first;
+        }
+        if (parts.length > 1) {
+          parsedSection = parts.last;
+        }
+      }
+    }
+    _selectedCourse = parsedCourse;
+    _selectedSection = parsedSection;
+
     if (widget.subjectId != null) _loadEnrolledStudents();
   }
 
@@ -93,17 +123,19 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
 
   Future<void> _saveEdits() async {
     if (widget.subjectId == null) return;
+    if (_selectedCourse == null || _selectedSection == null) {
+      await AppDialog.alert(context, title: 'Error', message: 'Please select both course and section.');
+      return;
+    }
     try {
-      final parts = _courseSectionCtrl.text.trim().split(' ');
       await context.read<AppState>().updateSubject(
         subjectId: widget.subjectId!,
         subjectName: _subjectNameCtrl.text,
-        courseCode: parts.first,
-        section: parts.length > 1 ? parts.last : parts.first,
-        room: _roomCtrl.text,
-        scheduleLabel: _scheduleCtrl.text,
+        courseCode: _selectedCourse!,
+        section: _selectedSection!,
       );
       if (!mounted) return;
+      _courseSectionCtrl.text = '$_selectedCourse $_selectedSection';
       setState(() => _isEditing = false);
       await AppDialog.result(context, type: DialogType.success, message: 'Subject updated successfully.');
     } catch (e) {
@@ -389,8 +421,8 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
     String? selectedSection;
 
     final uniqueSections = allStudents
-        .map((s) => s.yearSection.trim())
-        .where((s) => s.isNotEmpty)
+        .where((s) => s.course.isNotEmpty && s.yearSection.isNotEmpty)
+        .map((s) => '${s.course.trim()} ${s.yearSection.trim()}')
         .toSet()
         .toList();
     uniqueSections.sort();
@@ -522,8 +554,12 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                                 onPressed: selectedSection == null
                                     ? null
                                     : () async {
+                                        final parts = selectedSection!.split(' ');
+                                        if (parts.length < 2) return;
+                                        final coursePart = parts[0];
+                                        final sectionPart = parts.sublist(1).join(' ');
                                         final studentsInSection = allStudents
-                                            .where((s) => s.yearSection == selectedSection)
+                                            .where((s) => s.course.trim() == coursePart && s.yearSection.trim() == sectionPart)
                                             .toList();
                                         
                                         for (final s in studentsInSection) {
@@ -855,14 +891,67 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                     if (_isEditing) ...[
                       _buildEditField('Subject Name', _subjectNameCtrl),
                       const SizedBox(height: 8),
-                      _buildEditField('Course & Section (e.g. BSIT 1-1)', _courseSectionCtrl),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(child: _buildEditField('Schedule', _scheduleCtrl)),
-                          const SizedBox(width: 8),
-                          Expanded(child: _buildEditField('Room', _roomCtrl)),
+                      DropdownButtonFormField<String>(
+                        value: ['BSIT', 'BSCS', 'BSCPE'].contains(_selectedCourse) ? _selectedCourse : 'BSIT',
+                        decoration: InputDecoration(
+                          labelText: 'Course',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'BSIT', child: Text('BSIT', style: TextStyle(fontSize: 14))),
+                          DropdownMenuItem(value: 'BSCS', child: Text('BSCS', style: TextStyle(fontSize: 14))),
+                          DropdownMenuItem(value: 'BSCPE', child: Text('BSCPE', style: TextStyle(fontSize: 14))),
                         ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              _selectedCourse = val;
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: () {
+                          final sectionsList = [
+                            '1-1', '1-2', '1-3', '2-1', '2-2', '2-3', '3-1', '3-2', '3-3', '4-1', '4-2', '4-3'
+                          ];
+                          if (_selectedSection != null && !sectionsList.contains(_selectedSection)) {
+                            sectionsList.add(_selectedSection!);
+                          }
+                          sectionsList.sort();
+                          return _selectedSection;
+                        }(),
+                        decoration: InputDecoration(
+                          labelText: 'Section',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        items: () {
+                          final sectionsList = [
+                            '1-1', '1-2', '1-3', '2-1', '2-2', '2-3', '3-1', '3-2', '3-3', '4-1', '4-2', '4-3'
+                          ];
+                          if (_selectedSection != null && !sectionsList.contains(_selectedSection)) {
+                            sectionsList.add(_selectedSection!);
+                          }
+                          sectionsList.sort();
+                          return sectionsList.map((sec) {
+                            return DropdownMenuItem(
+                              value: sec,
+                              child: Text(sec, style: const TextStyle(fontSize: 14)),
+                            );
+                          }).toList();
+                        }(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              _selectedSection = val;
+                            });
+                          }
+                        },
                       ),
                     ] else ...[
                       Text(
@@ -917,52 +1006,6 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                               ],
                             ),
                           ),
-                          if (_scheduleCtrl.text.isNotEmpty)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF5F6F9),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.grey.shade200),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.access_time_rounded, size: 12, color: Colors.grey),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    _scheduleCtrl.text,
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          if (_roomCtrl.text.isNotEmpty)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF5F6F9),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.grey.shade200),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.meeting_room_rounded, size: 12, color: Colors.grey),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Room ${_roomCtrl.text}',
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
                         ],
                       ),
                     ],

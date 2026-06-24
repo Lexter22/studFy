@@ -137,9 +137,6 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                           spacing: 16,
                           runSpacing: 12,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
                                 const Text(
                                   'Student Directory',
                                   style: TextStyle(
@@ -148,13 +145,6 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                                     color: AppColors.adminPrimary,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Manage and view all registered students',
-                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                                ),
-                              ],
-                            ),
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -511,8 +501,27 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
 
   void _showEditStudentDialog(StudentData student) {
     final nameCtrl = TextEditingController(text: student.name);
-    final courseCtrl = TextEditingController(text: student.course);
-    final yearSecCtrl = TextEditingController(text: student.yearSection);
+    String? selectedCourse = student.course.isNotEmpty ? student.course : null;
+    String? selectedYearSec = student.yearSection.isNotEmpty ? student.yearSection : null;
+
+    final courseList = context.read<AppState>().students.map((s) => s.course).toSet().where((c) => c.isNotEmpty).toList()..sort();
+    if (!courseList.contains('BSIT')) courseList.add('BSIT');
+    if (!courseList.contains('BSCS')) courseList.add('BSCS');
+    if (!courseList.contains('BSCPE')) courseList.add('BSCPE');
+    courseList.sort();
+    if (selectedCourse != null && !courseList.contains(selectedCourse)) {
+      courseList.add(selectedCourse);
+      courseList.sort();
+    }
+
+    final yearSecList = [
+      '1-1', '1-2', '1-3', '2-1', '2-2', '2-3', '3-1', '3-2', '3-3', '4-1', '4-2', '4-3'
+    ];
+    if (selectedYearSec != null && !yearSecList.contains(selectedYearSec)) {
+      yearSecList.add(selectedYearSec);
+      yearSecList.sort();
+    }
+
     bool isLoading = false;
 
     showDialog(
@@ -585,12 +594,11 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: courseCtrl,
-                    textCapitalization: TextCapitalization.characters,
-                    inputFormatters: const [UpperCaseTextFormatter()],
+                  DropdownButtonFormField<String>(
+                    value: selectedCourse,
+                    hint: Text('Select Course', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                     decoration: InputDecoration(
-                      labelText: 'Course (e.g. BSIT)',
+                      labelText: 'Course',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
                       prefixIcon: Icon(Icons.school_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
@@ -606,14 +614,24 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                         borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
                       ),
                     ),
+                    items: courseList.map((course) {
+                      return DropdownMenuItem(
+                        value: course,
+                        child: Text(course, style: const TextStyle(fontSize: 13)),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      setDialogState(() {
+                        selectedCourse = val;
+                      });
+                    },
                   ),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: yearSecCtrl,
-                    textCapitalization: TextCapitalization.characters,
-                    inputFormatters: const [UpperCaseTextFormatter()],
+                  DropdownButtonFormField<String>(
+                    value: selectedYearSec,
+                    hint: Text('Select Year & Section', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                     decoration: InputDecoration(
-                      labelText: 'Year & Section (e.g. 2-A)',
+                      labelText: 'Year & Section',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
                       prefixIcon: Icon(Icons.grid_view_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
@@ -629,6 +647,69 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                         borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
                       ),
                     ),
+                    items: [
+                      ...yearSecList.map((ys) {
+                        return DropdownMenuItem(
+                          value: ys,
+                          child: Text(ys, style: const TextStyle(fontSize: 13)),
+                        );
+                      }),
+                      const DropdownMenuItem(
+                        value: '__ADD_CUSTOM__',
+                        child: Text(
+                          '+ Add Custom Section',
+                          style: TextStyle(
+                            color: AppColors.adminPrimary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                    onChanged: (val) async {
+                      if (val == '__ADD_CUSTOM__') {
+                        final customCtrl = TextEditingController();
+                        final newSec = await showDialog<String>(
+                          context: dialogCtx,
+                          builder: (customCtx) => AlertDialog(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            title: const Text('New Custom Section', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.adminPrimary)),
+                            content: TextField(
+                              controller: customCtrl,
+                              textCapitalization: TextCapitalization.characters,
+                              decoration: InputDecoration(
+                                labelText: 'Section Name (e.g. 1-C)',
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(customCtx),
+                                child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(backgroundColor: AppColors.adminPrimary),
+                                onPressed: () => Navigator.pop(customCtx, customCtrl.text.trim()),
+                                child: const Text('Add', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (newSec != null && newSec.isNotEmpty) {
+                          setDialogState(() {
+                            if (!yearSecList.contains(newSec)) {
+                              yearSecList.add(newSec);
+                              yearSecList.sort();
+                            }
+                            selectedYearSec = newSec;
+                          });
+                        }
+                      } else {
+                        setDialogState(() {
+                          selectedYearSec = val;
+                        });
+                      }
+                    },
                   ),
                   const SizedBox(height: 8),
                 ],
@@ -656,13 +737,17 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
               onPressed: isLoading
                   ? null
                   : () async {
+                      if (nameCtrl.text.trim().isEmpty || selectedCourse == null || selectedYearSec == null) {
+                        AppDialog.result(dialogCtx, type: DialogType.error, message: 'Please fill in all required fields.');
+                        return;
+                      }
                       setDialogState(() => isLoading = true);
                       try {
                         await context.read<AppState>().updateStudent(
                               profileId: student.profileId,
                               name: nameCtrl.text,
-                              course: courseCtrl.text,
-                              yearSection: yearSecCtrl.text,
+                              course: selectedCourse!,
+                              yearSection: selectedYearSec!,
                             );
                         if (!mounted) return;
                         Navigator.pop(dialogCtx);
@@ -839,9 +924,19 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
     final emailCtrl = TextEditingController();
     final firstNameCtrl = TextEditingController();
     final lastNameCtrl = TextEditingController();
-    final courseCtrl = TextEditingController();
-    final yearSecCtrl = TextEditingController();
-    final studentNumCtrl = TextEditingController();
+    String? selectedCourse;
+    String? selectedYearSec;
+
+    final courseList = context.read<AppState>().students.map((s) => s.course).toSet().where((c) => c.isNotEmpty).toList()..sort();
+    if (!courseList.contains('BSIT')) courseList.add('BSIT');
+    if (!courseList.contains('BSCS')) courseList.add('BSCS');
+    if (!courseList.contains('BSCPE')) courseList.add('BSCPE');
+    courseList.sort();
+
+    final yearSecList = [
+      '1-1', '1-2', '1-3', '2-1', '2-2', '2-3', '3-1', '3-2', '3-3', '4-1', '4-2', '4-3'
+    ];
+
     bool isLoading = false;
 
     showDialog(
@@ -957,33 +1052,11 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: studentNumCtrl,
+                  DropdownButtonFormField<String>(
+                    value: selectedCourse,
+                    hint: Text('Select Course', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                     decoration: InputDecoration(
-                      labelText: 'Student Number (Optional)',
-                      labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                      floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.badge_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
-                      filled: true,
-                      fillColor: const Color(0xFFF8F9FC),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: courseCtrl,
-                    textCapitalization: TextCapitalization.characters,
-                    inputFormatters: const [UpperCaseTextFormatter()],
-                    decoration: InputDecoration(
-                      labelText: 'Course (e.g. BSIT)',
+                      labelText: 'Course',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
                       prefixIcon: Icon(Icons.school_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
@@ -999,14 +1072,24 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                         borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
                       ),
                     ),
+                    items: courseList.map((course) {
+                      return DropdownMenuItem(
+                        value: course,
+                        child: Text(course, style: const TextStyle(fontSize: 13)),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      setDialogState(() {
+                        selectedCourse = val;
+                      });
+                    },
                   ),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: yearSecCtrl,
-                    textCapitalization: TextCapitalization.characters,
-                    inputFormatters: const [UpperCaseTextFormatter()],
+                  DropdownButtonFormField<String>(
+                    value: selectedYearSec,
+                    hint: Text('Select Year & Section', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                     decoration: InputDecoration(
-                      labelText: 'Year & Section (e.g. 2-A)',
+                      labelText: 'Year & Section',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
                       prefixIcon: Icon(Icons.grid_view_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
@@ -1022,6 +1105,69 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                         borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
                       ),
                     ),
+                    items: [
+                      ...yearSecList.map((ys) {
+                        return DropdownMenuItem(
+                          value: ys,
+                          child: Text(ys, style: const TextStyle(fontSize: 13)),
+                        );
+                      }),
+                      const DropdownMenuItem(
+                        value: '__ADD_CUSTOM__',
+                        child: Text(
+                          '+ Add Custom Section',
+                          style: TextStyle(
+                            color: AppColors.adminPrimary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                    onChanged: (val) async {
+                      if (val == '__ADD_CUSTOM__') {
+                        final customCtrl = TextEditingController();
+                        final newSec = await showDialog<String>(
+                          context: dialogCtx,
+                          builder: (customCtx) => AlertDialog(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            title: const Text('New Custom Section', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.adminPrimary)),
+                            content: TextField(
+                              controller: customCtrl,
+                              textCapitalization: TextCapitalization.characters,
+                              decoration: InputDecoration(
+                                labelText: 'Section Name (e.g. 1-C)',
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(customCtx),
+                                child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(backgroundColor: AppColors.adminPrimary),
+                                onPressed: () => Navigator.pop(customCtx, customCtrl.text.trim()),
+                                child: const Text('Add', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (newSec != null && newSec.isNotEmpty) {
+                          setDialogState(() {
+                            if (!yearSecList.contains(newSec)) {
+                              yearSecList.add(newSec);
+                              yearSecList.sort();
+                            }
+                            selectedYearSec = newSec;
+                          });
+                        }
+                      } else {
+                        setDialogState(() {
+                          selectedYearSec = val;
+                        });
+                      }
+                    },
                   ),
                   const SizedBox(height: 8),
                 ],
@@ -1049,15 +1195,19 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
               onPressed: isLoading
                   ? null
                   : () async {
+                      if (firstNameCtrl.text.trim().isEmpty || lastNameCtrl.text.trim().isEmpty || emailCtrl.text.trim().isEmpty || selectedCourse == null || selectedYearSec == null) {
+                        AppDialog.result(dialogCtx, type: DialogType.error, message: 'Please fill in all required fields.');
+                        return;
+                      }
                       setDialogState(() => isLoading = true);
                       try {
                         final defaultPassword = await context.read<AppState>().createStudent(
                               firstName: firstNameCtrl.text,
                               lastName: lastNameCtrl.text,
                               email: emailCtrl.text,
-                              courseCode: courseCtrl.text,
-                              yearSection: yearSecCtrl.text,
-                              studentNumber: studentNumCtrl.text,
+                              courseCode: selectedCourse!,
+                              yearSection: selectedYearSec!,
+                              studentNumber: null,
                             );
                         if (!mounted) return;
                         Navigator.pop(dialogCtx);
