@@ -93,42 +93,31 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-                    tooltip: 'Back',
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const SizedBox(width: 8),
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
-                      Icon(Icons.school, color: Colors.white, size: 24),
+                      Icon(Icons.school, color: Colors.white, size: 28),
                       SizedBox(height: 2),
                       Text(
                         'STUDFY',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 11,
+                          fontSize: 14,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.5,
                         ),
                       ),
                     ],
                   ),
-                  const Spacer(),
-                  Expanded(
-                    child: Text(
-                      'My Attendance',
-                      textAlign: TextAlign.end,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                  const Text(
+                    'My Attendance',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
@@ -147,6 +136,27 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                     child: ListView(
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                       children: [
+                        // Back navigation row
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF0A5C36), size: 20),
+                              tooltip: 'Back',
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'My Attendance',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF0A5C36),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
                         // Subject title if specific
                         if (widget.subject != null) ...[
                           Text(widget.subject!.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0A5C36))),

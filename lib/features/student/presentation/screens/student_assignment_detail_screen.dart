@@ -100,39 +100,31 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-                    tooltip: 'Back to Modules',
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const SizedBox(width: 8),
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
-                      Icon(Icons.school, color: Colors.white, size: 24),
+                      Icon(Icons.school, color: Colors.white, size: 28),
                       SizedBox(height: 2),
                       Text(
                         'STUDFY',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 11,
+                          fontSize: 14,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.5,
                         ),
                       ),
                     ],
                   ),
-                  const Spacer(),
-                  Expanded(
+                  Flexible(
                     child: Text(
                       widget.subject.name.toUpperCase(),
-                      textAlign: TextAlign.end,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -154,6 +146,27 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
                     children: [
+                      // Back navigation row
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF0A5C36), size: 20),
+                            tooltip: 'Back to Modules',
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Assignment Details',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF0A5C36),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
                       // Assignment Header Card
                       Container(
                         decoration: BoxDecoration(
