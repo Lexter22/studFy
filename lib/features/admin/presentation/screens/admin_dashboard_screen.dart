@@ -656,36 +656,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
 
   // --- OVERVIEW WIDGETS ---
   Widget _buildOverviewCards(AppState appState) {
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final bool isMobile = screenWidth < 600;
-
-    if (isMobile) {
-      return Column(
-        children: [
-          _buildStatCard(
-            Icons.assignment_ind,
-            'Instructors',
-            '${appState.instructors.length}',
-            Colors.blue,
-          ),
-          const SizedBox(height: 8),
-          _buildStatCard(
-            Icons.book,
-            'Subjects',
-            '${appState.subjectOfferings.length}',
-            Colors.orange,
-          ),
-          const SizedBox(height: 8),
-          _buildStatCard(
-            Icons.group,
-            'Students',
-            '${appState.students.length}',
-            Colors.green,
-          ),
-        ],
-      );
-    }
-
     return Row(
       children: [
         Expanded(
