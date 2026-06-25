@@ -193,7 +193,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
             ],
           ),
           content: Container(
-            width: 400,
+            constraints: BoxConstraints(maxWidth: 400),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -323,7 +323,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: const Text('Assign Professor', style: TextStyle(fontWeight: FontWeight.bold)),
             content: SizedBox(
-              width: 450,
+              width: double.infinity,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -442,7 +442,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
             backgroundColor: const Color(0xFFF8F9FC),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             child: Container(
-              width: 500,
+              constraints: BoxConstraints(maxWidth: 500),
               height: 600,
               padding: const EdgeInsets.all(24),
               child: Column(
