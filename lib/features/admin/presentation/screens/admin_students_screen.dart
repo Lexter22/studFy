@@ -309,7 +309,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
               );
             },
           ),
-          const AdminFloatingNavBar(currentIndex: 3),
+          const AdminFloatingNavBar(currentIndex: 2),
         ],
       ),
     );

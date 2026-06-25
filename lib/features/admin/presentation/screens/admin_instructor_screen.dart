@@ -251,7 +251,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
               ),
             ),
           ),
-          const AdminFloatingNavBar(currentIndex: 2),
+          const AdminFloatingNavBar(currentIndex: 1),
         ],
       ),
     );

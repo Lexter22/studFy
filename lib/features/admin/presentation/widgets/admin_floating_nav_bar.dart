@@ -52,11 +52,10 @@ class _AdminFloatingNavBarState extends State<AdminFloatingNavBar> {
             child: Row(
               children: [
                 _buildNavItem(Icons.home, 'DASHBOARD', 0),
-                _buildNavItem(Icons.manage_accounts, 'ROLES', 1),
-                _buildNavItem(Icons.layers, 'INSTRUCTOR', 2),
-                _buildNavItem(Icons.group, 'STUDENTS', 3),
-                _buildNavItem(Icons.book, 'SUBJECTS', 4),
-                _buildNavItem(Icons.logout, 'LOGOUT', 5),
+                _buildNavItem(Icons.layers, 'INSTRUCTOR', 1),
+                _buildNavItem(Icons.group, 'STUDENTS', 2),
+                _buildNavItem(Icons.book, 'SUBJECTS', 3),
+                _buildNavItem(Icons.logout, 'LOGOUT', 4),
               ],
             ),
           ),
@@ -77,17 +76,15 @@ class _AdminFloatingNavBarState extends State<AdminFloatingNavBar> {
         onExit: (_) => setState(() => _hoveredIndex = null),
         child: GestureDetector(
           onTap: () {
-            if (index == 5) {
+            if (index == 4) {
               _handleLogout();
             } else if (index == 0) {
               context.goNamed(AppRoutes.adminDashboard);
             } else if (index == 1) {
-              context.goNamed(AppRoutes.adminRoleManager);
-            } else if (index == 2) {
               context.goNamed(AppRoutes.adminInstructors);
-            } else if (index == 3) {
+            } else if (index == 2) {
               context.goNamed(AppRoutes.adminStudents);
-            } else if (index == 4) {
+            } else if (index == 3) {
               context.goNamed(AppRoutes.adminSubjects);
             }
           },

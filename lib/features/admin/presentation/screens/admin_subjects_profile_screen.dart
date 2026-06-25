@@ -835,7 +835,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
               ),
             ),
           ),
-          const AdminFloatingNavBar(currentIndex: 4),
+          const AdminFloatingNavBar(currentIndex: 3),
         ],
       ),
     );

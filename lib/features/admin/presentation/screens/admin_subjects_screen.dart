@@ -154,42 +154,6 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                         ),
                         const SizedBox(height: 24),
 
-                        _buildSectionTitle('Pending Requests'),
-                        const SizedBox(height: 8),
-
-                        ValueListenableBuilder<List<Map<String, String>>>(
-                          valueListenable: appState.pendingSubjectRequestsNotifier,
-                          builder: (context, pendingRequests, child) {
-                            if (pendingRequests.isEmpty) {
-                              return Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(vertical: 24),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: Colors.grey.shade200),
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  'No pending requests',
-                                  style: TextStyle(
-                                    color: Colors.grey.shade500,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              );
-                            }
-                            return Column(
-                              children: pendingRequests
-                                  .map((s) => _buildSubjectItem(s['name']!, s['status']!))
-                                  .toList(),
-                            );
-                          },
-                        ),
-
-                        const SizedBox(height: 28),
-
                         _buildSectionTitle('Subject Offerings'),
                         const SizedBox(height: 8),
 
@@ -272,7 +236,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
               ),
             ),
           ),
-          const AdminFloatingNavBar(currentIndex: 4),
+          const AdminFloatingNavBar(currentIndex: 3),
         ],
       ),
     );

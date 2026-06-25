@@ -282,6 +282,18 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
         }
       }
     }
+
+    results.sort((a, b) {
+      final DateTime? da = (a['assignment'] as SubjectAssignment).deadline;
+      final DateTime? db = (b['assignment'] as SubjectAssignment).deadline;
+
+      if (da == null && db == null) return 0;
+      if (da == null) return 1;
+      if (db == null) return -1;
+
+      return da.compareTo(db);
+    });
+
     return results;
   }
 
