@@ -177,7 +177,7 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
                       Text(
                         courseSection,
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                           fontSize: 10,
                           fontWeight: FontWeight.w500,
                         ),
@@ -480,7 +480,7 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: const Color(0xFF0A5C36).withOpacity(0.08),
+                color: const Color(0xFF0A5C36).withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, size: 16, color: const Color(0xFF0A5C36)),
@@ -536,7 +536,7 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
                   hintText: 'CODE',
                   hintStyle: TextStyle(color: Colors.grey.shade300, letterSpacing: 4),
                   filled: true,
-                  fillColor: const Color(0xFF0A5C36).withOpacity(0.04),
+                  fillColor: const Color(0xFF0A5C36).withValues(alpha: 0.04),
                   contentPadding: const EdgeInsets.symmetric(vertical: 16),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -621,9 +621,9 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.06),
+          color: color.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.2)),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,

@@ -167,7 +167,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      color: Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 24),
@@ -205,7 +205,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                     labelText: 'Confirm Admin Password',
                     labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                     floatingLabelStyle: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-                    prefixIcon: Icon(Icons.lock_outline_rounded, color: Colors.red.withOpacity(0.7), size: 20),
+                    prefixIcon: Icon(Icons.lock_outline_rounded, color: Colors.red.withValues(alpha: 0.7), size: 20),
                     suffixIcon: IconButton(
                       icon: Icon(
                         obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
@@ -353,7 +353,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                           return ListTile(
                             contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                             leading: CircleAvatar(
-                              backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                              backgroundColor: AppColors.adminPrimary.withValues(alpha: 0.08),
                               child: const Icon(Icons.person, color: AppColors.adminPrimary, size: 20),
                             ),
                             title: Text(instructor.name, style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -454,7 +454,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppColors.adminPrimary.withOpacity(0.1),
+                          color: AppColors.adminPrimary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(Icons.group_add_rounded, color: AppColors.adminPrimary, size: 24),
@@ -500,9 +500,9 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppColors.adminPrimary.withOpacity(0.04),
+                        color: AppColors.adminPrimary.withValues(alpha: 0.04),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.adminPrimary.withOpacity(0.08), width: 1.5),
+                        border: Border.all(color: AppColors.adminPrimary.withValues(alpha: 0.08), width: 1.5),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -656,12 +656,12 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                                       decoration: BoxDecoration(
                                         color: isEnrolled
                                             ? const Color(0xFFE8F5E9)
-                                            : AppColors.adminPrimary.withOpacity(0.08),
+                                            : AppColors.adminPrimary.withValues(alpha: 0.08),
                                         borderRadius: BorderRadius.circular(20),
                                         border: Border.all(
                                           color: isEnrolled
                                               ? Colors.green.shade200
-                                              : AppColors.adminPrimary.withOpacity(0.2),
+                                              : AppColors.adminPrimary.withValues(alpha: 0.2),
                                           width: 1,
                                         ),
                                       ),
@@ -722,29 +722,25 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    if (widget.subjectId != null) {
+      final subject = appState.subjectOfferings.where((s) => s['id'] == widget.subjectId).firstOrNull;
+      if (subject != null && !_isEditing) {
+        if (_subjectNameCtrl.text.isEmpty) _subjectNameCtrl.text = subject['name'] ?? '';
+        if (_professorNameCtrl.text.isEmpty) _professorNameCtrl.text = subject['professor'] ?? '';
+        if (_courseSectionCtrl.text.isEmpty) {
+          _courseSectionCtrl.text = '${subject['course'] ?? ''} ${subject['section'] ?? ''}'.trim();
+          final parts = _courseSectionCtrl.text.split(' ');
+          if (parts.isNotEmpty) {
+            _selectedCourse = parts.first;
+            if (parts.length > 1) _selectedSection = parts.last;
+          }
+        }
+      }
+    }
+
     return Scaffold(
       backgroundColor: AppColors.adminPageBackground,
-      appBar: AppBar(
-        backgroundColor: AppColors.adminPrimary,
-        elevation: 0,
-        toolbarHeight: 70,
-        title: const Row(
-          children: [
-            Icon(Icons.school, color: Colors.white, size: 28),
-            SizedBox(width: 8),
-            Text('STUDFY', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
-          ],
-        ),
-        actions: const [
-          Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text('Admin 1', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
-            ),
-          ),
-        ],
-        automaticallyImplyLeading: false,
-      ),
       body: Stack(
         children: [
           SingleChildScrollView(
@@ -835,7 +831,6 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
               ),
             ),
           ),
-          const AdminFloatingNavBar(currentIndex: 3),
         ],
       ),
     );
@@ -886,7 +881,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -901,7 +896,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
             children: [
               CircleAvatar(
                 radius: 36,
-                backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                backgroundColor: AppColors.adminPrimary.withValues(alpha: 0.08),
                 child: const Icon(
                   Icons.book_rounded,
                   color: AppColors.adminPrimary,
@@ -1139,7 +1134,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
               children: [
                 CircleAvatar(
                   radius: 20,
-                  backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                  backgroundColor: AppColors.adminPrimary.withValues(alpha: 0.08),
                   child: Text(
                     initials,
                     style: const TextStyle(

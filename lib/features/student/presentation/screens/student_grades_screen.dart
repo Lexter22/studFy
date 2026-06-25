@@ -211,7 +211,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                                       width: 56,
                                       height: 56,
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.18),
+                                        color: Colors.white.withValues(alpha: 0.18),
                                         shape: BoxShape.circle,
                                       ),
                                       alignment: Alignment.center,
@@ -305,7 +305,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: _categoryColor(category).withOpacity(0.1),
+              color: _categoryColor(category).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
@@ -330,7 +330,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: _categoryColor(category).withOpacity(0.1),
+                        color: _categoryColor(category).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(category.toUpperCase(), style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: _categoryColor(category))),

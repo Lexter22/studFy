@@ -189,7 +189,7 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
+                              color: Colors.black.withValues(alpha: 0.03),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -205,7 +205,7 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF0A5C36).withOpacity(0.1),
+                                    color: const Color(0xFF0A5C36).withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: const Text(
@@ -306,7 +306,7 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
                           border: Border.all(color: Colors.grey.shade200),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.02),
+                              color: Colors.black.withValues(alpha: 0.02),
                               blurRadius: 8,
                               offset: const Offset(0, 4),
                             ),
@@ -358,7 +358,7 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 child: Column(
                                   children: [
-                                    Icon(Icons.cloud_upload_outlined, color: const Color(0xFF0A5C36).withOpacity(0.5), size: 48),
+                                    Icon(Icons.cloud_upload_outlined, color: const Color(0xFF0A5C36).withValues(alpha: 0.5), size: 48),
                                     const SizedBox(height: 10),
                                     Text(
                                       'No file selected',

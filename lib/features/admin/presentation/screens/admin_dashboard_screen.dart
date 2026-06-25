@@ -473,43 +473,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
 
     return Scaffold(
       backgroundColor: AppColors.adminPageBackground,
-      appBar: AppBar(
-        backgroundColor: AppColors.adminPrimary,
-        elevation: 0,
-        toolbarHeight: 70,
-        title: const Row(
-          children: [
-            Icon(Icons.school, color: Colors.white, size: 28),
-            SizedBox(width: 8),
-            Text(
-              'STUDFY',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-        actions: const [
-          Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'Admin 1',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        ],
-        automaticallyImplyLeading: false,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
       body: Stack(
         children: [
           SingleChildScrollView(
@@ -621,7 +584,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                       color: Colors.white,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
+                          color: Colors.black.withValues(alpha: 0.08),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -686,7 +649,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
               ),
             ),
           ),
-          const AdminFloatingNavBar(currentIndex: 0),
         ],
       ),
     );
@@ -694,6 +656,36 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
 
   // --- OVERVIEW WIDGETS ---
   Widget _buildOverviewCards(AppState appState) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 600;
+
+    if (isMobile) {
+      return Column(
+        children: [
+          _buildStatCard(
+            Icons.assignment_ind,
+            'Instructors',
+            '${appState.instructors.length}',
+            Colors.blue,
+          ),
+          const SizedBox(height: 8),
+          _buildStatCard(
+            Icons.book,
+            'Subjects',
+            '${appState.subjectOfferings.length}',
+            Colors.orange,
+          ),
+          const SizedBox(height: 8),
+          _buildStatCard(
+            Icons.group,
+            'Students',
+            '${appState.students.length}',
+            Colors.green,
+          ),
+        ],
+      );
+    }
+
     return Row(
       children: [
         Expanded(
@@ -745,7 +737,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
@@ -919,7 +911,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
             child: Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: AppColors.adminPrimary.withOpacity(0.1),
+                  backgroundColor: AppColors.adminPrimary.withValues(alpha: 0.1),
                   child: Text(
                     initials,
                     style: const TextStyle(

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../features/admin/domain/models/instructor.dart';
 import '../../features/admin/domain/models/student.dart';
+import '../../features/admin/presentation/widgets/admin_shell.dart';
 import '../../features/admin/presentation/screens/admin_enrollment_codes_screen.dart';
 import '../../features/admin/presentation/screens/admin_dashboard_screen.dart';
 import '../../features/admin/presentation/screens/admin_instructor_profile_screen.dart';
@@ -169,108 +170,119 @@ GoRouter createAppRouter(AppState appState) {
         name: AppRoutes.accountCreation,
         pageBuilder: (context, state) => _seamlessPage(state.pageKey, const AccountCreationScreen()),
       ),
-      GoRoute(
-        path: '/admin/enrollment-codes',
-        name: AppRoutes.adminEnrollmentCodes,
-        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const AdminEnrollmentCodesScreen()),
-      ),
-      GoRoute(
-        path: '/admin/dashboard',
-        name: AppRoutes.adminDashboard,
-        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const AdminDashboardScreen()),
-      ),
-      GoRoute(
-        path: '/admin/instructors',
-        name: AppRoutes.adminInstructors,
-        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const AdminInstructorScreen()),
-      ),
-      GoRoute(
-        path: '/admin/instructors/profile/:profileId',
-        name: AppRoutes.adminInstructorProfile,
-        pageBuilder: (context, state) {
-          final profileId = state.pathParameters['profileId']!;
-          final extra = state.extra;
-          final extraData = extra is Map<String, dynamic> ? extra : <String, dynamic>{};
-          
-          Instructor? instructor = extraData['instructor'] as Instructor?;
-          if (instructor == null) {
-            final instructors = context.read<AppState>().instructors;
-            instructor = instructors.where((i) => i.profileId == profileId).firstOrNull;
-          }
-          final String? request = extraData['request']?.toString();
-
-          // Guard: if instructor is missing/not found, bounce back to instructors list
-          if (instructor == null) {
-            return _seamlessPage(state.pageKey, const AdminInstructorScreen());
-          }
-
-          return _seamlessPage(
-            state.pageKey,
-            AdminInstructorProfileScreen(
-              profileId: profileId,
-              instructor: instructor,
-              initialRequest: request,
-            ),
+      ShellRoute(
+        builder: (context, state, child) {
+          return AdminShell(
+            state: state,
+            child: child,
           );
         },
-      ),
-      GoRoute(
-        path: '/admin/roles',
-        name: AppRoutes.adminRoleManager,
-        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const AdminRoleManagerScreen()),
-      ),
-      GoRoute(
-        path: '/admin/students',
-        name: AppRoutes.adminStudents,
-        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const AdminStudentsScreen()),
         routes: [
           GoRoute(
-            name: AppRoutes.adminStudentsProfile,
-            path: 'profile/:profileId',
+            path: '/admin/enrollment-codes',
+            name: AppRoutes.adminEnrollmentCodes,
+            pageBuilder: (context, state) => _seamlessPage(state.pageKey, const AdminEnrollmentCodesScreen()),
+          ),
+          GoRoute(
+            path: '/admin/dashboard',
+            name: AppRoutes.adminDashboard,
+            pageBuilder: (context, state) => _seamlessPage(state.pageKey, const AdminDashboardScreen()),
+          ),
+          GoRoute(
+            path: '/admin/instructors',
+            name: AppRoutes.adminInstructors,
+            pageBuilder: (context, state) => _seamlessPage(state.pageKey, const AdminInstructorScreen()),
+          ),
+          GoRoute(
+            path: '/admin/instructors/profile/:profileId',
+            name: AppRoutes.adminInstructorProfile,
             pageBuilder: (context, state) {
               final profileId = state.pathParameters['profileId']!;
               final extra = state.extra;
-              StudentData? student;
-              if (extra is Map<String, dynamic>) {
-                student = extra['student'] as StudentData?;
+              final extraData = extra is Map<String, dynamic> ? extra : <String, dynamic>{};
+              
+              Instructor? instructor = extraData['instructor'] as Instructor?;
+              if (instructor == null) {
+                final instructors = context.read<AppState>().instructors;
+                instructor = instructors.where((i) => i.profileId == profileId).firstOrNull;
               }
-              return _seamlessPage(state.pageKey, AdminStudentsProfileScreen(profileId: profileId, student: student));
+              final String? request = extraData['request']?.toString();
+
+              return _seamlessPage(
+                state.pageKey,
+                AdminInstructorProfileScreen(
+                  profileId: profileId,
+                  instructor: instructor,
+                  initialRequest: request,
+                ),
+              );
+            },
+          ),
+          GoRoute(
+            path: '/admin/roles',
+            name: AppRoutes.adminRoleManager,
+            pageBuilder: (context, state) => _seamlessPage(state.pageKey, const AdminRoleManagerScreen()),
+          ),
+          GoRoute(
+            path: '/admin/students',
+            name: AppRoutes.adminStudents,
+            pageBuilder: (context, state) => _seamlessPage(state.pageKey, const AdminStudentsScreen()),
+            routes: [
+              GoRoute(
+                name: AppRoutes.adminStudentsProfile,
+                path: 'profile/:profileId',
+                pageBuilder: (context, state) {
+                  final profileId = state.pathParameters['profileId']!;
+                  final extra = state.extra;
+                  StudentData? student;
+                  if (extra is Map<String, dynamic>) {
+                    student = extra['student'] as StudentData?;
+                  }
+                  return _seamlessPage(state.pageKey, AdminStudentsProfileScreen(profileId: profileId, student: student));
+                },
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/admin/subjects',
+            name: AppRoutes.adminSubjects,
+            pageBuilder: (context, state) => _seamlessPage(state.pageKey, const AdminSubjectsScreen()),
+          ),
+          GoRoute(
+            path: '/admin/subjects/profile',
+            name: AppRoutes.adminSubjectsProfile,
+            pageBuilder: (context, state) {
+              final extra = state.extra;
+              final extraData = extra is Map<String, dynamic> ? extra : <String, dynamic>{};
+
+              final subjectId = extraData['subjectId']?.toString() ?? state.uri.queryParameters['subjectId'];
+              String subjectName = extraData['subjectName']?.toString() ?? '';
+              String courseSection = extraData['courseSection']?.toString() ?? '';
+              String professor = extraData['professor']?.toString() ?? '';
+
+              if (subjectName.isEmpty && subjectId != null) {
+                final appState = context.read<AppState>();
+                final subject = appState.subjectOfferings.where((s) => s['id'] == subjectId).firstOrNull;
+                if (subject != null) {
+                  subjectName = subject['name'] ?? '';
+                  courseSection = '${subject['course'] ?? ''} ${subject['section'] ?? ''}'.trim();
+                  professor = subject['professor'] ?? '';
+                }
+              }
+
+              return _seamlessPage(
+                state.pageKey,
+                AdminSubjectsProfileScreen(
+                  subjectId: subjectId,
+                  subjectName: subjectName,
+                  courseSection: courseSection,
+                  professor: professor,
+                  pendingRequest: extraData['pendingRequest']?.toString() ?? state.uri.queryParameters['pendingRequest'],
+                ),
+              );
             },
           ),
         ],
-      ),
-      GoRoute(
-        path: '/admin/subjects',
-        name: AppRoutes.adminSubjects,
-        pageBuilder: (context, state) => _seamlessPage(state.pageKey, const AdminSubjectsScreen()),
-      ),
-      GoRoute(
-        path: '/admin/subjects/profile',
-        name: AppRoutes.adminSubjectsProfile,
-        pageBuilder: (context, state) {
-          final extra = state.extra;
-          final extraData = extra is Map<String, dynamic> ? extra : <String, dynamic>{};
-
-          final subjectName = extraData['subjectName']?.toString() ?? '';
-          final courseSection = extraData['courseSection']?.toString() ?? '';
-          final professor = extraData['professor']?.toString() ?? '';
-
-          // Guard: if required fields are missing, bounce back to subjects list
-          if (subjectName.isEmpty) {
-            return _seamlessPage(state.pageKey, const AdminSubjectsScreen());
-          }
-
-          return _seamlessPage(
-            state.pageKey,
-            AdminSubjectsProfileScreen(
-              subjectId: extraData['subjectId']?.toString(),
-              subjectName: subjectName,
-              courseSection: courseSection,
-              professor: professor,
-              pendingRequest: extraData['pendingRequest']?.toString(),
-            ),
-          );
-        },
       ),
       GoRoute(
         path: '/professor/dashboard',

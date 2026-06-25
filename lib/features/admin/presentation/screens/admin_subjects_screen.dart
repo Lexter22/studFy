@@ -83,42 +83,6 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.adminPageBackground,
-      appBar: AppBar(
-        backgroundColor: AppColors.adminPrimary,
-        elevation: 0,
-        toolbarHeight: 70,
-        title: const Row(
-          children: [
-            Icon(Icons.school, color: Colors.white, size: 28),
-            SizedBox(width: 8),
-            Text(
-              'STUDFY',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-        actions: const [
-          Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'Admin 1',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        ],
-        automaticallyImplyLeading: false,
-      ),
       body: Stack(
         children: [
           SingleChildScrollView(
@@ -155,7 +119,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                   decoration: BoxDecoration(
-                                    color: AppColors.adminPrimary.withOpacity(0.1),
+                                    color: AppColors.adminPrimary.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   child: Row(
@@ -202,7 +166,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.02),
+                                color: Colors.black.withValues(alpha: 0.02),
                                 blurRadius: 10,
                                 offset: const Offset(0, 4),
                               ),
@@ -310,7 +274,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
+                                color: Colors.black.withValues(alpha: 0.1),
                                 blurRadius: 16,
                                 offset: const Offset(0, 8),
                               ),
@@ -422,7 +386,6 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
               },
             ),
           ),
-          const AdminFloatingNavBar(currentIndex: 3),
         ],
       ),
     );
@@ -547,6 +510,9 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
               onTap: () async {
                 await context.pushNamed(
                   AppRoutes.adminSubjectsProfile,
+                  queryParameters: {
+                    if (subject['id'] != null) 'subjectId': subject['id']!,
+                  },
                   extra: {
                     'subjectId': subject['id'],
                     'subjectName': subject['name'] ?? '',
@@ -562,7 +528,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                   children: [
                     CircleAvatar(
                       radius: 22,
-                      backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                      backgroundColor: AppColors.adminPrimary.withValues(alpha: 0.08),
                       child: const Icon(Icons.book_rounded, color: AppColors.adminPrimary, size: 20),
                     ),
                     const SizedBox(width: 16),
@@ -794,7 +760,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.adminPrimary.withOpacity(0.1),
+                      color: AppColors.adminPrimary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.add_rounded, color: AppColors.adminPrimary, size: 24),
@@ -832,7 +798,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                       labelText: 'Subject Name',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.book_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      prefixIcon: Icon(Icons.book_outlined, color: AppColors.adminPrimary.withValues(alpha: 0.7), size: 20),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -854,7 +820,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                       labelText: 'Course',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.school_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      prefixIcon: Icon(Icons.school_outlined, color: AppColors.adminPrimary.withValues(alpha: 0.7), size: 20),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -886,7 +852,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                       labelText: 'Year & Section',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.grid_view_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      prefixIcon: Icon(Icons.grid_view_outlined, color: AppColors.adminPrimary.withValues(alpha: 0.7), size: 20),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -919,7 +885,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                       labelText: 'Semester',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.calendar_today_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      prefixIcon: Icon(Icons.calendar_today_outlined, color: AppColors.adminPrimary.withValues(alpha: 0.7), size: 20),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -952,7 +918,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                       labelText: 'Assign Professor',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.person_outline_rounded, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      prefixIcon: Icon(Icons.person_outline_rounded, color: AppColors.adminPrimary.withValues(alpha: 0.7), size: 20),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1065,7 +1031,7 @@ class _PendingSubjectCardState extends State<_PendingSubjectCard> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -1122,6 +1088,10 @@ class _PendingSubjectCardState extends State<_PendingSubjectCard> {
               _buildViewDetailsBtn(() {
                 context.pushNamed(
                   AppRoutes.adminSubjectsProfile,
+                  queryParameters: {
+                    'subjectName': widget.name,
+                    'pendingRequest': widget.status,
+                  },
                   extra: {
                     'subjectName': widget.name,
                     'courseSection': 'Pending',

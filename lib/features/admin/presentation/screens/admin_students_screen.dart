@@ -88,42 +88,6 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.adminPageBackground,
-      appBar: AppBar(
-        backgroundColor: AppColors.adminPrimary,
-        elevation: 0,
-        toolbarHeight: 70,
-        title: const Row(
-          children: [
-            Icon(Icons.school, color: Colors.white, size: 28),
-            SizedBox(width: 8),
-            Text(
-              'STUDFY',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-        actions: const [
-          Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'Admin 1',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        ],
-        automaticallyImplyLeading: false,
-      ),
       body: Stack(
         children: [
           ValueListenableBuilder<List<StudentData>>(
@@ -172,7 +136,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                   decoration: BoxDecoration(
-                                    color: AppColors.adminPrimary.withOpacity(0.1),
+                                    color: AppColors.adminPrimary.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   child: Row(
@@ -228,7 +192,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.02),
+                                color: Colors.black.withValues(alpha: 0.02),
                                 blurRadius: 10,
                                 offset: const Offset(0, 4),
                               ),
@@ -349,7 +313,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
+                                color: Colors.black.withValues(alpha: 0.1),
                                 blurRadius: 16,
                                 offset: const Offset(0, 8),
                               ),
@@ -431,7 +395,6 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
           );
         },
           ),
-          const AdminFloatingNavBar(currentIndex: 2),
         ],
       ),
     );
@@ -546,7 +509,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
               // Avatar
               CircleAvatar(
                 radius: 24,
-                backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                backgroundColor: AppColors.adminPrimary.withValues(alpha: 0.08),
                 child: Text(
                   initials,
                   style: const TextStyle(
@@ -656,7 +619,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.adminPrimary.withOpacity(0.1),
+                      color: AppColors.adminPrimary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.edit_rounded, color: AppColors.adminPrimary, size: 24),
@@ -694,7 +657,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                       labelText: 'Name',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.person_outline, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      prefixIcon: Icon(Icons.person_outline, color: AppColors.adminPrimary.withValues(alpha: 0.7), size: 20),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -716,7 +679,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                       labelText: 'Course',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.school_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      prefixIcon: Icon(Icons.school_outlined, color: AppColors.adminPrimary.withValues(alpha: 0.7), size: 20),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -749,7 +712,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                       labelText: 'Year & Section',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.grid_view_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      prefixIcon: Icon(Icons.grid_view_outlined, color: AppColors.adminPrimary.withValues(alpha: 0.7), size: 20),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -905,7 +868,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      color: Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 24),
@@ -943,7 +906,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                     labelText: 'Confirm Admin Password',
                     labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                     floatingLabelStyle: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-                    prefixIcon: Icon(Icons.lock_outline_rounded, color: Colors.red.withOpacity(0.7), size: 20),
+                    prefixIcon: Icon(Icons.lock_outline_rounded, color: Colors.red.withValues(alpha: 0.7), size: 20),
                     suffixIcon: IconButton(
                       icon: Icon(
                         obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
@@ -1071,7 +1034,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.adminPrimary.withOpacity(0.1),
+                      color: AppColors.adminPrimary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.person_add_alt_1_rounded, color: AppColors.adminPrimary, size: 24),
@@ -1109,7 +1072,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                       labelText: 'Email Address',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.email_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      prefixIcon: Icon(Icons.email_outlined, color: AppColors.adminPrimary.withValues(alpha: 0.7), size: 20),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1131,7 +1094,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                       labelText: 'First Name',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.person_outline, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      prefixIcon: Icon(Icons.person_outline, color: AppColors.adminPrimary.withValues(alpha: 0.7), size: 20),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1152,7 +1115,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                       labelText: 'Last Name',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.person_outline, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      prefixIcon: Icon(Icons.person_outline, color: AppColors.adminPrimary.withValues(alpha: 0.7), size: 20),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1174,7 +1137,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                       labelText: 'Course',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.school_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      prefixIcon: Icon(Icons.school_outlined, color: AppColors.adminPrimary.withValues(alpha: 0.7), size: 20),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1207,7 +1170,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                       labelText: 'Year & Section',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.grid_view_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      prefixIcon: Icon(Icons.grid_view_outlined, color: AppColors.adminPrimary.withValues(alpha: 0.7), size: 20),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1477,7 +1440,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2E7D32).withOpacity(0.1),
+                      color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.upload_file_rounded, color: Color(0xFF2E7D32), size: 24),
@@ -1521,7 +1484,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                   dense: true,
                   leading: CircleAvatar(
                     radius: 16,
-                    backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                    backgroundColor: AppColors.adminPrimary.withValues(alpha: 0.08),
                     child: Text(
                       '${i + 1}',
                       style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.adminPrimary),
@@ -1616,8 +1579,8 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: created > 0
-                        ? const Color(0xFF2E7D32).withOpacity(0.1)
-                        : Colors.orange.withOpacity(0.1),
+                        ? const Color(0xFF2E7D32).withValues(alpha: 0.1)
+                        : Colors.orange.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -1713,7 +1676,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -1755,7 +1718,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.04),
+          color: color.withValues(alpha: 0.04),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(

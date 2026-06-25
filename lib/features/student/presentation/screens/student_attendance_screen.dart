@@ -247,9 +247,9 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
           width: 56,
           height: 56,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             shape: BoxShape.circle,
-            border: Border.all(color: color.withOpacity(0.3), width: 2),
+            border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
           ),
           alignment: Alignment.center,
           child: Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
@@ -286,7 +286,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: _statusColor(status).withOpacity(0.1),
+              color: _statusColor(status).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(_statusIcon(status), color: _statusColor(status), size: 20),
@@ -305,7 +305,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: _statusColor(status).withOpacity(0.1),
+              color: _statusColor(status).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(

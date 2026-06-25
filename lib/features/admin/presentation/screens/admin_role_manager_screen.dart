@@ -392,42 +392,6 @@ class _AdminRoleManagerScreenState extends State<AdminRoleManagerScreen> with Si
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.adminPageBackground,
-      appBar: AppBar(
-        backgroundColor: AppColors.adminPrimary,
-        elevation: 0,
-        toolbarHeight: 70,
-        title: const Row(
-          children: [
-            Icon(Icons.school, color: Colors.white, size: 28),
-            SizedBox(width: 8),
-            Text(
-              'STUDFY',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-        actions: const [
-          Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'Admin 1',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        ],
-        automaticallyImplyLeading: false,
-      ),
       body: Stack(
         children: [
           Column(
@@ -487,7 +451,6 @@ class _AdminRoleManagerScreenState extends State<AdminRoleManagerScreen> with Si
               ),
             ],
           ),
-          const AdminFloatingNavBar(currentIndex: 1),
         ],
       ),
     );
@@ -606,7 +569,7 @@ class _AdminRoleManagerScreenState extends State<AdminRoleManagerScreen> with Si
             child: Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: AppColors.adminPrimary.withOpacity(0.1),
+                  backgroundColor: AppColors.adminPrimary.withValues(alpha: 0.1),
                   child: Text(
                     initials,
                     style: const TextStyle(

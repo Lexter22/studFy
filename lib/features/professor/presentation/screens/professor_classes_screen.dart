@@ -181,7 +181,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.authPrimary.withOpacity(0.1),
+                        color: AppColors.authPrimary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(Icons.people_alt_rounded, color: AppColors.authPrimary, size: 20),
@@ -517,7 +517,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: AppColors.authPrimary.withOpacity(0.15),
+                              color: AppColors.authPrimary.withValues(alpha: 0.15),
                               blurRadius: 4,
                               offset: const Offset(0, 2),
                             )
@@ -563,7 +563,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.authPrimary.withOpacity(0.1),
+                        color: AppColors.authPrimary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(Icons.assignment_turned_in_rounded, color: AppColors.authPrimary, size: 20),
@@ -1117,7 +1117,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFF5F5F7),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black.withOpacity(0.06)),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
@@ -1171,12 +1171,12 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 8,
                 offset: const Offset(0, 3),
               ),
             ],
-            border: Border.all(color: Colors.blue.shade100.withOpacity(0.5)),
+            border: Border.all(color: Colors.blue.shade100.withValues(alpha: 0.5)),
           ),
           padding: const EdgeInsets.all(16),
           child: Row(

@@ -198,7 +198,7 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
                       borderRadius: BorderRadius.circular(28),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
+                          color: Colors.black.withValues(alpha: 0.04),
                           blurRadius: 24,
                           offset: const Offset(0, 12),
                         ),
@@ -363,7 +363,7 @@ class _AccountCreationScreenState extends State<AccountCreationScreen> {
                                   disabledBackgroundColor: AppColors.authPrimary,
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                   elevation: _isButtonEnabled ? 8 : 0,
-                                  shadowColor: AppColors.authPrimary.withOpacity(0.4),
+                                  shadowColor: AppColors.authPrimary.withValues(alpha: 0.4),
                                 ),
                                 onPressed: _isButtonEnabled ? _handleSubmit : null,
                                 child: const Text(

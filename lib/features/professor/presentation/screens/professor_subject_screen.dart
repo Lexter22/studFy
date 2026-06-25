@@ -119,7 +119,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: AppColors.authPrimary.withOpacity(0.1),
+                        color: AppColors.authPrimary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(Icons.folder_rounded, color: AppColors.authPrimary, size: 24),
@@ -245,7 +245,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: AppColors.authPrimary.withOpacity(0.1),
+                        color: AppColors.authPrimary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(Icons.edit_rounded, color: AppColors.authPrimary, size: 24),
@@ -448,7 +448,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: AppColors.authPrimary.withOpacity(0.1),
+                        color: AppColors.authPrimary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(Icons.edit_rounded, color: AppColors.authPrimary, size: 24),
@@ -610,7 +610,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: AppColors.authPrimary.withOpacity(0.1),
+                                    color: AppColors.authPrimary.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
@@ -774,7 +774,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: AppColors.authPrimary.withOpacity(0.1),
+                          color: AppColors.authPrimary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(Icons.assignment_rounded, color: AppColors.authPrimary, size: 24),
@@ -939,10 +939,10 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: fileUrl != null ? Colors.green.withOpacity(0.04) : AppColors.authPrimary.withOpacity(0.04),
+                        color: fileUrl != null ? Colors.green.withValues(alpha: 0.04) : AppColors.authPrimary.withValues(alpha: 0.04),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: fileUrl != null ? Colors.green.withOpacity(0.3) : AppColors.authPrimary.withOpacity(0.15),
+                          color: fileUrl != null ? Colors.green.withValues(alpha: 0.3) : AppColors.authPrimary.withValues(alpha: 0.15),
                           width: 1.5,
                         ),
                       ),
@@ -1113,7 +1113,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: AppColors.authPrimary.withOpacity(0.1),
+                          color: AppColors.authPrimary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(Icons.menu_book_rounded, color: AppColors.authPrimary, size: 24),
@@ -1217,10 +1217,10 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: fileUrl != null ? Colors.green.withOpacity(0.04) : AppColors.authPrimary.withOpacity(0.04),
+                        color: fileUrl != null ? Colors.green.withValues(alpha: 0.04) : AppColors.authPrimary.withValues(alpha: 0.04),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: fileUrl != null ? Colors.green.withOpacity(0.3) : AppColors.authPrimary.withOpacity(0.15),
+                          color: fileUrl != null ? Colors.green.withValues(alpha: 0.3) : AppColors.authPrimary.withValues(alpha: 0.15),
                           width: 1.5,
                         ),
                       ),
@@ -1422,9 +1422,9 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: AppColors.authPrimary.withOpacity(0.08),
+          color: AppColors.authPrimary.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.authPrimary.withOpacity(0.2)),
+          border: Border.all(color: AppColors.authPrimary.withValues(alpha: 0.2)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -1434,7 +1434,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                 const Icon(Icons.vpn_key_rounded, size: 13, color: AppColors.authPrimary),
                 const SizedBox(width: 4),
                 Text('CLASS CODE',
-                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.authPrimary.withOpacity(0.7), letterSpacing: 0.5)),
+                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.authPrimary.withValues(alpha: 0.7), letterSpacing: 0.5)),
               ],
             ),
             const SizedBox(height: 2),
@@ -1474,9 +1474,9 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   decoration: BoxDecoration(
-                    color: AppColors.authPrimary.withOpacity(0.06),
+                    color: AppColors.authPrimary.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.authPrimary.withOpacity(0.2)),
+                    border: Border.all(color: AppColors.authPrimary.withValues(alpha: 0.2)),
                   ),
                   alignment: Alignment.center,
                   child: Text(code,
@@ -1657,7 +1657,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: AppColors.authPrimary.withOpacity(0.15),
+                      color: AppColors.authPrimary.withValues(alpha: 0.15),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     )
@@ -1813,7 +1813,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: AppColors.authPrimary.withOpacity(0.1),
+                        color: AppColors.authPrimary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(Icons.campaign_rounded, color: AppColors.authPrimary, size: 24),
@@ -2121,7 +2121,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                       color: isOver ? AppColors.authPrimary : Colors.transparent,
                       width: 2,
                     ),
-                    color: isOver ? AppColors.authPrimary.withOpacity(0.05) : Colors.transparent,
+                    color: isOver ? AppColors.authPrimary.withValues(alpha: 0.05) : Colors.transparent,
                   ),
                   padding: const EdgeInsets.all(8),
                   child: Column(
@@ -2394,7 +2394,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: AppColors.authPrimary.withOpacity(0.08),
+                color: AppColors.authPrimary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, size: 16, color: AppColors.authPrimary),
@@ -2472,7 +2472,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   leading: CircleAvatar(
-                    backgroundColor: AppColors.authPrimary.withOpacity(0.12),
+                    backgroundColor: AppColors.authPrimary.withValues(alpha: 0.12),
                     child: Text(initials,
                         style: const TextStyle(color: AppColors.authPrimary, fontWeight: FontWeight.bold)),
                   ),
@@ -2617,7 +2617,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: AppColors.authPrimary.withOpacity(0.1),
+                      color: AppColors.authPrimary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.assignment_turned_in_rounded, color: AppColors.authPrimary, size: 24),
@@ -2774,7 +2774,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: AppColors.authPrimary.withOpacity(0.1),
+                        color: AppColors.authPrimary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(Icons.edit_rounded, color: AppColors.authPrimary, size: 24),
@@ -2936,7 +2936,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: AppColors.authPrimary.withOpacity(0.1),
+                                    color: AppColors.authPrimary.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
@@ -3356,7 +3356,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.authPrimary.withOpacity(0.1),
+                        color: AppColors.authPrimary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(Icons.video_call_rounded, color: AppColors.authPrimary, size: 24),
@@ -3718,7 +3718,7 @@ class _QuestionTileState extends State<_QuestionTile> {
         border: Border.all(color: Colors.grey.shade200, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -3732,7 +3732,7 @@ class _QuestionTileState extends State<_QuestionTile> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.authPrimary.withOpacity(0.1),
+                  color: AppColors.authPrimary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -3781,10 +3781,10 @@ class _QuestionTileState extends State<_QuestionTile> {
             return Container(
               margin: const EdgeInsets.only(bottom: 8),
               decoration: BoxDecoration(
-                color: isCorrect ? Colors.green.withOpacity(0.04) : Colors.transparent,
+                color: isCorrect ? Colors.green.withValues(alpha: 0.04) : Colors.transparent,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: isCorrect ? Colors.green.withOpacity(0.3) : Colors.transparent,
+                  color: isCorrect ? Colors.green.withValues(alpha: 0.3) : Colors.transparent,
                   width: 1.5,
                 ),
               ),
@@ -3913,7 +3913,7 @@ class _GradesContentWidgetState extends State<_GradesContentWidget> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: AppColors.authPrimary.withOpacity(0.1),
+                        color: AppColors.authPrimary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(Icons.grade_rounded, color: AppColors.authPrimary, size: 24),
@@ -4207,7 +4207,7 @@ class _GradesContentWidgetState extends State<_GradesContentWidget> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: AppColors.authPrimary.withOpacity(0.1),
+                        color: AppColors.authPrimary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(Icons.grade_rounded, color: AppColors.authPrimary, size: 24),
@@ -4586,7 +4586,7 @@ class _GradesContentWidgetState extends State<_GradesContentWidget> {
               leading: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: _categoryColor(category).withOpacity(0.1),
+                  color: _categoryColor(category).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
@@ -4609,7 +4609,7 @@ class _GradesContentWidgetState extends State<_GradesContentWidget> {
                     margin: const EdgeInsets.only(top: 4),
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: _categoryColor(category).withOpacity(0.1),
+                      color: _categoryColor(category).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(

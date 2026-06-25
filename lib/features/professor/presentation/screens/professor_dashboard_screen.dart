@@ -87,7 +87,7 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: AppColors.authPrimary.withOpacity(0.1),
+                            color: AppColors.authPrimary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(Icons.alarm_add_rounded, color: AppColors.authPrimary, size: 24),
@@ -411,7 +411,7 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
               decoration: BoxDecoration(
                 color: const Color(0xFFF5F5F5),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.black.withOpacity(0.05)),
+                border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
               ),
               padding: EdgeInsets.all(isMobile ? 6 : 12),
               child: Column(
@@ -523,7 +523,7 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
         border: Border.all(color: const Color(0xFFF3F3F3)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -693,7 +693,7 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.black.withOpacity(0.05)),
+        side: BorderSide(color: Colors.black.withValues(alpha: 0.05)),
       ),
       child: InkWell(
         onTap: () {
@@ -806,7 +806,7 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -920,7 +920,7 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                       border: isSelected
                           ? Border.all(color: AppColors.authPrimary, width: 1.5)
                           : isToday
-                              ? Border.all(color: AppColors.authPrimary.withOpacity(0.5), width: 1.5)
+                              ? Border.all(color: AppColors.authPrimary.withValues(alpha: 0.5), width: 1.5)
                               : null,
                     ),
                     child: Column(
@@ -1070,14 +1070,14 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.amber.withOpacity(0.3)),
+                side: BorderSide(color: Colors.amber.withValues(alpha: 0.3)),
               ),
               child: ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withOpacity(0.2),
+                    color: Colors.amber.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.alarm_on_rounded, color: Colors.amber, size: 20),
@@ -1132,14 +1132,14 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.black.withOpacity(0.05)),
+                side: BorderSide(color: Colors.black.withValues(alpha: 0.05)),
               ),
               child: ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
+                    color: Colors.red.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.assignment_late_rounded, color: Colors.red, size: 20),
@@ -1194,7 +1194,7 @@ class _DayName extends StatelessWidget {
         name,
         textAlign: TextAlign.center,
         style: TextStyle(
-          color: color ?? (isWeekend ? Colors.redAccent.withOpacity(0.8) : Colors.black54),
+          color: color ?? (isWeekend ? Colors.redAccent.withValues(alpha: 0.8) : Colors.black54),
           fontWeight: FontWeight.bold,
           fontSize: 12,
         ),

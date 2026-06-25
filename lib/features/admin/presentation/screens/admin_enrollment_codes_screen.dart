@@ -110,28 +110,6 @@ class AdminEnrollmentCodesScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.adminPageBackground,
-      appBar: AppBar(
-        backgroundColor: AppColors.adminPrimary,
-        elevation: 0,
-        toolbarHeight: 70,
-        title: const Row(
-          children: [
-            Icon(Icons.school, color: Colors.white, size: 28),
-            SizedBox(width: 8),
-            Text('STUDFY', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
-          ],
-        ),
-        actions: [
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text('Admin 1', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
-            ),
-          ),
-        ],
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      drawer: const AdminDrawer(),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showCreateDialog(context),
         backgroundColor: AppColors.adminPrimary,
@@ -207,7 +185,7 @@ class _CodeCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      color: Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 24),
@@ -245,7 +223,7 @@ class _CodeCard extends StatelessWidget {
                     labelText: 'Confirm Admin Password',
                     labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                     floatingLabelStyle: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-                    prefixIcon: Icon(Icons.lock_outline_rounded, color: Colors.red.withOpacity(0.7), size: 20),
+                    prefixIcon: Icon(Icons.lock_outline_rounded, color: Colors.red.withValues(alpha: 0.7), size: 20),
                     suffixIcon: IconButton(
                       icon: Icon(
                         obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,

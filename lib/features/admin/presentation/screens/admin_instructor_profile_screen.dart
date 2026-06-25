@@ -31,8 +31,6 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
   late final TextEditingController _nameCtrl;
   late final TextEditingController _deptCtrl;
   bool _isEditing = false;
-  bool _isLoadingSubjects = true;
-  List<Map<String, String>> _assignedSubjects = [];
   Instructor? _currentInstructor;
 
   @override
@@ -44,7 +42,6 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
 
     _nameCtrl = TextEditingController(text: _currentInstructor?.name ?? '');
     _deptCtrl = TextEditingController(text: _currentInstructor?.course ?? '');
-    _loadAssignedSubjects();
   }
 
   @override
@@ -52,17 +49,6 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
     _nameCtrl.dispose();
     _deptCtrl.dispose();
     super.dispose();
-  }
-
-  void _loadAssignedSubjects() {
-    if (_currentInstructor == null) return;
-    final subjects = context.read<AppState>().subjectOfferings;
-    setState(() {
-      _assignedSubjects = subjects
-          .where((s) => s['professor'] == _currentInstructor!.name)
-          .toList();
-      _isLoadingSubjects = false;
-    });
   }
 
   Future<void> _saveEdits() async {
@@ -103,7 +89,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      color: Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 24),
@@ -141,7 +127,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
                     labelText: 'Confirm Admin Password',
                     labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                     floatingLabelStyle: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-                    prefixIcon: Icon(Icons.lock_outline_rounded, color: Colors.red.withOpacity(0.7), size: 20),
+                    prefixIcon: Icon(Icons.lock_outline_rounded, color: Colors.red.withValues(alpha: 0.7), size: 20),
                     suffixIcon: IconButton(
                       icon: Icon(
                         obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
@@ -233,7 +219,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
     );
   }
 
-  void _showAssignSubjectDialog() {
+  void _showAssignSubjectDialog(List<Map<String, String>> assignedSubjects) {
     final subjects = context.read<AppState>().subjectOfferings;
     if (subjects.isEmpty) {
       AppDialog.result(context, type: DialogType.info, message: 'No subjects available to assign.');
@@ -258,7 +244,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.adminPrimary.withOpacity(0.1),
+                        color: AppColors.adminPrimary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(Icons.bookmark_outline_rounded, color: AppColors.adminPrimary, size: 24),
@@ -285,7 +271,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
                     itemCount: subjects.length,
                     itemBuilder: (_, index) {
                       final subject = subjects[index];
-                      final isAssigned = _assignedSubjects.any((s) => s['id'] == subject['id']);
+                      final isAssigned = assignedSubjects.any((s) => s['id'] == subject['id']);
                       return Container(
                         margin: const EdgeInsets.only(bottom: 8),
                         decoration: BoxDecoration(
@@ -296,7 +282,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
                         child: ListTile(
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                           leading: CircleAvatar(
-                            backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                            backgroundColor: AppColors.adminPrimary.withValues(alpha: 0.08),
                             child: const Icon(Icons.book_rounded, color: AppColors.adminPrimary, size: 18),
                           ),
                           title: Text(subject['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B))),
@@ -306,12 +292,12 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
                             decoration: BoxDecoration(
                               color: isAssigned
                                   ? const Color(0xFFE8F5E9)
-                                  : AppColors.adminPrimary.withOpacity(0.08),
+                                  : AppColors.adminPrimary.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
                                 color: isAssigned
                                     ? Colors.green.shade200
-                                    : AppColors.adminPrimary.withOpacity(0.2),
+                                    : AppColors.adminPrimary.withValues(alpha: 0.2),
                                 width: 1,
                               ),
                             ),
@@ -343,13 +329,6 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
                                 profileId: widget.profileId,
                               );
                               if (!mounted) return;
-                              // Reload subjects from updated AppState
-                              final updated = context.read<AppState>().subjectOfferings;
-                              setState(() {
-                                _assignedSubjects = updated
-                                    .where((s) => s['professor'] == _nameCtrl.text.trim())
-                                    .toList();
-                              });
                               await AppDialog.result(context, type: DialogType.success, message: 'Subject assigned successfully.');
                             } catch (e) {
                               if (!mounted) return;
@@ -401,22 +380,20 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
       }
     }
 
+    if (_currentInstructor == null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    final assignedSubjects = appState.subjectOfferings
+        .where((s) => s['professor'] == _currentInstructor!.name)
+        .toList();
+
     return Scaffold(
       backgroundColor: AppColors.adminPageBackground,
-      appBar: AppBar(
-        backgroundColor: AppColors.adminPrimary,
-        elevation: 0,
-        toolbarHeight: 70,
-        title: const Row(children: [
-          Icon(Icons.school, color: Colors.white, size: 28),
-          SizedBox(width: 8),
-          Text('STUDFY', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
-        ]),
-        actions: const [
-          Center(child: Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('Admin 1', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)))),
-        ],
-        automaticallyImplyLeading: false,
-      ),
       body: Stack(
         children: [
           SingleChildScrollView(
@@ -443,9 +420,9 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
                       spacing: 16,
                       runSpacing: 12,
                       children: [
-                        _sectionTitle('Assigned Subjects (${_assignedSubjects.length})'),
+                        _sectionTitle('Assigned Subjects (${assignedSubjects.length})'),
                         ElevatedButton.icon(
-                          onPressed: _showAssignSubjectDialog,
+                          onPressed: () => _showAssignSubjectDialog(assignedSubjects),
                           icon: const Icon(Icons.assignment_rounded, size: 16, color: Colors.white),
                           label: const Text('Assign Subject', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
                           style: ElevatedButton.styleFrom(
@@ -458,13 +435,12 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
                       ],
                     ),
                     const SizedBox(height: 12),
-                    _buildSubjectsList(),
+                    _buildSubjectsList(assignedSubjects),
                   ],
                 ),
               ),
             ),
           ),
-          const AdminFloatingNavBar(currentIndex: 1),
         ],
       ),
     );
@@ -528,7 +504,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -543,7 +519,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
             children: [
               CircleAvatar(
                 radius: 36,
-                backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                backgroundColor: AppColors.adminPrimary.withValues(alpha: 0.08),
                 child: Text(
                   initials,
                   style: const TextStyle(
@@ -668,12 +644,8 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
     );
   }
 
-  Widget _buildSubjectsList() {
-    if (_isLoadingSubjects) {
-      return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
-    }
-
-    if (_assignedSubjects.isEmpty) {
+  Widget _buildSubjectsList(List<Map<String, String>> assignedSubjects) {
+    if (assignedSubjects.isEmpty) {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 40),
@@ -697,7 +669,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
     }
 
     return Column(
-      children: _assignedSubjects.map((subject) {
+      children: assignedSubjects.map((subject) {
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           elevation: 0,
@@ -711,7 +683,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
               children: [
                 CircleAvatar(
                   radius: 20,
-                  backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                  backgroundColor: AppColors.adminPrimary.withValues(alpha: 0.08),
                   child: const Icon(Icons.book_rounded, color: AppColors.adminPrimary, size: 18),
                 ),
                 const SizedBox(width: 16),

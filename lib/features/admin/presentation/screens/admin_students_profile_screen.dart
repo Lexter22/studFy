@@ -34,19 +34,8 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
   @override
   void initState() {
     super.initState();
-    _currentStudent = widget.student;
-    if (_currentStudent == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final found = context.read<AppState>().students.where((s) => s.profileId == widget.profileId).firstOrNull;
-        if (found != null && mounted) {
-          setState(() => _currentStudent = found);
-          _nameController.text = found.name;
-          _courseController.text = found.course;
-          _yearSectionController.text = found.yearSection;
-          _loadEnrolledSubjects();
-        }
-      });
-    }
+    _currentStudent = widget.student ??
+        context.read<AppState>().students.where((s) => s.profileId == widget.profileId).firstOrNull;
     _nameController = TextEditingController(text: _currentStudent?.name ?? '');
     _courseController = TextEditingController(text: _currentStudent?.course ?? '');
     _yearSectionController = TextEditingController(text: _currentStudent?.yearSection ?? '');
@@ -107,7 +96,7 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.adminPrimary.withOpacity(0.1),
+                        color: AppColors.adminPrimary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(Icons.bookmark_outline_rounded, color: AppColors.adminPrimary, size: 24),
@@ -145,7 +134,7 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
                         child: ListTile(
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                           leading: CircleAvatar(
-                            backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                            backgroundColor: AppColors.adminPrimary.withValues(alpha: 0.08),
                             child: const Icon(Icons.book_rounded, color: AppColors.adminPrimary, size: 18),
                           ),
                           title: Text(subject['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B))),
@@ -155,12 +144,12 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
                             decoration: BoxDecoration(
                               color: isEnrolled
                                   ? const Color(0xFFE8F5E9)
-                                  : AppColors.adminPrimary.withOpacity(0.08),
+                                  : AppColors.adminPrimary.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
                                 color: isEnrolled
                                     ? Colors.green.shade200
-                                    : AppColors.adminPrimary.withOpacity(0.2),
+                                    : AppColors.adminPrimary.withValues(alpha: 0.2),
                                 width: 1,
                               ),
                             ),
@@ -293,7 +282,7 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      color: Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 24),
@@ -331,7 +320,7 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
                     labelText: 'Confirm Admin Password',
                     labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                     floatingLabelStyle: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-                    prefixIcon: Icon(Icons.lock_outline_rounded, color: Colors.red.withOpacity(0.7), size: 20),
+                    prefixIcon: Icon(Icons.lock_outline_rounded, color: Colors.red.withValues(alpha: 0.7), size: 20),
                     suffixIcon: IconButton(
                       icon: Icon(
                         obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
@@ -425,29 +414,18 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final student = appState.students.where((s) => s.profileId == widget.profileId).firstOrNull ?? _currentStudent;
+    if (student != null && _currentStudent == null) {
+      _currentStudent = student;
+      _nameController.text = student.name;
+      _courseController.text = student.course;
+      _yearSectionController.text = student.yearSection;
+      Future.microtask(() => _loadEnrolledSubjects());
+    }
+
     return Scaffold(
       backgroundColor: AppColors.adminPageBackground,
-      appBar: AppBar(
-        backgroundColor: AppColors.adminPrimary,
-        elevation: 0,
-        toolbarHeight: 70,
-        title: const Row(
-          children: [
-            Icon(Icons.school, color: Colors.white, size: 28),
-            SizedBox(width: 8),
-            Text('STUDFY', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
-          ],
-        ),
-        actions: const [
-          Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text('Admin 1', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
-            ),
-          ),
-        ],
-        automaticallyImplyLeading: false,
-      ),
       body: Stack(
         children: [
           _currentStudent == null
@@ -497,7 +475,6 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
                     ),
                   ),
                 ),
-          const AdminFloatingNavBar(currentIndex: 2),
         ],
       ),
     );
@@ -564,7 +541,7 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -579,7 +556,7 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
             children: [
               CircleAvatar(
                 radius: 36,
-                backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                backgroundColor: AppColors.adminPrimary.withValues(alpha: 0.08),
                 child: Text(
                   initials,
                   style: const TextStyle(
@@ -785,7 +762,7 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
               children: [
                 CircleAvatar(
                   radius: 20,
-                  backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                  backgroundColor: AppColors.adminPrimary.withValues(alpha: 0.08),
                   child: const Icon(Icons.book_rounded, color: AppColors.adminPrimary, size: 18),
                 ),
                 const SizedBox(width: 16),

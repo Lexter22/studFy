@@ -266,7 +266,7 @@ class _ProfessorAssignmentsScreenState extends State<ProfessorAssignmentsScreen>
       decoration: BoxDecoration(
         color: const Color(0xFFF5F5F5),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black.withOpacity(0.05)),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
       ),
       padding: const EdgeInsets.all(12),
       child: Column(

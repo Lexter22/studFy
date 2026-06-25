@@ -25,8 +25,16 @@ class _AdminFloatingNavBarState extends State<AdminFloatingNavBar> {
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.bottomCenter,
+    return Hero(
+      tag: 'admin_floating_nav_bar',
+      flightShuttleBuilder: (flightContext, animation, flightDirection, fromHeroContext, toHeroContext) {
+        return Material(
+          type: MaterialType.transparency,
+          child: toHeroContext.widget,
+        );
+      },
+      child: Align(
+        alignment: Alignment.bottomCenter,
       child: Padding(
         padding: const EdgeInsets.all(10),
         child: ConstrainedBox(
@@ -43,7 +51,7 @@ class _AdminFloatingNavBarState extends State<AdminFloatingNavBar> {
               borderRadius: BorderRadius.circular(35),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.2),
                   blurRadius: 15,
                   offset: const Offset(0, 5),
                 ),
@@ -61,8 +69,9 @@ class _AdminFloatingNavBarState extends State<AdminFloatingNavBar> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildNavItem(IconData icon, String label, int index) {
     final bool isHovered = _hoveredIndex == index;
@@ -98,8 +107,8 @@ class _AdminFloatingNavBarState extends State<AdminFloatingNavBar> {
               ),
               decoration: BoxDecoration(
                 color: isActive 
-                    ? Colors.white.withOpacity(0.15) 
-                    : (isHovered ? Colors.white.withOpacity(0.08) : Colors.transparent),
+                    ? Colors.white.withValues(alpha: 0.15) 
+                    : (isHovered ? Colors.white.withValues(alpha: 0.08) : Colors.transparent),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(

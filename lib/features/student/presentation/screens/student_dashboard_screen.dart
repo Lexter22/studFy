@@ -259,7 +259,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       Text(
                         courseSection,
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                           fontSize: 10,
                           fontWeight: FontWeight.w500,
                         ),
@@ -434,7 +434,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               Container(
                 height: 40,
                 width: 2,
-                color: const Color(0xFF0A5C36).withOpacity(0.3),
+                color: const Color(0xFF0A5C36).withValues(alpha: 0.3),
               ),
               const SizedBox(width: 14),
               // Announcement subject and message snippet
@@ -504,7 +504,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: (isOnline ? const Color(0xFF0A5C36) : Colors.blue.shade700).withOpacity(0.1),
+                color: (isOnline ? const Color(0xFF0A5C36) : Colors.blue.shade700).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -552,7 +552,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFF0A5C36).withOpacity(0.1),
+                color: const Color(0xFF0A5C36).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(icon, color: const Color(0xFF0A5C36), size: 24),
@@ -611,7 +611,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0A5C36).withOpacity(0.1),
+                  color: const Color(0xFF0A5C36).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.book_rounded, color: Color(0xFF0A5C36), size: 24),
@@ -692,7 +692,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -803,7 +803,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       border: isSelected
                           ? Border.all(color: const Color(0xFF0A5C36), width: 1.5)
                           : isToday
-                              ? Border.all(color: const Color(0xFF0A5C36).withOpacity(0.5), width: 1.5)
+                              ? Border.all(color: const Color(0xFF0A5C36).withValues(alpha: 0.5), width: 1.5)
                               : null,
                     ),
                     child: Column(
@@ -942,14 +942,14 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.amber.withOpacity(0.3)),
+                side: BorderSide(color: Colors.amber.withValues(alpha: 0.3)),
               ),
               child: ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withOpacity(0.2),
+                    color: Colors.amber.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.alarm_on_rounded, color: Colors.amber, size: 20),
@@ -994,14 +994,14 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.black.withOpacity(0.05)),
+                side: BorderSide(color: Colors.black.withValues(alpha: 0.05)),
               ),
               child: ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0A5C36).withOpacity(0.1),
+                    color: const Color(0xFF0A5C36).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.event_available_rounded, color: Color(0xFF0A5C36), size: 20),
@@ -1148,7 +1148,7 @@ class _DayName extends StatelessWidget {
         name,
         textAlign: TextAlign.center,
         style: TextStyle(
-          color: color ?? (isWeekend ? Colors.redAccent.withOpacity(0.8) : Colors.black54),
+          color: color ?? (isWeekend ? Colors.redAccent.withValues(alpha: 0.8) : Colors.black54),
           fontWeight: FontWeight.bold,
           fontSize: 12,
         ),

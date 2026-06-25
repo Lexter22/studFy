@@ -315,7 +315,7 @@ class _ProfessorModulesScreenState extends State<ProfessorModulesScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFF5F5F7),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black.withOpacity(0.06)),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
@@ -357,7 +357,7 @@ class _ProfessorModulesScreenState extends State<ProfessorModulesScreen> {
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: Colors.lightBlue.shade100, width: 1),
       ),
-      color: const Color(0xFF90CAF9).withOpacity(0.7), // Light blue shade card matching 2nd image
+      color: const Color(0xFF90CAF9).withValues(alpha: 0.7), // Light blue shade card matching 2nd image
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {

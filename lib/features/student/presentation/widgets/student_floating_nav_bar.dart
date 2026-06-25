@@ -24,38 +24,47 @@ class _StudentFloatingNavBarState extends State<StudentFloatingNavBar> {
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width > 800
-                ? 550
-                : MediaQuery.of(context).size.width - 20,
-          ),
-          child: Container(
-            height: 70,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: const Color(0xFF0A5C36), // Green color matching screenshot
-              borderRadius: BorderRadius.circular(35),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ],
+    return Hero(
+      tag: 'student_floating_nav_bar',
+      flightShuttleBuilder: (flightContext, animation, flightDirection, fromHeroContext, toHeroContext) {
+        return Material(
+          type: MaterialType.transparency,
+          child: toHeroContext.widget,
+        );
+      },
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width > 800
+                  ? 550
+                  : MediaQuery.of(context).size.width - 20,
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildNavItem(Icons.home_rounded, 'DASHBOARD', 0),
-                _buildNavItem(Icons.check_circle_rounded, "TO DO'S", 1),
-                _buildNavItem(Icons.menu_book_rounded, 'MODULES', 2),
-                _buildNavItem(Icons.logout_rounded, 'LOGOUT', 3),
-              ],
+            child: Container(
+              height: 70,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0A5C36), // Green color matching screenshot
+                borderRadius: BorderRadius.circular(35),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildNavItem(Icons.home_rounded, 'DASHBOARD', 0),
+                  _buildNavItem(Icons.check_circle_rounded, "TO DO'S", 1),
+                  _buildNavItem(Icons.menu_book_rounded, 'MODULES', 2),
+                  _buildNavItem(Icons.logout_rounded, 'LOGOUT', 3),
+                ],
+              ),
             ),
           ),
         ),
@@ -100,8 +109,8 @@ class _StudentFloatingNavBarState extends State<StudentFloatingNavBar> {
           ),
           decoration: BoxDecoration(
             color: isActive 
-                ? Colors.white.withOpacity(0.15) 
-                : (isHovered ? Colors.white.withOpacity(0.08) : Colors.transparent),
+                ? Colors.white.withValues(alpha: 0.15) 
+                : (isHovered ? Colors.white.withValues(alpha: 0.08) : Colors.transparent),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Column(

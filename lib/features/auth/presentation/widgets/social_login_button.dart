@@ -24,7 +24,7 @@ class SocialLoginButton extends StatelessWidget {
           foregroundColor: Colors.grey.shade800,
           surfaceTintColor: Colors.white,
           elevation: 2,
-          shadowColor: Colors.black.withOpacity(0.08),
+          shadowColor: Colors.black.withValues(alpha: 0.08),
           side: BorderSide(
             color: Colors.grey.shade300,
             width: 1.5,

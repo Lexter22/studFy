@@ -227,7 +227,7 @@ Widget build(BuildContext context) {
                                 disabledBackgroundColor: AppColors.authPrimary,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                 elevation: _isButtonEnabled ? 8 : 0,
-                                shadowColor: AppColors.authPrimary.withOpacity(0.4),
+                                shadowColor: AppColors.authPrimary.withValues(alpha: 0.4),
                               ),
                               onPressed: _isButtonEnabled ? _handleLogin : null,
                               child: const Text(

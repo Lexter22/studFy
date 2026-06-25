@@ -111,20 +111,6 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.adminPageBackground,
-      appBar: AppBar(
-        backgroundColor: AppColors.adminPrimary,
-        elevation: 0,
-        toolbarHeight: 70,
-        title: const Row(children: [
-          Icon(Icons.school, color: Colors.white, size: 28),
-          SizedBox(width: 8),
-          Text('STUDFY', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-        ]),
-        actions: const [
-          Center(child: Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('Admin 1', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)))),
-        ],
-        automaticallyImplyLeading: false,
-      ),
       body: Stack(
         children: [
           SingleChildScrollView(
@@ -158,7 +144,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                               decoration: BoxDecoration(
-                                color: AppColors.adminPrimary.withOpacity(0.1),
+                                color: AppColors.adminPrimary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Row(
@@ -208,7 +194,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.02),
+                            color: Colors.black.withValues(alpha: 0.02),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -311,7 +297,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 16,
                             offset: const Offset(0, 8),
                           ),
@@ -388,7 +374,6 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
               ),
             ),
           ),
-          const AdminFloatingNavBar(currentIndex: 1),
         ],
       ),
     );
@@ -466,7 +451,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
                 children: [
                   CircleAvatar(
                     radius: 20,
-                    backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                    backgroundColor: AppColors.adminPrimary.withValues(alpha: 0.08),
                     child: const Icon(Icons.person, color: AppColors.adminPrimary),
                   ),
                   const SizedBox(width: 12),
@@ -637,7 +622,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.adminPrimary.withOpacity(0.1),
+                color: AppColors.adminPrimary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(Icons.info_outline_rounded, color: AppColors.adminPrimary, size: 20),
@@ -746,7 +731,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
 
   Widget _actionBtn(String label, IconData icon, Color color, VoidCallback onTap) {
     return Material(
-      color: color.withOpacity(0.08),
+      color: color.withValues(alpha: 0.08),
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         onTap: onTap,
@@ -889,7 +874,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
             children: [
               CircleAvatar(
                 radius: 22,
-                backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                backgroundColor: AppColors.adminPrimary.withValues(alpha: 0.08),
                 child: Text(
                   initials,
                   style: const TextStyle(
@@ -984,7 +969,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.adminPrimary.withOpacity(0.1),
+                      color: AppColors.adminPrimary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.person_add_alt_1_rounded, color: AppColors.adminPrimary, size: 24),
@@ -1022,7 +1007,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
                       labelText: 'Email Address',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.email_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      prefixIcon: Icon(Icons.email_outlined, color: AppColors.adminPrimary.withValues(alpha: 0.7), size: 20),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1044,7 +1029,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
                       labelText: 'First Name',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.person_outline, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      prefixIcon: Icon(Icons.person_outline, color: AppColors.adminPrimary.withValues(alpha: 0.7), size: 20),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1065,7 +1050,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
                       labelText: 'Last Name',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.person_outline, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      prefixIcon: Icon(Icons.person_outline, color: AppColors.adminPrimary.withValues(alpha: 0.7), size: 20),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1087,7 +1072,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
                       labelText: 'Department',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.school_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      prefixIcon: Icon(Icons.school_outlined, color: AppColors.adminPrimary.withValues(alpha: 0.7), size: 20),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
