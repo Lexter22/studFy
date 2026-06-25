@@ -100,39 +100,31 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-                    tooltip: 'Back to Modules',
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const SizedBox(width: 8),
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
-                      Icon(Icons.school, color: Colors.white, size: 24),
+                      Icon(Icons.school, color: Colors.white, size: 28),
                       SizedBox(height: 2),
                       Text(
                         'STUDFY',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 11,
+                          fontSize: 14,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.5,
                         ),
                       ),
                     ],
                   ),
-                  const Spacer(),
-                  Expanded(
+                  Flexible(
                     child: Text(
                       widget.subject.name.toUpperCase(),
-                      textAlign: TextAlign.end,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -154,6 +146,42 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
                     children: [
+                      // Back navigation row
+                      Row(
+                        children: [
+                            InkWell(
+                              onTap: () => Navigator.pop(context),
+                              borderRadius: BorderRadius.circular(100),
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.grey.shade100,
+                                  border: Border.all(color: Colors.grey.shade200, width: 1),
+                                ),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.arrow_back_ios_new_rounded,
+                                    color: Color(0xFF0A5C36),
+                                    size: 14,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                          const Text(
+                            'Assignment Details',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF0A5C36),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
                       // Assignment Header Card
                       Container(
                         decoration: BoxDecoration(
@@ -161,7 +189,7 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
+                              color: Colors.black.withValues(alpha: 0.03),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -177,7 +205,7 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF0A5C36).withOpacity(0.1),
+                                    color: const Color(0xFF0A5C36).withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: const Text(
@@ -278,7 +306,7 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
                           border: Border.all(color: Colors.grey.shade200),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.02),
+                              color: Colors.black.withValues(alpha: 0.02),
                               blurRadius: 8,
                               offset: const Offset(0, 4),
                             ),
@@ -330,7 +358,7 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 child: Column(
                                   children: [
-                                    Icon(Icons.cloud_upload_outlined, color: const Color(0xFF0A5C36).withOpacity(0.5), size: 48),
+                                    Icon(Icons.cloud_upload_outlined, color: const Color(0xFF0A5C36).withValues(alpha: 0.5), size: 48),
                                     const SizedBox(height: 10),
                                     Text(
                                       'No file selected',

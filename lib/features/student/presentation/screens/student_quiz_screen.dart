@@ -215,7 +215,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 16, offset: const Offset(0, 6))],
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 16, offset: const Offset(0, 6))],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -224,9 +224,9 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
               width: 100,
               height: 100,
               decoration: BoxDecoration(
-                color: const Color(0xFF0A5C36).withOpacity(0.06),
+                color: const Color(0xFF0A5C36).withValues(alpha: 0.06),
                 shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF0A5C36).withOpacity(0.12), width: 4),
+                border: Border.all(color: const Color(0xFF0A5C36).withValues(alpha: 0.12), width: 4),
               ),
               alignment: Alignment.center,
               child: Column(
@@ -314,7 +314,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
             duration: const Duration(milliseconds: 200),
             margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFF0A5C36).withOpacity(0.1) : Colors.white,
+              color: isSelected ? const Color(0xFF0A5C36).withValues(alpha: 0.1) : Colors.white,
               border: Border.all(
                 color: isSelected ? const Color(0xFF0A5C36) : const Color(0xFFE0E0E0),
                 width: 1.5,
@@ -363,7 +363,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF0A5C36),
                 foregroundColor: Colors.white,
-                disabledBackgroundColor: const Color(0xFF0A5C36).withOpacity(0.4),
+                disabledBackgroundColor: const Color(0xFF0A5C36).withValues(alpha: 0.4),
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -460,7 +460,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(24),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 16, offset: const Offset(0, 6))],
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 16, offset: const Offset(0, 6))],
               border: Border.all(color: Colors.grey.shade100),
             ),
             padding: const EdgeInsets.all(32),
@@ -471,9 +471,9 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
                   width: 120,
                   height: 120,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0A5C36).withOpacity(0.06),
+                    color: const Color(0xFF0A5C36).withValues(alpha: 0.06),
                     shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFF0A5C36).withOpacity(0.12), width: 4),
+                    border: Border.all(color: const Color(0xFF0A5C36).withValues(alpha: 0.12), width: 4),
                   ),
                   alignment: Alignment.center,
                   child: Column(
@@ -542,7 +542,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFF0A5C36).withOpacity(0.1),
+                color: const Color(0xFF0A5C36).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text('Score: $_score/$totalQuestions',
@@ -566,7 +566,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: Colors.grey.shade200),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 4))],
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 4))],
             ),
             padding: const EdgeInsets.all(16),
             child: Column(

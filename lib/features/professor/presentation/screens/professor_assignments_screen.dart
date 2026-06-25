@@ -18,7 +18,10 @@ class ProfessorAssignmentsScreen extends StatefulWidget {
 class _ProfessorAssignmentsScreenState extends State<ProfessorAssignmentsScreen> {
   final _repo = const ProfessorRepository();
   bool _loading = true;
-  List<_AssignmentRowData> _assignments = [];
+  List<_AssignmentRowData> _activeAssignments = [];
+  List<_AssignmentRowData> _inactiveAssignments = [];
+  int _activePage = 0;
+  int _inactivePage = 0;
 
   @override
   void initState() {
@@ -30,16 +33,18 @@ class _ProfessorAssignmentsScreenState extends State<ProfessorAssignmentsScreen>
     setState(() => _loading = true);
     try {
       final subjects = await _repo.fetchMySubjects();
-      final List<_AssignmentRowData> temp = [];
+      final List<_AssignmentRowData> activeTemp = [];
+      final List<_AssignmentRowData> inactiveTemp = [];
+      final now = DateTime.now();
 
       for (final sub in subjects) {
         final assignList = await _repo.fetchAssignments(sub.id);
         for (final a in assignList) {
           final count = await _repo.fetchAssignmentSubmissionCount(a.id);
-          temp.add(_AssignmentRowData(
+          final row = _AssignmentRowData(
             subjectId: sub.id,
             subjectName: sub.name,
-            classCode: '${sub.courseCode} ${sub.yearLevel}-${sub.section}',
+            classCode: sub.classLabel,
             title: a.title,
             progressText: '$count/${sub.studentCount}',
             progressValue: sub.studentCount > 0 ? count / sub.studentCount : 0.0,
@@ -48,14 +53,51 @@ class _ProfessorAssignmentsScreenState extends State<ProfessorAssignmentsScreen>
                 : 'No Deadline',
             assignment: a,
             studentCount: sub.studentCount,
-          ));
+          );
+
+          if (a.deadline == null || !now.isAfter(a.deadline!)) {
+            activeTemp.add(row);
+          } else {
+            inactiveTemp.add(row);
+          }
         }
+      }
+
+      // Auto-delete inactive assignments past 30 days
+      final List<_AssignmentRowData> remainingInactive = [];
+      for (final row in inactiveTemp) {
+        final deadline = row.assignment.deadline!;
+        if (now.difference(deadline).inDays > 30) {
+          await _repo.deleteAssignment(row.assignment.id);
+        } else {
+          remainingInactive.add(row);
+        }
+      }
+
+      // Limit inactive assignments to 30 (delete oldest if > 30)
+      if (remainingInactive.length > 30) {
+        remainingInactive.sort((x, y) => x.assignment.deadline!.compareTo(y.assignment.deadline!));
+        final toDeleteCount = remainingInactive.length - 30;
+        for (int i = 0; i < toDeleteCount; i++) {
+          await _repo.deleteAssignment(remainingInactive[i].assignment.id);
+        }
+        remainingInactive.removeRange(0, toDeleteCount);
       }
 
       if (mounted) {
         setState(() {
-          _assignments = temp;
+          _activeAssignments = activeTemp;
+          _inactiveAssignments = remainingInactive;
           _loading = false;
+
+          final int maxActivePage = (_activeAssignments.length / 5).ceil() - 1;
+          if (_activePage > maxActivePage) {
+            _activePage = maxActivePage < 0 ? 0 : maxActivePage;
+          }
+          final int maxInactivePage = (_inactiveAssignments.length / 5).ceil() - 1;
+          if (_inactivePage > maxInactivePage) {
+            _inactivePage = maxInactivePage < 0 ? 0 : maxInactivePage;
+          }
         });
       }
     } catch (_) {
@@ -63,10 +105,6 @@ class _ProfessorAssignmentsScreenState extends State<ProfessorAssignmentsScreen>
         setState(() => _loading = false);
       }
     }
-  }
-
-  List<_AssignmentRowData> get _displayAssignments {
-    return _assignments;
   }
 
   @override
@@ -131,89 +169,231 @@ class _ProfessorAssignmentsScreenState extends State<ProfessorAssignmentsScreen>
                       children: [
                         // Title
                         const Text(
-                          'Assignment',
+                          'Assignments',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: AppColors.authPrimary,
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 20),
 
-                        // Assignment Table Container
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF5F5F5),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.black.withOpacity(0.05)),
-                          ),
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            children: [
-                              // Header Row
-                              Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-                                child: Row(
-                                  children: const [
-                                    Expanded(
-                                      flex: 2,
-                                      child: Text(
-                                        'Class',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                          color: Color(0xFF1D4E8F),
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      flex: 3,
-                                      child: Text(
-                                        'Assignment',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                          color: Color(0xFF1D4E8F),
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      flex: 3,
-                                      child: Text(
-                                        'Progress',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                          color: Color(0xFF1D4E8F),
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      flex: 2,
-                                      child: Text(
-                                        'Due Date',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                          color: Color(0xFF1D4E8F),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                        // Active Assignments Title
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade50,
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              const SizedBox(height: 8),
+                              child: const Icon(Icons.assignment_turned_in_rounded, color: Colors.green, size: 18),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Active Assignments',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1E293B),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        _buildAssignmentTable(
+                          _activeAssignments,
+                          'No active assignments.',
+                          _activePage,
+                          (newPage) => setState(() => _activePage = newPage),
+                        ),
 
-                              // Dynamic or Fallback Rows
-                              ..._displayAssignments.map((aData) => _buildTableRow(aData)),
-                            ],
-                          ),
+                        const SizedBox(height: 24),
+
+                        // Inactive Assignments Title
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.assignment_late_rounded, color: Colors.red, size: 18),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Inactive Assignments (Past Deadline)',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1E293B),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        _buildAssignmentTable(
+                          _inactiveAssignments,
+                          'No inactive assignments.',
+                          _inactivePage,
+                          (newPage) => setState(() => _inactivePage = newPage),
                         ),
                       ],
                     ),
                   ),
           ),
           const ProfessorFloatingNavBar(currentIndex: 3),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAssignmentTable(
+    List<_AssignmentRowData> list,
+    String emptyMessage,
+    int currentPage,
+    void Function(int) onPageChanged,
+  ) {
+    final int itemsPerPage = 5;
+    final int totalItems = list.length;
+    final int pageCount = (totalItems / itemsPerPage).ceil();
+    
+    // Paginated list
+    final paginatedList = list.skip(currentPage * itemsPerPage).take(itemsPerPage).toList();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        children: [
+          // Header Row
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+            child: Row(
+              children: const [
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'Class',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: Color(0xFF1D4E8F),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    'Assignment',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: Color(0xFF1D4E8F),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    'Progress',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: Color(0xFF1D4E8F),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'Due Date',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: Color(0xFF1D4E8F),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Dynamic or Fallback Rows
+          if (paginatedList.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: Text(
+                  emptyMessage,
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 13,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            )
+          else ...[
+            ...paginatedList.map((aData) => _buildTableRow(aData)),
+            if (pageCount > 1) ...[
+              const SizedBox(height: 12),
+              const Divider(height: 1, color: Colors.black12),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Page ${currentPage + 1} of $pageCount',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: currentPage > 0
+                            ? () => onPageChanged(currentPage - 1)
+                            : null,
+                        icon: const Icon(Icons.chevron_left_rounded, size: 20),
+                        style: IconButton.styleFrom(
+                          backgroundColor: currentPage > 0 ? const Color(0xFFF5F6F9) : Colors.transparent,
+                          foregroundColor: currentPage > 0 ? Colors.black87 : Colors.grey.shade300,
+                          disabledBackgroundColor: Colors.transparent,
+                          disabledForegroundColor: Colors.grey.shade300,
+                          shape: const CircleBorder(),
+                          padding: const EdgeInsets.all(8),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: currentPage < pageCount - 1
+                            ? () => onPageChanged(currentPage + 1)
+                            : null,
+                        icon: const Icon(Icons.chevron_right_rounded, size: 20),
+                        style: IconButton.styleFrom(
+                          backgroundColor: currentPage < pageCount - 1 ? const Color(0xFFF5F6F9) : Colors.transparent,
+                          foregroundColor: currentPage < pageCount - 1 ? Colors.black87 : Colors.grey.shade300,
+                          disabledBackgroundColor: Colors.transparent,
+                          disabledForegroundColor: Colors.grey.shade300,
+                          shape: const CircleBorder(),
+                          padding: const EdgeInsets.all(8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ],
         ],
       ),
     );
@@ -237,6 +417,7 @@ class _ProfessorAssignmentsScreenState extends State<ProfessorAssignmentsScreen>
                 assignment: aData.assignment,
                 subjectName: aData.subjectName,
                 totalStudents: aData.studentCount,
+                courseYearSection: aData.classCode,
               ),
             ),
           ).then((_) => _load());
@@ -248,13 +429,30 @@ class _ProfessorAssignmentsScreenState extends State<ProfessorAssignmentsScreen>
               // Class
               Expanded(
                 flex: 2,
-                child: Text(
-                  aData.classCode,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: Colors.black87,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      aData.subjectName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      aData.classCode,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
                 ),
               ),
 

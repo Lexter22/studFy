@@ -21,24 +21,60 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
   final TextEditingController _subjectNameController = TextEditingController();
   final TextEditingController _courseController = TextEditingController();
   final TextEditingController _professorController = TextEditingController();
+  int _currentPage = 0;
+  final int _pageSize = 10;
+  late ScrollController _scrollController;
+  bool _showStickyFilter = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _subjectNameController.addListener(_onFilterChanged);
+    _courseController.addListener(_onFilterChanged);
+    _professorController.addListener(_onFilterChanged);
+    _scrollController = ScrollController();
+    _scrollController.addListener(() {
+      final double offset = _scrollController.offset;
+      final bool shouldShow = offset > 180; // threshold when top filters scroll out
+      if (shouldShow != _showStickyFilter) {
+        setState(() {
+          _showStickyFilter = shouldShow;
+        });
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _scrollController.dispose();
+    _subjectNameController.removeListener(_onFilterChanged);
+    _courseController.removeListener(_onFilterChanged);
+    _professorController.removeListener(_onFilterChanged);
     _subjectNameController.dispose();
     _courseController.dispose();
     _professorController.dispose();
     super.dispose();
   }
 
+  void _onFilterChanged() {
+    setState(() {
+      _currentPage = 0;
+    });
+  }
+
   void _filterList() {
-    setState(() {});
+    setState(() {
+      _currentPage = 0;
+    });
   }
 
   void _clearFilters() {
     _subjectNameController.clear();
     _courseController.clear();
     _professorController.clear();
-    setState(() {});
+    setState(() {
+      _currentPage = 0;
+    });
   }
 
   @override
@@ -47,45 +83,10 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.adminPageBackground,
-      appBar: AppBar(
-        backgroundColor: AppColors.adminPrimary,
-        elevation: 0,
-        toolbarHeight: 70,
-        title: const Row(
-          children: [
-            Icon(Icons.school, color: Colors.white, size: 28),
-            SizedBox(width: 8),
-            Text(
-              'STUDFY',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-        actions: const [
-          Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'Admin 1',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        ],
-        automaticallyImplyLeading: false,
-      ),
       body: Stack(
         children: [
           SingleChildScrollView(
+            controller: _scrollController,
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
             child: Center(
@@ -100,37 +101,25 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Header panel
-                        Wrap(
-                          alignment: WrapAlignment.spaceBetween,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: 16,
-                          runSpacing: 12,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Subject Directory',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.adminPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Manage class offerings, schedules, and faculty',
-                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                                ),
-                              ],
+                            const Text(
+                              'Subject Directory',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.adminPrimary,
+                              ),
                             ),
+                            const SizedBox(height: 12),
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                   decoration: BoxDecoration(
-                                    color: AppColors.adminPrimary.withOpacity(0.1),
+                                    color: AppColors.adminPrimary.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   child: Row(
@@ -166,42 +155,6 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                         ),
                         const SizedBox(height: 24),
 
-                        _buildSectionTitle('Pending Requests'),
-                        const SizedBox(height: 8),
-
-                        ValueListenableBuilder<List<Map<String, String>>>(
-                          valueListenable: appState.pendingSubjectRequestsNotifier,
-                          builder: (context, pendingRequests, child) {
-                            if (pendingRequests.isEmpty) {
-                              return Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(vertical: 24),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: Colors.grey.shade200),
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  'No pending requests',
-                                  style: TextStyle(
-                                    color: Colors.grey.shade500,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              );
-                            }
-                            return Column(
-                              children: pendingRequests
-                                  .map((s) => _buildSubjectItem(s['name']!, s['status']!))
-                                  .toList(),
-                            );
-                          },
-                        ),
-
-                        const SizedBox(height: 28),
-
                         _buildSectionTitle('Subject Offerings'),
                         const SizedBox(height: 8),
 
@@ -213,7 +166,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.02),
+                                color: Colors.black.withValues(alpha: 0.02),
                                 blurRadius: 10,
                                 offset: const Offset(0, 4),
                               ),
@@ -284,7 +237,155 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
               ),
             ),
           ),
-          const AdminFloatingNavBar(currentIndex: 4),
+          Positioned(
+            top: 0,
+            left: 16,
+            right: 16,
+            child: ValueListenableBuilder<List<Map<String, String>>>(
+              valueListenable: appState.subjectOfferingsNotifier,
+              builder: (context, subjects, child) {
+                final courseList = subjects
+                    .map((s) => s['course'] ?? '')
+                    .where((v) => v.isNotEmpty)
+                    .toSet()
+                    .toList()
+                  ..sort();
+                final professorList = subjects
+                    .map((s) => s['professor'] ?? '')
+                    .where((v) => v.isNotEmpty)
+                    .toSet()
+                    .toList()
+                  ..sort();
+
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: AnimatedSlide(
+                      duration: const Duration(milliseconds: 200),
+                      offset: _showStickyFilter ? Offset.zero : const Offset(0, -1.5),
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 200),
+                        opacity: _showStickyFilter ? 1.0 : 0.0,
+                        child: Container(
+                          margin: const EdgeInsets.only(top: 10),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 16,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: Container(
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF5F6F9),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: TextField(
+                                    controller: _subjectNameController,
+                                    onChanged: (_) => _filterList(),
+                                    decoration: InputDecoration(
+                                      hintText: 'Search...',
+                                      hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                                      prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 18),
+                                      border: InputBorder.none,
+                                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                flex: 2,
+                                child: Container(
+                                  height: 38,
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF5F6F9),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      isExpanded: true,
+                                      value: _courseController.text.isEmpty ? null : _courseController.text,
+                                      hint: const Text('Course', style: TextStyle(fontSize: 11)),
+                                      onChanged: (val) {
+                                        setState(() {
+                                          _courseController.text = val ?? '';
+                                        });
+                                        _filterList();
+                                      },
+                                      items: [
+                                        const DropdownMenuItem<String>(value: null, child: Text('All Courses', style: TextStyle(fontSize: 11))),
+                                        ...courseList.map((c) => DropdownMenuItem<String>(
+                                          value: c,
+                                          child: Text(c, style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis),
+                                        )),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                flex: 2,
+                                child: Container(
+                                  height: 38,
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF5F6F9),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      isExpanded: true,
+                                      value: _professorController.text.isEmpty ? null : _professorController.text,
+                                      hint: const Text('Professor', style: TextStyle(fontSize: 11)),
+                                      onChanged: (val) {
+                                        setState(() {
+                                          _professorController.text = val ?? '';
+                                        });
+                                        _filterList();
+                                      },
+                                      items: [
+                                        const DropdownMenuItem<String>(value: null, child: Text('All Professors', style: TextStyle(fontSize: 11))),
+                                        ...professorList.map((p) => DropdownMenuItem<String>(
+                                          value: p,
+                                          child: Text(p, style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis),
+                                        )),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              IconButton(
+                                onPressed: _clearFilters,
+                                icon: const Icon(Icons.filter_alt_off_rounded, color: Colors.black54, size: 20),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                                tooltip: 'Clear filters',
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
         ],
       ),
     );
@@ -387,114 +488,192 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
       );
     }
 
-    return Column(
-      children: List.generate(filteredSubjects.length, (index) {
-        final subject = filteredSubjects[index];
-        final courses = _getCoursesForSubject(subject['name'] ?? '', subjects);
+    final totalItems = filteredSubjects.length;
+    final pageCount = (totalItems / _pageSize).ceil();
+    final safePage = _currentPage.clamp(0, pageCount - 1 >= 0 ? pageCount - 1 : 0);
+    final pagedSubjects = filteredSubjects.skip(safePage * _pageSize).take(_pageSize).toList();
 
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: Colors.grey.shade200),
-          ),
-          child: InkWell(
-            onTap: () async {
-              await context.pushNamed(
-                AppRoutes.adminSubjectsProfile,
-                extra: {
-                  'subjectId': subject['id'],
-                  'subjectName': subject['name'] ?? '',
-                  'courseSection': '${subject['course'] ?? ''} ${subject['section'] ?? ''}'.trim(),
-                  'professor': subject['professor'] ?? '',
-                },
-              );
-            },
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
-                    child: const Icon(Icons.book_rounded, color: AppColors.adminPrimary, size: 20),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          subject['name'] ?? '',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: Container(
-                                height: 32,
-                                alignment: Alignment.centerLeft,
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF5F6F9),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.grey.shade200),
-                                ),
-                                child: Text(
-                                  '${subject['course'] ?? ''} ${subject['section'] ?? ''}'.trim(),
-                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              flex: 3,
-                              child: Container(
-                                height: 32,
-                                alignment: Alignment.centerLeft,
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF5F6F9),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.grey.shade200),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.person_outline_rounded, size: 14, color: Colors.grey),
-                                    const SizedBox(width: 4),
-                                    Expanded(
-                                      child: Text(
-                                        subject['professor'] ?? 'Unassigned',
-                                        style: const TextStyle(fontSize: 11, color: Colors.black87),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+    return Column(
+      children: [
+        ...List.generate(pagedSubjects.length, (index) {
+          final subject = pagedSubjects[index];
+          final courses = _getCoursesForSubject(subject['name'] ?? '', subjects);
+
+          return Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: Colors.grey.shade200),
+            ),
+            child: InkWell(
+              onTap: () async {
+                await context.pushNamed(
+                  AppRoutes.adminSubjectsProfile,
+                  queryParameters: {
+                    if (subject['id'] != null) 'subjectId': subject['id']!,
+                  },
+                  extra: {
+                    'subjectId': subject['id'],
+                    'subjectName': subject['name'] ?? '',
+                    'courseSection': '${subject['course'] ?? ''} ${subject['section'] ?? ''}'.trim(),
+                    'professor': subject['professor'] ?? '',
+                  },
+                );
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 22,
+                      backgroundColor: AppColors.adminPrimary.withValues(alpha: 0.08),
+                      child: const Icon(Icons.book_rounded, color: AppColors.adminPrimary, size: 20),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Icon(Icons.chevron_right_rounded, color: Colors.grey),
-                ],
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            subject['name'] ?? '',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: Container(
+                                  height: 32,
+                                  alignment: Alignment.centerLeft,
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF5F6F9),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.grey.shade200),
+                                  ),
+                                  child: Text(
+                                    '${subject['course'] ?? ''} ${subject['section'] ?? ''}'.trim(),
+                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                flex: 3,
+                                child: Builder(
+                                  builder: (context) {
+                                    final String profName = subject['professor'] ?? '';
+                                    final bool isUnassigned = profName.isEmpty || profName.trim().toLowerCase() == 'unassigned';
+                                    return Container(
+                                      height: 32,
+                                      alignment: Alignment.centerLeft,
+                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                      decoration: BoxDecoration(
+                                        color: isUnassigned ? const Color(0xFFFFF5F5) : const Color(0xFFF5F6F9),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: isUnassigned ? Colors.red.shade200 : Colors.grey.shade200,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            isUnassigned ? Icons.warning_amber_rounded : Icons.person_outline_rounded,
+                                            size: 14,
+                                            color: isUnassigned ? Colors.red.shade700 : Colors.grey,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Expanded(
+                                            child: Text(
+                                              isUnassigned ? 'Unassigned' : profName,
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: isUnassigned ? Colors.red.shade700 : Colors.black87,
+                                                fontWeight: isUnassigned ? FontWeight.bold : FontWeight.normal,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                  ],
+                ),
               ),
             ),
+          );
+        }),
+        if (pageCount > 1) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Page ${safePage + 1} of $pageCount',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: safePage > 0
+                          ? () => setState(() => _currentPage = safePage - 1)
+                          : null,
+                      icon: const Icon(Icons.chevron_left_rounded, size: 20),
+                      style: IconButton.styleFrom(
+                        backgroundColor: safePage > 0 ? const Color(0xFFF5F6F9) : Colors.transparent,
+                        foregroundColor: safePage > 0 ? Colors.black87 : Colors.grey.shade300,
+                        disabledBackgroundColor: Colors.transparent,
+                        disabledForegroundColor: Colors.grey.shade300,
+                        shape: const CircleBorder(),
+                        padding: const EdgeInsets.all(8),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: safePage < pageCount - 1
+                          ? () => setState(() => _currentPage = safePage + 1)
+                          : null,
+                      icon: const Icon(Icons.chevron_right_rounded, size: 20),
+                      style: IconButton.styleFrom(
+                        backgroundColor: safePage < pageCount - 1 ? const Color(0xFFF5F6F9) : Colors.transparent,
+                        foregroundColor: safePage < pageCount - 1 ? Colors.black87 : Colors.grey.shade300,
+                        disabledBackgroundColor: Colors.transparent,
+                        disabledForegroundColor: Colors.grey.shade300,
+                        shape: const CircleBorder(),
+                        padding: const EdgeInsets.all(8),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        );
-      }),
+        ],
+      ],
     );
   }
 
@@ -541,132 +720,26 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
     final semesterCtrl = TextEditingController();
     final roomCtrl = TextEditingController();
     final scheduleCtrl = TextEditingController();
+    String? selectedProfessorId;
+    String? selectedYearSec;
     
-    // Fetch available sections from current state
+    final List<String> allSections = [
+      '1-1', '1-2', '1-3', '2-1', '2-2', '2-3', '3-1', '3-2', '3-3', '4-1', '4-2', '4-3'
+    ];
     final appState = context.read<AppState>();
-    final sectionsFromStudents = appState.students.map((s) => s.yearSection).toSet();
-    final sectionsFromOfferings = appState.subjectOfferings.map((s) => s['section'] ?? '').toSet();
-    final sectionsFromCodes = appState.enrollmentCodes.map((c) => c['year_section']?.toString() ?? '').toSet();
-    
-    final List<String> allSections = <String>{
-      ...sectionsFromStudents, 
-      ...sectionsFromOfferings, 
-      ...sectionsFromCodes,
-      '1-1', '1-2', '2-1', '2-2', '3-1', '3-2', '4-1', '4-2'
-    }
-        .where((s) => s.isNotEmpty)
-        .toList()
-      ..sort();
 
-    final List<String> selectedSections = [];
     bool isLoading = false;
 
-    void showMultiSectionSelector(BuildContext parentCtx, void Function(void Function()) setDialogState) {
-      final customSectionCtrl = TextEditingController();
-      showDialog(
-        context: parentCtx,
-        builder: (selectCtx) {
-          return StatefulBuilder(
-            builder: (selectCtx, setSelectState) {
-              return AlertDialog(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                title: const Text(
-                  'Select Sections',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.adminPrimary),
-                ),
-                content: Container(
-                  width: 320,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: customSectionCtrl,
-                              textCapitalization: TextCapitalization.characters,
-                              inputFormatters: const [UpperCaseTextFormatter()],
-                              decoration: InputDecoration(
-                                hintText: 'Add custom section...',
-                                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 12),
-                                isDense: true,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            icon: const Icon(Icons.add_circle, color: AppColors.adminPrimary),
-                            onPressed: () {
-                              final text = customSectionCtrl.text.trim();
-                              if (text.isNotEmpty) {
-                                setSelectState(() {
-                                  if (!allSections.contains(text)) {
-                                    allSections.add(text);
-                                    allSections.sort();
-                                  }
-                                  if (!selectedSections.contains(text)) {
-                                    selectedSections.add(text);
-                                  }
-                                  customSectionCtrl.clear();
-                                });
-                                setDialogState(() {});
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      const Divider(height: 1),
-                      const SizedBox(height: 8),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxHeight: 250),
-                        child: SingleChildScrollView(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: allSections.map((sec) {
-                              final isSelected = selectedSections.contains(sec);
-                              return CheckboxListTile(
-                                title: Text(sec, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                                value: isSelected,
-                                activeColor: AppColors.adminPrimary,
-                                contentPadding: EdgeInsets.zero,
-                                controlAffinity: ListTileControlAffinity.leading,
-                                onChanged: (val) {
-                                  setSelectState(() {
-                                    if (val == true) {
-                                      if (!selectedSections.contains(sec)) {
-                                        selectedSections.add(sec);
-                                      }
-                                    } else {
-                                      selectedSections.remove(sec);
-                                    }
-                                  });
-                                  setDialogState(() {});
-                                },
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(selectCtx),
-                    child: const Text('Done', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.adminPrimary)),
-                  ),
-                ],
-              );
-            },
-          );
-        },
-      );
+    int inferYearLevel(String sec) {
+      final match = RegExp(r'\d').firstMatch(sec);
+      if (match != null) {
+        return int.tryParse(match.group(0)!) ?? 1;
+      }
+      // Also try yearLevelCtrl if section doesn't contain a digit
+      return int.tryParse(yearLevelCtrl.text.trim()) ?? 1;
     }
+
+
 
     showDialog(
       context: context,
@@ -685,7 +758,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.adminPrimary.withOpacity(0.1),
+                      color: AppColors.adminPrimary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.add_rounded, color: AppColors.adminPrimary, size: 24),
@@ -703,7 +776,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
               ),
               const SizedBox(height: 10),
               Text(
-                'Enter the details of the subject offering, year level, and schedule.',
+                'Enter the details of the subject offering here.',
                 style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.normal),
               ),
               const SizedBox(height: 12),
@@ -723,7 +796,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                       labelText: 'Subject Name',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.book_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      prefixIcon: Icon(Icons.book_outlined, color: AppColors.adminPrimary.withValues(alpha: 0.7), size: 20),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -746,7 +819,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                       labelText: 'Course Code (e.g. BSIT)',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.school_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      prefixIcon: Icon(Icons.school_outlined, color: AppColors.adminPrimary.withValues(alpha: 0.7), size: 20),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -761,67 +834,14 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  GestureDetector(
-                    onTap: () => showMultiSectionSelector(ctx, setDialogState),
-                    child: InputDecorator(
-                      decoration: InputDecoration(
-                        labelText: 'Section(s)',
-                        labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                        floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                        prefixIcon: Icon(Icons.class_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
-                        suffixIcon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
-                        filled: true,
-                        fillColor: const Color(0xFFF8F9FC),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
-                        ),
-                      ),
-                      child: selectedSections.isEmpty
-                          ? Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              child: Text(
-                                'Select Section(s)',
-                                style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-                              ),
-                            )
-                          : Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              child: Wrap(
-                                spacing: 8,
-                                runSpacing: 4,
-                                children: selectedSections.map((sec) => Chip(
-                                  label: Text(
-                                    sec,
-                                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                                  ),
-                                  backgroundColor: AppColors.adminPrimary,
-                                  padding: EdgeInsets.zero,
-                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  onDeleted: () {
-                                    setDialogState(() {
-                                      selectedSections.remove(sec);
-                                    });
-                                  },
-                                  deleteIcon: const Icon(Icons.close, size: 12, color: Colors.white),
-                                )).toList(),
-                              ),
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: yearLevelCtrl,
+                  DropdownButtonFormField<String>(
+                    value: selectedYearSec,
+                    hint: Text('Select Year & Section', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                     decoration: InputDecoration(
-                      labelText: 'Year Level (1-4)',
+                      labelText: 'Year & Section',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.format_list_numbered, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      prefixIcon: Icon(Icons.grid_view_outlined, color: AppColors.adminPrimary.withValues(alpha: 0.7), size: 20),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -834,38 +854,27 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                         borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
                       ),
                     ),
-                    keyboardType: TextInputType.number,
+                    items: allSections.map((ys) {
+                      return DropdownMenuItem(
+                        value: ys,
+                        child: Text(ys, style: const TextStyle(fontSize: 13)),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      setDialogState(() {
+                        selectedYearSec = val;
+                      });
+                    },
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: semesterCtrl,
+                    keyboardType: TextInputType.number,
                     decoration: InputDecoration(
                       labelText: 'Semester (1 or 2)',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.calendar_today_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
-                      filled: true,
-                      fillColor: const Color(0xFFF8F9FC),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
-                      ),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: roomCtrl,
-                    decoration: InputDecoration(
-                      labelText: 'Room (Optional)',
-                      labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                      floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.meeting_room_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      prefixIcon: Icon(Icons.calendar_today_outlined, color: AppColors.adminPrimary.withValues(alpha: 0.7), size: 20),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -880,13 +889,14 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: scheduleCtrl,
+                  DropdownButtonFormField<String>(
+                    value: selectedProfessorId,
+                    hint: Text('Select Professor (Optional)', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                     decoration: InputDecoration(
-                      labelText: 'Schedule (Optional)',
+                      labelText: 'Assign Professor',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
-                      prefixIcon: Icon(Icons.access_time_outlined, color: AppColors.adminPrimary.withOpacity(0.7), size: 20),
+                      prefixIcon: Icon(Icons.person_outline_rounded, color: AppColors.adminPrimary.withValues(alpha: 0.7), size: 20),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FC),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -899,6 +909,17 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                         borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
                       ),
                     ),
+                    items: appState.instructors.map((inst) {
+                      return DropdownMenuItem(
+                        value: inst.profileId,
+                        child: Text(inst.name, style: const TextStyle(fontSize: 13)),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      setDialogState(() {
+                        selectedProfessorId = val;
+                      });
+                    },
                   ),
                   const SizedBox(height: 8),
                 ],
@@ -926,28 +947,25 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
               onPressed: isLoading
                   ? null
                   : () async {
-                      final yearLevel = int.tryParse(yearLevelCtrl.text.trim());
-                      final semester = int.tryParse(semesterCtrl.text.trim());
                       if (subjectNameCtrl.text.trim().isEmpty ||
                           courseCodeCtrl.text.trim().isEmpty ||
-                          selectedSections.isEmpty ||
-                          yearLevel == null) {
+                          selectedYearSec == null ||
+                          semesterCtrl.text.trim().isEmpty) {
                         AppDialog.alert(ctx, title: 'Error', message: 'Please fill in all required fields.');
                         return;
                       }
                       setDialogState(() => isLoading = true);
                       try {
-                        for (final sec in selectedSections) {
-                          await context.read<AppState>().createSubject(
-                                subjectName: subjectNameCtrl.text,
-                                courseCode: courseCodeCtrl.text,
-                                section: sec,
-                                yearLevel: yearLevel,
-                                semester: semester,
-                                room: roomCtrl.text,
-                                scheduleLabel: scheduleCtrl.text,
-                              );
-                        }
+                        final semesterVal = int.tryParse(semesterCtrl.text.trim());
+                        final yearLevelVal = inferYearLevel(selectedYearSec!);
+                        await context.read<AppState>().createSubject(
+                              subjectName: subjectNameCtrl.text,
+                              courseCode: courseCodeCtrl.text.trim(),
+                              section: selectedYearSec!,
+                              yearLevel: yearLevelVal,
+                              semester: semesterVal,
+                              professorProfileId: selectedProfessorId,
+                            );
                         if (!mounted) return;
                         Navigator.pop(ctx);
                         await AppDialog.result(context, type: DialogType.success, message: 'Subjects created successfully.');
@@ -991,7 +1009,7 @@ class _PendingSubjectCardState extends State<_PendingSubjectCard> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -1048,6 +1066,10 @@ class _PendingSubjectCardState extends State<_PendingSubjectCard> {
               _buildViewDetailsBtn(() {
                 context.pushNamed(
                   AppRoutes.adminSubjectsProfile,
+                  queryParameters: {
+                    'subjectName': widget.name,
+                    'pendingRequest': widget.status,
+                  },
                   extra: {
                     'subjectName': widget.name,
                     'courseSection': 'Pending',

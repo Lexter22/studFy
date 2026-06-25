@@ -77,7 +77,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
         // Filter by Course & Section
         if (_selectedCourseSection != null) {
           final filterStr = _selectedCourseSection!.toLowerCase();
-          final classCode = '${sub.courseCode} ${sub.yearLevel}-${sub.section}'.toLowerCase();
+          final classCode = sub.classLabel.toLowerCase();
           if (!classCode.contains(filterStr)) {
             return false;
           }
@@ -99,7 +99,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
 
 
 
-  void _verifyPasswordAndExecute(String actionDescription, Future<void> Function() action) {
+  void _verifyPasswordAndExecute(String actionDescription, Future<void> Function() action, {String confirmLabel = 'Confirm'}) {
     final user = context.read<AppState>().currentUser;
     if (user == null) {
       AppDialog.result(context, type: DialogType.error, message: 'User session not found.');
@@ -112,9 +112,33 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
       title: 'Please Confirm',
       message: 'Are you sure you want to proceed with $actionDescription? This action cannot be undone.',
       type: DialogType.warning,
-      confirmLabel: 'Confirm',
+      confirmLabel: confirmLabel,
       onConfirm: () async {
         await action();
+      },
+    );
+  }
+
+  void _verifyPasswordAndExecuteWithTextarea(
+    String actionDescription,
+    Future<void> Function(String reason) action, {
+    String confirmLabel = 'Confirm',
+  }) {
+    final user = context.read<AppState>().currentUser;
+    if (user == null) {
+      AppDialog.result(context, type: DialogType.error, message: 'User session not found.');
+      return;
+    }
+
+    AppDialog.confirmWithTextarea(
+      context,
+      title: 'Please Confirm',
+      message: 'Are you sure you want to proceed with $actionDescription? This action cannot be undone.',
+      textLabel: 'Request message (Optional)',
+      type: DialogType.warning,
+      confirmLabel: confirmLabel,
+      onConfirm: (reason) async {
+        await action(reason);
       },
     );
   }
@@ -157,7 +181,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.authPrimary.withOpacity(0.1),
+                        color: AppColors.authPrimary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(Icons.people_alt_rounded, color: AppColors.authPrimary, size: 20),
@@ -175,7 +199,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  '${sub.courseCode} ${sub.yearLevel}-${sub.section}',
+                  sub.classLabel,
                   style: const TextStyle(
                     fontSize: 14,
                     color: Color(0xFF475569),
@@ -286,15 +310,35 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                                       icon: const Icon(Icons.delete_outline, color: Colors.red),
                                       iconSize: 20,
                                       onPressed: () {
-                                        _verifyPasswordAndExecute('un-enrolling student "${s['name'] ?? ''}"', () async {
-                                          await _repo.unenrollStudent(sub.id, s['profileId']!);
-                                          setS(() {
-                                            students.remove(s);
-                                          });
-                                          setState(() {
-                                            sub.studentCount = students.length;
-                                          });
-                                        });
+                                        _verifyPasswordAndExecuteWithTextarea(
+                                          'un-enrolling student "${s['name'] ?? ''}"',
+                                          (reason) async {
+                                            try {
+                                              await _repo.requestUnenrollStudent(
+                                                subjectId: sub.id,
+                                                studentProfileId: s['profileId']!,
+                                                studentName: s['name'] ?? 'Student',
+                                                subjectName: sub.name,
+                                                classLabel: sub.classLabel,
+                                                reason: reason,
+                                              );
+                                              if (!mounted) return;
+                                              AppDialog.result(
+                                                context,
+                                                type: DialogType.success,
+                                                message: 'Unenrollment request submitted for admin approval.',
+                                              );
+                                            } catch (e) {
+                                              if (!mounted) return;
+                                              AppDialog.result(
+                                                context,
+                                                type: DialogType.error,
+                                                message: e.toString(),
+                                              );
+                                            }
+                                          },
+                                          confirmLabel: 'Confirm Request',
+                                        );
                                       },
                                     ),
                                   ],
@@ -473,7 +517,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: AppColors.authPrimary.withOpacity(0.15),
+                              color: AppColors.authPrimary.withValues(alpha: 0.15),
                               blurRadius: 4,
                               offset: const Offset(0, 2),
                             )
@@ -519,7 +563,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.authPrimary.withOpacity(0.1),
+                        color: AppColors.authPrimary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(Icons.assignment_turned_in_rounded, color: AppColors.authPrimary, size: 20),
@@ -537,7 +581,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  '${sub.name} - ${sub.courseCode} ${sub.yearLevel}-${sub.section}',
+                  '${sub.name} - ${sub.classLabel}',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -886,7 +930,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
     final subjectNames = _allSubjects.map((s) => s.name).toSet().toList();
     // Get unique course codes for filter
     final courseSections = _allSubjects
-        .map((s) => '${s.courseCode} ${s.yearLevel}-${s.section}')
+        .map((s) => s.classLabel)
         .toSet()
         .toList();
 
@@ -1045,7 +1089,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                     ],
                   ),
           ),
-          const ProfessorFloatingNavBar(currentIndex: 0),
+          const ProfessorFloatingNavBar(currentIndex: 1),
         ],
       ),
     );
@@ -1073,7 +1117,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFF5F5F7),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black.withOpacity(0.06)),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
@@ -1127,12 +1171,12 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 8,
                 offset: const Offset(0, 3),
               ),
             ],
-            border: Border.all(color: Colors.blue.shade100.withOpacity(0.5)),
+            border: Border.all(color: Colors.blue.shade100.withValues(alpha: 0.5)),
           ),
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -1153,7 +1197,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${sub.courseCode} ${sub.yearLevel}-${sub.section}',
+                      sub.classLabel,
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.blueGrey.shade800,

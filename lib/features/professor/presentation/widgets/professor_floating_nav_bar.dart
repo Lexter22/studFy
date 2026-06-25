@@ -25,39 +25,48 @@ class _ProfessorFloatingNavBarState extends State<ProfessorFloatingNavBar> {
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width > 800
-                ? 650
-                : MediaQuery.of(context).size.width - 20,
-          ),
-          child: Container(
-            height: 70,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: AppColors.authPrimary,
-              borderRadius: BorderRadius.circular(35),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ],
+    return Hero(
+      tag: 'professor_floating_nav_bar',
+      flightShuttleBuilder: (flightContext, animation, flightDirection, fromHeroContext, toHeroContext) {
+        return Material(
+          type: MaterialType.transparency,
+          child: toHeroContext.widget,
+        );
+      },
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width > 800
+                  ? 650
+                  : MediaQuery.of(context).size.width - 20,
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildNavItem(Icons.layers_rounded, 'CLASSES', 0),
-                _buildNavItem(Icons.menu_book_rounded, 'MODULES', 1),
-                _buildNavItem(Icons.home_rounded, 'DASHBOARD', 2),
-                _buildNavItem(Icons.edit_rounded, 'ASSIGNMENT', 3),
-                _buildNavItem(Icons.logout_rounded, 'LOGOUT', 4),
-              ],
+            child: Container(
+              height: 70,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: AppColors.authPrimary,
+                borderRadius: BorderRadius.circular(35),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildNavItem(Icons.home_rounded, 'DASHBOARD', 0),
+                  _buildNavItem(Icons.layers_rounded, 'CLASSES', 1),
+                  _buildNavItem(Icons.menu_book_rounded, 'MODULES', 2),
+                  _buildNavItem(Icons.edit_rounded, 'ASSIGNMENT', 3),
+                  _buildNavItem(Icons.logout_rounded, 'LOGOUT', 4),
+                ],
+              ),
             ),
           ),
         ),
@@ -68,6 +77,8 @@ class _ProfessorFloatingNavBarState extends State<ProfessorFloatingNavBar> {
   Widget _buildNavItem(IconData icon, String label, int index) {
     final bool isHovered = _hoveredIndex == index;
     final bool isActive = widget.currentIndex == index;
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 500;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hoveredIndex = index),
@@ -85,22 +96,25 @@ class _ProfessorFloatingNavBarState extends State<ProfessorFloatingNavBar> {
           }
 
           if (index == 0) {
-            context.goNamed(AppRoutes.professorClasses);
-          } else if (index == 1) {
-            context.goNamed(AppRoutes.professorModules);
-          } else if (index == 2) {
             context.goNamed(AppRoutes.professorDashboard);
+          } else if (index == 1) {
+            context.goNamed(AppRoutes.professorClasses);
+          } else if (index == 2) {
+            context.goNamed(AppRoutes.professorModules);
           } else if (index == 3) {
             context.goNamed(AppRoutes.professorAssignments);
           }
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 8 : 16,
+            vertical: 8,
+          ),
           decoration: BoxDecoration(
             color: isActive 
-                ? Colors.white.withOpacity(0.15) 
-                : (isHovered ? Colors.white.withOpacity(0.08) : Colors.transparent),
+                ? Colors.white.withValues(alpha: 0.15) 
+                : (isHovered ? Colors.white.withValues(alpha: 0.08) : Colors.transparent),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Column(
@@ -109,14 +123,16 @@ class _ProfessorFloatingNavBarState extends State<ProfessorFloatingNavBar> {
               Icon(
                 icon, 
                 color: Colors.white, 
-                size: 22,
+                size: isMobile ? 18 : 22,
               ),
               const SizedBox(height: 4),
               Text(
                 label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 9,
+                  fontSize: isMobile ? 7.5 : 9,
                   fontWeight: (isHovered || isActive) ? FontWeight.bold : FontWeight.normal,
                   letterSpacing: 0.5,
                 ),

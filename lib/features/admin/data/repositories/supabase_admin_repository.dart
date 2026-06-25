@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../auth/domain/models/auth_exception.dart' as app_auth;
@@ -32,18 +33,28 @@ class SupabaseAdminRepository {
         ascending: false,
       );
 
+      final requesterIds = rows
+          .map((row) => row['requester_profile_id']?.toString())
+          .whereType<String>()
+          .toSet()
+          .toList();
+      final requesterNames = await _fetchProfileDisplayNames(requesterIds);
+
       return rows.map((row) {
         final metadata = Map<String, dynamic>.from(
           (row['metadata'] is Map ? row['metadata'] as Map : <String, dynamic>{})
         );
+        final reqId = row['requester_profile_id']?.toString() ?? '';
         return <String, String>{
           'id': row['id']?.toString() ?? '',
           'kind': row['kind']?.toString() ?? '',
-          'requester_profile_id': row['requester_profile_id']?.toString() ?? '',
+          'requester_profile_id': reqId,
+          'requester_name': requesterNames[reqId] ?? 'Professor',
           'name': row['title']?.toString() ?? '',
           'status': _requestLabel(row['kind']?.toString(), metadata),
           'details': row['details']?.toString() ?? '',
           'requested_role': metadata['requested_role']?.toString() ?? '',
+          'reason': metadata['reason']?.toString() ?? '',
         };
       }).toList();
     } on PostgrestException catch (error) {
@@ -64,10 +75,12 @@ class SupabaseAdminRepository {
 
       return rows.map((row) {
         final professorId = row['professor_profile_id']?.toString() ?? '';
+        final rawCourse = row['course_code']?.toString() ?? '';
+        final cleanedCourse = (rawCourse == 'IT 001' || rawCourse.toLowerCase().contains('it 0')) ? 'BSIT' : rawCourse;
         return <String, String>{
           'id': row['id']?.toString() ?? '',
           'name': row['subject_name']?.toString() ?? '',
-          'course': row['course_code']?.toString() ?? '',
+          'course': cleanedCourse,
           'section': row['section']?.toString() ?? '',
           'professor': professorNames[professorId] ?? 'Unassigned',
         };
@@ -175,6 +188,36 @@ class SupabaseAdminRepository {
     required String requestId,
     required bool approve,
   }) async {
+    try {
+      final reqRows = await _client.from('requests').select('kind, metadata').eq('id', requestId);
+      if (reqRows != null && (reqRows as List).isNotEmpty) {
+        final req = reqRows.first;
+        final kind = req['kind']?.toString();
+        if (kind == 'student_unenroll') {
+          // Handle student unenroll request
+          await _client.from('requests').update({
+            'status': approve ? 'approved' : 'rejected',
+            'resolved_at': DateTime.now().toIso8601String(),
+          }).eq('id', requestId);
+
+          if (approve) {
+            final metadata = req['metadata'] is Map ? req['metadata'] as Map : {};
+            final studentId = metadata['student_id']?.toString();
+            final subjectId = metadata['subject_id']?.toString();
+            if (studentId != null && subjectId != null) {
+              await unenrollStudentFromSubject(
+                studentProfileId: studentId,
+                subjectOfferingId: subjectId,
+              );
+            }
+          }
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint('Failed in local resolveRoleRequest check: $e');
+    }
+
     final response = await _client.functions.invoke(
       'resolve-role-request',
       body: {'requestId': requestId, 'approve': approve},
@@ -412,6 +455,7 @@ class SupabaseAdminRepository {
     String? academicYear,
     String? room,
     String? scheduleLabel,
+    String? professorProfileId,
   }) async {
     try {
       await _client.from('subject_offerings').insert({
@@ -423,6 +467,7 @@ class SupabaseAdminRepository {
         if (academicYear != null && academicYear.trim().isNotEmpty) 'academic_year': academicYear.trim(),
         if (room != null && room.trim().isNotEmpty) 'room': room.trim(),
         if (scheduleLabel != null && scheduleLabel.trim().isNotEmpty) 'schedule_label': scheduleLabel.trim(),
+        if (professorProfileId != null && professorProfileId.isNotEmpty) 'professor_profile_id': professorProfileId,
         'status': 'active',
       });
     } on PostgrestException catch (error) {
@@ -510,6 +555,7 @@ class SupabaseAdminRepository {
       case 'account_edit': return 'Account Edit Request';
       case 'class_creation': return 'Class Creation Request';
       case 'schedule_conflict': return 'Schedule Conflict Request';
+      case 'student_unenroll': return 'Student Unenrollment Request';
       case 'role_assignment':
         final requestedRole = (metadata['requested_role']?.toString() ?? '').toLowerCase();
         if (requestedRole == 'student') return 'Student Registration Request';

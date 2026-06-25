@@ -176,7 +176,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 elevation: _isLoading ? 0 : 8,
-                                shadowColor: AppColors.authPrimary.withOpacity(0.4),
+                                shadowColor: AppColors.authPrimary.withValues(alpha: 0.4),
                               ),
                               child: _isLoading
                                   ? const SizedBox(

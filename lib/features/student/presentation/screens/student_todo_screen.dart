@@ -145,7 +145,7 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
                       Text(
                         courseSection,
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                           fontSize: 10,
                           fontWeight: FontWeight.w500,
                         ),
@@ -282,6 +282,18 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
         }
       }
     }
+
+    results.sort((a, b) {
+      final DateTime? da = (a['assignment'] as SubjectAssignment).deadline;
+      final DateTime? db = (b['assignment'] as SubjectAssignment).deadline;
+
+      if (da == null && db == null) return 0;
+      if (da == null) return 1;
+      if (db == null) return -1;
+
+      return da.compareTo(db);
+    });
+
     return results;
   }
 
@@ -314,7 +326,7 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
                   ),
                 ),
                 child: Icon(
-                  ass.id.contains('quiz') ? Icons.quiz_rounded : Icons.edit_note_rounded,
+                  ass.id.contains('quiz') ? Icons.fact_check_rounded : Icons.assignment_rounded,
                   color: isMissing ? Colors.red : const Color(0xFF0A5C36),
                   size: 26,
                 ),
@@ -349,7 +361,7 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
 
               // Due Date label
               Text(
-                ass.deadline != null ? 'May 09' : 'May 09', // Static like the design
+                _formatDeadline(ass.deadline),
                 style: const TextStyle(
                   fontSize: 11,
                   color: Colors.black54,
@@ -361,6 +373,15 @@ class _StudentTodoScreenState extends State<StudentTodoScreen> with SingleTicker
         ),
       ),
     );
+  }
+
+  String _formatDeadline(DateTime? deadline) {
+    if (deadline == null) return 'No deadline';
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final localDeadline = deadline.toLocal();
+    final monthStr = months[localDeadline.month - 1];
+    final dayStr = localDeadline.day.toString().padLeft(2, '0');
+    return '$monthStr $dayStr';
   }
 
   void _handleAssignmentTap(StudentSubject sub, SubjectAssignment ass) async {

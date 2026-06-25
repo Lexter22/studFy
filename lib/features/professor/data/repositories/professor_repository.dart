@@ -81,6 +81,17 @@ class ProfessorRepository {
     );
   }
 
+  Future<void> updateModule({
+    required String moduleId,
+    required String title,
+    String? description,
+  }) async {
+    await _client.from('modules').update({
+      'title': title.trim(),
+      'description': description?.trim(),
+    }).eq('id', moduleId);
+  }
+
   Future<void> deleteModule(String moduleId) async {
     await _client.from('modules').delete().eq('id', moduleId);
   }
@@ -359,6 +370,34 @@ class ProfessorRepository {
         .delete()
         .eq('subject_offering_id', subjectId)
         .eq('student_profile_id', studentProfileId);
+  }
+
+  Future<void> requestUnenrollStudent({
+    required String subjectId,
+    required String studentProfileId,
+    required String studentName,
+    required String subjectName,
+    required String classLabel,
+    String? reason,
+  }) async {
+    final user = _client.auth.currentUser;
+    if (user == null) throw Exception('User not logged in');
+
+    await _client.from('requests').insert({
+      'kind': 'student_unenroll',
+      'title': studentName,
+      'details': 'Request to unenroll $studentName from $subjectName ($classLabel)',
+      'status': 'pending',
+      'requester_profile_id': user.id,
+      'metadata': {
+        'student_id': studentProfileId,
+        'subject_id': subjectId,
+        'student_name': studentName,
+        'subject_name': subjectName,
+        'class_label': classLabel,
+        'reason': reason ?? '',
+      },
+    });
   }
 
   Future<List<Map<String, String>>> fetchEnrolledStudents(String subjectId) async {
@@ -755,6 +794,64 @@ class ProfessorRepository {
     }).toList();
 
     await _client.from('student_grades').insert(rows);
+  }
+
+  Future<void> updateBatchGrades({
+    required String subjectId,
+    required String oldTitle,
+    required String oldCategory,
+    required String newTitle,
+    required String newCategory,
+    required double newMaxScore,
+    required Map<String, double> studentScores, // studentProfileId -> score
+  }) async {
+    final existingRows = await _client
+        .from('student_grades')
+        .select('id, student_profile_id')
+        .eq('subject_offering_id', subjectId)
+        .eq('title', oldTitle)
+        .eq('category', oldCategory);
+
+    final Map<String, String> existingMap = {};
+    for (final r in (existingRows as List)) {
+      existingMap[r['student_profile_id'].toString()] = r['id'].toString();
+    }
+
+    final List<Future<void>> updates = [];
+    final List<Map<String, dynamic>> inserts = [];
+
+    for (final entry in studentScores.entries) {
+      final pid = entry.key;
+      final score = entry.value;
+      final gradeId = existingMap[pid];
+
+      if (gradeId != null) {
+        updates.add(
+          _client.from('student_grades').update({
+            'title': newTitle,
+            'category': newCategory,
+            'max_score': newMaxScore,
+            'score': score,
+          }).eq('id', gradeId)
+        );
+      } else {
+        inserts.add({
+          'subject_offering_id': subjectId,
+          'student_profile_id': pid,
+          'category': newCategory,
+          'title': newTitle,
+          'score': score,
+          'max_score': newMaxScore,
+        });
+      }
+    }
+
+    if (updates.isNotEmpty) {
+      await Future.wait(updates);
+    }
+    if (inserts.isNotEmpty) {
+      await _client.from('student_grades').insert(inserts);
+    }
   }
 
   // ── Announcements ─────────────────────────────────────────────────────────

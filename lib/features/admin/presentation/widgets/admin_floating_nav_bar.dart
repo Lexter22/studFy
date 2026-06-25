@@ -25,8 +25,16 @@ class _AdminFloatingNavBarState extends State<AdminFloatingNavBar> {
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.bottomCenter,
+    return Hero(
+      tag: 'admin_floating_nav_bar',
+      flightShuttleBuilder: (flightContext, animation, flightDirection, fromHeroContext, toHeroContext) {
+        return Material(
+          type: MaterialType.transparency,
+          child: toHeroContext.widget,
+        );
+      },
+      child: Align(
+        alignment: Alignment.bottomCenter,
       child: Padding(
         padding: const EdgeInsets.all(10),
         child: ConstrainedBox(
@@ -43,7 +51,7 @@ class _AdminFloatingNavBarState extends State<AdminFloatingNavBar> {
               borderRadius: BorderRadius.circular(35),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.2),
                   blurRadius: 15,
                   offset: const Offset(0, 5),
                 ),
@@ -52,22 +60,24 @@ class _AdminFloatingNavBarState extends State<AdminFloatingNavBar> {
             child: Row(
               children: [
                 _buildNavItem(Icons.home, 'DASHBOARD', 0),
-                _buildNavItem(Icons.manage_accounts, 'ROLES', 1),
-                _buildNavItem(Icons.layers, 'INSTRUCTOR', 2),
-                _buildNavItem(Icons.group, 'STUDENTS', 3),
-                _buildNavItem(Icons.book, 'SUBJECTS', 4),
-                _buildNavItem(Icons.logout, 'LOGOUT', 5),
+                _buildNavItem(Icons.layers, 'INSTRUCTOR', 1),
+                _buildNavItem(Icons.group, 'STUDENTS', 2),
+                _buildNavItem(Icons.book, 'SUBJECTS', 3),
+                _buildNavItem(Icons.logout, 'LOGOUT', 4),
               ],
             ),
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildNavItem(IconData icon, String label, int index) {
     final bool isHovered = _hoveredIndex == index;
     final bool isActive = widget.currentIndex == index;
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 500;
 
     return Expanded(
       child: MouseRegion(
@@ -75,17 +85,15 @@ class _AdminFloatingNavBarState extends State<AdminFloatingNavBar> {
         onExit: (_) => setState(() => _hoveredIndex = null),
         child: GestureDetector(
           onTap: () {
-            if (index == 5) {
+            if (index == 4) {
               _handleLogout();
             } else if (index == 0) {
               context.goNamed(AppRoutes.adminDashboard);
             } else if (index == 1) {
-              context.goNamed(AppRoutes.adminRoleManager);
-            } else if (index == 2) {
               context.goNamed(AppRoutes.adminInstructors);
-            } else if (index == 3) {
+            } else if (index == 2) {
               context.goNamed(AppRoutes.adminStudents);
-            } else if (index == 4) {
+            } else if (index == 3) {
               context.goNamed(AppRoutes.adminSubjects);
             }
           },
@@ -93,11 +101,14 @@ class _AdminFloatingNavBarState extends State<AdminFloatingNavBar> {
           child: Center(
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 4 : 10,
+                vertical: 6,
+              ),
               decoration: BoxDecoration(
                 color: isActive 
-                    ? Colors.white.withOpacity(0.15) 
-                    : (isHovered ? Colors.white.withOpacity(0.08) : Colors.transparent),
+                    ? Colors.white.withValues(alpha: 0.15) 
+                    : (isHovered ? Colors.white.withValues(alpha: 0.08) : Colors.transparent),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -107,16 +118,18 @@ class _AdminFloatingNavBarState extends State<AdminFloatingNavBar> {
                   Icon(
                     icon, 
                     color: Colors.white, 
-                    size: 20,
+                    size: isMobile ? 18 : 20,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 3),
                   Text(
                     label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 8.5,
+                      fontSize: isMobile ? 7.5 : 8.5,
                       fontWeight: (isHovered || isActive) ? FontWeight.bold : FontWeight.w500,
-                      letterSpacing: 0.3,
+                      letterSpacing: 0.2,
                     ),
                   ),
                 ],

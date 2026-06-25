@@ -147,6 +147,7 @@ class AppState extends ChangeNotifier {
     String? academicYear,
     String? room,
     String? scheduleLabel,
+    String? professorProfileId,
   }) async {
     await _adminRepository.createSubject(
       subjectName: subjectName,
@@ -157,6 +158,7 @@ class AppState extends ChangeNotifier {
       academicYear: academicYear,
       room: room,
       scheduleLabel: scheduleLabel,
+      professorProfileId: professorProfileId,
     );
     await loadAdminData();
   }
@@ -395,6 +397,7 @@ class AppState extends ChangeNotifier {
     switch (request['kind']) {
       case 'account_edit':
       case 'role_assignment':
+      case 'student_unenroll':
         return true;
       default:
         return false;
@@ -408,9 +411,11 @@ class AppState extends ChangeNotifier {
       'status': request['status'] ?? 'Pending Request',
       'request': request['status'] ?? 'Pending Request',
       'requester_profile_id': request['requester_profile_id'] ?? '',
+      'requester_name': request['requester_name'] ?? 'Professor',
       'kind': request['kind'] ?? '',
       'details': request['details'] ?? '',
       'requested_role': request['requested_role'] ?? '',
+      'reason': request['reason'] ?? '',
     };
   }
 

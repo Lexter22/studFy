@@ -87,7 +87,7 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: AppColors.authPrimary.withOpacity(0.1),
+                            color: AppColors.authPrimary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(Icons.alarm_add_rounded, color: AppColors.authPrimary, size: 24),
@@ -385,7 +385,7 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                     ),
             ),
           ),
-          const ProfessorFloatingNavBar(currentIndex: 2),
+          const ProfessorFloatingNavBar(currentIndex: 0),
         ],
       ),
     );
@@ -404,76 +404,101 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
           ),
         ),
         const SizedBox(height: 10),
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFFF5F5F5),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.black.withOpacity(0.05)),
-          ),
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            children: [
-              // Header Row
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-                child: Row(
-                  children: const [
-                    Expanded(flex: 3, child: Text('Class', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF1D4E8F)))),
-                    Expanded(flex: 3, child: Text('Assignment', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF1D4E8F)))),
-                    Expanded(flex: 2, child: Text('Progress', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF1D4E8F)))),
-                    Expanded(flex: 2, child: Text('Due Date', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF1D4E8F)))),
-                  ],
-                ),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final bool isMobile = constraints.maxWidth < 500;
+            return Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
               ),
-              const SizedBox(height: 8),
-              if (_dashboardAssignments.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: Text(
-                      'No assignments found.',
-                      style: TextStyle(color: Colors.grey, fontSize: 14),
+              padding: EdgeInsets.all(isMobile ? 6 : 12),
+              child: Column(
+                children: [
+                  // Header Row
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 6, horizontal: isMobile ? 8 : 16),
+                    child: Row(
+                      children: const [
+                        Expanded(flex: 3, child: Text('Class', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFF1D4E8F)))),
+                        Expanded(flex: 3, child: Text('Assignment', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFF1D4E8F)))),
+                        Expanded(flex: 2, child: Text('Progress', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFF1D4E8F)))),
+                        Expanded(flex: 2, child: Text('Due Date', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFF1D4E8F)))),
+                      ],
                     ),
                   ),
-                )
-              else
-                ..._dashboardAssignments.map((item) {
-                  final ProfessorSubject sub = item['subject'];
-                  final SubjectAssignment a = item['assignment'];
-                  final int subCount = item['submissionCount'];
-                  final int totalStudents = sub.studentCount > 0 ? sub.studentCount : 1;
-                  final double progressVal = subCount / totalStudents;
-                  
-                  final String dueDateStr = a.deadline != null 
-                      ? '${a.deadline!.month.toString().padLeft(2, '0')}/${a.deadline!.day.toString().padLeft(2, '0')}/${a.deadline!.year}'
-                      : 'No Deadline';
-                      
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: _buildAssignmentRow(
-                      '${sub.courseCode} ${sub.yearLevel}-${sub.section}',
-                      sub.name,
-                      a.title,
-                      '$subCount/${sub.studentCount}',
-                      progressVal.clamp(0.0, 1.0),
-                      dueDateStr,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => AssignmentDetailScreen(
-                              assignment: a,
-                              subjectName: sub.name,
-                              totalStudents: sub.studentCount,
+                  const SizedBox(height: 8),
+                  if (_dashboardAssignments.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: Text(
+                          'No assignments found.',
+                          style: TextStyle(color: Colors.grey, fontSize: 14),
+                        ),
+                      ),
+                    )
+                  else
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: _dashboardAssignments.length > 3
+                            ? (isMobile ? 220.0 : 255.0)
+                            : double.infinity,
+                      ),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        padding: EdgeInsets.zero,
+                        physics: _dashboardAssignments.length > 3
+                            ? const BouncingScrollPhysics()
+                            : const NeverScrollableScrollPhysics(),
+                        itemCount: _dashboardAssignments.length,
+                        itemBuilder: (context, index) {
+                          final item = _dashboardAssignments[index];
+                          final ProfessorSubject sub = item['subject'];
+                          final SubjectAssignment a = item['assignment'];
+                          final int subCount = item['submissionCount'];
+                          final int totalStudents = sub.studentCount > 0 ? sub.studentCount : 1;
+                          final double progressVal = subCount / totalStudents;
+                          
+                          final String yearStr = a.deadline != null
+                              ? (isMobile ? '${a.deadline!.year % 100}' : '${a.deadline!.year}')
+                              : '';
+                          final String dueDateStr = a.deadline != null 
+                              ? '${a.deadline!.month.toString().padLeft(2, '0')}/${a.deadline!.day.toString().padLeft(2, '0')}/$yearStr'
+                              : 'No Deadline';
+                              
+                           return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _buildAssignmentRow(
+                              sub.classLabel,
+                              sub.name,
+                              a.title,
+                              '$subCount/${sub.studentCount}',
+                              progressVal.clamp(0.0, 1.0),
+                              dueDateStr,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => AssignmentDetailScreen(
+                                      assignment: a,
+                                      subjectName: sub.name,
+                                      totalStudents: sub.studentCount,
+                                      courseYearSection: sub.classLabel,
+                                    ),
+                                  ),
+                                ).then((_) => _load());
+                              },
                             ),
-                          ),
-                        ).then((_) => _load());
-                      },
+                          );
+                        },
+                      ),
                     ),
-                  );
-                }),
-            ],
-          ),
+                ],
+              ),
+            );
+          }
         ),
       ],
     );
@@ -488,6 +513,9 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
     String dueDate, {
     required VoidCallback onTap,
   }) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 500;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -495,7 +523,7 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
         border: Border.all(color: const Color(0xFFF3F3F3)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -507,25 +535,32 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 8 : 16,
+              vertical: isMobile ? 10 : 14,
+            ),
             child: Row(
               children: [
                 Expanded(
                   flex: 3,
                   child: Padding(
-                    padding: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.only(right: 6),
                     child: Text(
                       classCode,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF2C3E50)),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: isMobile ? 11 : 13,
+                        color: const Color(0xFF2C3E50),
+                      ),
                     ),
                   ),
                 ),
                 Expanded(
                   flex: 3,
                   child: Padding(
-                    padding: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.only(right: 6),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -533,14 +568,21 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                           title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: isMobile ? 11 : 13,
+                            color: Colors.black87,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           subtitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: isMobile ? 9 : 11,
+                          ),
                         ),
                       ],
                     ),
@@ -553,12 +595,16 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                     children: [
                       Text(
                         progressText,
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87),
+                        style: TextStyle(
+                          fontSize: isMobile ? 10 : 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       SizedBox(
-                        width: 70,
-                        height: 6,
+                        width: isMobile ? 50 : 70,
+                        height: isMobile ? 4 : 6,
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(3),
                           child: LinearProgressIndicator(
@@ -573,9 +619,16 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                 ),
                 Expanded(
                   flex: 2,
-                  child: Text(
-                    dueDate,
-                    style: const TextStyle(color: Colors.black87, fontSize: 12, fontWeight: FontWeight.bold),
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: Text(
+                      dueDate,
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontSize: isMobile ? 10.5 : 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -610,20 +663,37 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
             ),
           )
         else
-          Column(
-            children: subjects.map((sub) => _buildClassCard(sub)).toList(),
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: subjects.length > 3 ? 285.0 : double.infinity,
+            ),
+            child: ListView.builder(
+              shrinkWrap: true,
+              padding: EdgeInsets.zero,
+              physics: subjects.length > 3
+                  ? const BouncingScrollPhysics()
+                  : const NeverScrollableScrollPhysics(),
+              itemCount: subjects.length,
+              itemBuilder: (context, index) {
+                final sub = subjects[index];
+                return _buildClassCard(sub);
+              },
+            ),
           ),
       ],
     );
   }
 
   Widget _buildClassCard(ProfessorSubject sub) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 500;
+
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.black.withOpacity(0.05)),
+        side: BorderSide(color: Colors.black.withValues(alpha: 0.05)),
       ),
       child: InkWell(
         onTap: () {
@@ -638,14 +708,18 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Container(
-                width: 120,
-                padding: const EdgeInsets.all(16),
+                width: isMobile ? 100 : 120,
+                padding: EdgeInsets.all(isMobile ? 8 : 16),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      '${sub.courseCode} ${sub.yearLevel} - ${sub.section}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                      sub.classLabel,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: isMobile ? 12 : 14,
+                        color: Colors.black87,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 6),
@@ -670,12 +744,15 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
               ),
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isMobile ? 12 : 16,
+                    vertical: isMobile ? 14 : 20,
+                  ),
                   alignment: Alignment.center,
                   child: Text(
                     sub.name,
-                    style: const TextStyle(
-                      fontSize: 16,
+                    style: TextStyle(
+                      fontSize: isMobile ? 14 : 16,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
@@ -692,7 +769,6 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
 
   Widget _buildCalendarWidget() {
     final String monthName = _getMonthName(_calendarDate.month);
-    final String yearString = _calendarDate.year.toString();
 
     // Get number of days in month
     final int daysInMonth = DateTime(_calendarDate.year, _calendarDate.month + 1, 0).day;
@@ -730,7 +806,7 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -741,6 +817,7 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+            // Calendar Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -752,84 +829,14 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                     });
                   },
                 ),
-                Row(
-                  children: [
-                    PopupMenuButton<int>(
-                      tooltip: 'Select Month',
-                      initialValue: _calendarDate.month,
-                      onSelected: (int selectedMonth) {
-                        setState(() {
-                          _calendarDate = DateTime(_calendarDate.year, selectedMonth, 1);
-                        });
-                      },
-                      itemBuilder: (BuildContext context) {
-                        const monthsList = [
-                          'January', 'February', 'March', 'April', 'May', 'June',
-                          'July', 'August', 'September', 'October', 'November', 'December'
-                        ];
-                        return List.generate(12, (index) {
-                          return PopupMenuItem<int>(
-                            value: index + 1,
-                            child: Text(monthsList[index]),
-                          );
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF5F5F7),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              monthName,
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87),
-                            ),
-                            const SizedBox(width: 4),
-                            const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Colors.black54),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    PopupMenuButton<int>(
-                      tooltip: 'Select Year',
-                      initialValue: _calendarDate.year,
-                      onSelected: (int selectedYear) {
-                        setState(() {
-                          _calendarDate = DateTime(selectedYear, _calendarDate.month, 1);
-                        });
-                      },
-                      itemBuilder: (BuildContext context) {
-                        final currentYear = DateTime.now().year;
-                        return List.generate(11, (index) {
-                          final yr = (currentYear - 5) + index;
-                          return PopupMenuItem<int>(
-                            value: yr,
-                            child: Text(yr.toString()),
-                          );
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF5F5F7),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              yearString,
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87),
-                            ),
-                            const SizedBox(width: 4),
-                            const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Colors.black54),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                Text(
+                  '${monthName.toUpperCase()} ${_calendarDate.year}',
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.black87,
+                    letterSpacing: 1.5,
+                  ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.chevron_right_rounded, color: Colors.black87, size: 24),
@@ -842,125 +849,144 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
               ],
             ),
             const SizedBox(height: 20),
+            // Weekday labels
             const Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _DayName('Su'),
-                _DayName('Mo'),
-                _DayName('Tu'),
-                _DayName('We'),
-                _DayName('Th'),
-                _DayName('Fr'),
-                _DayName('Sa'),
+                _DayName('S', color: Color(0xFFE57373)),
+                _DayName('M', color: Colors.black54),
+                _DayName('T', color: Colors.black54),
+                _DayName('W', color: Colors.black54),
+                _DayName('T', color: Colors.black54),
+                _DayName('F', color: Colors.black54),
+                _DayName('S', color: Colors.black54),
               ],
             ),
             const SizedBox(height: 12),
+            // Grid of days
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: 42,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 7,
-                mainAxisSpacing: 6,
+                mainAxisSpacing: 8,
                 crossAxisSpacing: 6,
+                childAspectRatio: 0.6, // Tall and narrow cells
               ),
               itemBuilder: (context, index) {
                 final int dayNumber = index - offset + 1;
+                int displayDay = dayNumber;
+                bool isCurrentMonth = true;
+
                 if (dayNumber <= 0) {
-                  return const SizedBox.shrink();
+                  final prevDaysInMonth = DateTime(_calendarDate.year, _calendarDate.month, 0).day;
+                  displayDay = prevDaysInMonth + dayNumber;
+                  isCurrentMonth = false;
+                } else if (dayNumber > daysInMonth) {
+                  displayDay = dayNumber - daysInMonth;
+                  isCurrentMonth = false;
                 }
 
-                final bool isSelected = _selectedDate != null &&
+                final bool isSelected = isCurrentMonth &&
+                    _selectedDate != null &&
                     _selectedDate!.year == _calendarDate.year &&
                     _selectedDate!.month == _calendarDate.month &&
-                    _selectedDate!.day == dayNumber;
+                    _selectedDate!.day == displayDay;
 
-                final bool isEvent = dynamicEventDays.contains(dayNumber);
-                final bool isToday = now.year == _calendarDate.year &&
+                final bool isEvent = isCurrentMonth && dynamicEventDays.contains(displayDay);
+                final bool isToday = isCurrentMonth &&
+                    now.year == _calendarDate.year &&
                     now.month == _calendarDate.month &&
-                    now.day == dayNumber;
-
-                if (dayNumber > daysInMonth) {
-                  final nextMonthDay = dayNumber - daysInMonth;
-                  return Center(
-                    child: Text(
-                      nextMonthDay.toString(),
-                      style: const TextStyle(
-                        color: Colors.black26,
-                        fontSize: 13,
-                      ),
-                    ),
-                  );
-                }
+                    now.day == displayDay;
 
                 return InkWell(
-                  onTap: () {
-                    setState(() {
-                      if (isSelected) {
-                        _selectedDate = null;
-                      } else {
-                        _selectedDate = DateTime(_calendarDate.year, _calendarDate.month, dayNumber);
-                      }
-                    });
-                  },
-                  borderRadius: BorderRadius.circular(20),
-                  child: Center(
-                    child: Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppColors.authPrimary
-                            : isEvent
-                                ? AppColors.authPrimary.withOpacity(0.08)
-                                : Colors.transparent,
-                        shape: BoxShape.circle,
-                        border: isToday && !isSelected
-                            ? Border.all(color: AppColors.authPrimary, width: 1.5)
-                            : null,
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: AppColors.authPrimary.withOpacity(0.2),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 3),
-                                )
-                              ]
-                            : null,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            dayNumber.toString(),
+                  onTap: !isCurrentMonth
+                      ? null
+                      : () {
+                          setState(() {
+                            if (isSelected) {
+                              _selectedDate = null;
+                            } else {
+                              _selectedDate = DateTime(_calendarDate.year, _calendarDate.month, displayDay);
+                            }
+                          });
+                        },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F7), // Light grey cell background
+                      borderRadius: BorderRadius.circular(8),
+                      border: isSelected
+                          ? Border.all(color: AppColors.authPrimary, width: 1.5)
+                          : isToday
+                              ? Border.all(color: AppColors.authPrimary.withValues(alpha: 0.5), width: 1.5)
+                              : null,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            displayDay.toString(),
                             style: TextStyle(
-                              color: isSelected
-                                  ? Colors.white
-                                  : isEvent
-                                      ? AppColors.authPrimary
+                              color: !isCurrentMonth
+                                  ? const Color(0xFFCCCCCC) // Muted previous/next month day
+                                  : index % 7 == 0
+                                      ? const Color(0xFFE57373) // Red Sunday
                                       : Colors.black87,
-                              fontWeight: (isSelected || isEvent || isToday) ? FontWeight.bold : FontWeight.normal,
+                              fontWeight: (isSelected || isToday) ? FontWeight.bold : FontWeight.normal,
                               fontSize: 13,
                             ),
                           ),
-                          if (isEvent) ...[
-                            const SizedBox(height: 2),
-                            Container(
-                              width: 4,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: isSelected ? Colors.white : AppColors.authPrimary,
-                                shape: BoxShape.circle,
-                              ),
+                        ),
+                        if (isCurrentMonth && (isEvent || isSelected))
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Icon(
+                              Icons.calendar_today_outlined,
+                              color: AppColors.authPrimary,
+                              size: 12,
                             ),
-                          ] else
-                            const SizedBox(height: 6),
-                        ],
-                      ),
+                          )
+                        else
+                          const SizedBox(height: 14),
+                      ],
                     ),
                   ),
                 );
               },
+            ),
+            const SizedBox(height: 16),
+            // Pill add reminder button at bottom
+            GestureDetector(
+              onTap: () {
+                final targetDate = _selectedDate ?? DateTime(_calendarDate.year, _calendarDate.month, 1);
+                _showAddReminderDialog(targetDate);
+              },
+              child: Container(
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.authPrimary,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Add on ${_getMonthName((_selectedDate ?? now).month).substring(0, 3)} ${(_selectedDate ?? now).day}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const Icon(Icons.add, color: Colors.white, size: 20),
+                  ],
+                ),
+              ),
             ),
             if (_selectedDate != null) ...[
               const Divider(height: 40, thickness: 1, color: Color(0xFFF1F1F1)),
@@ -1044,14 +1070,14 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.amber.withOpacity(0.3)),
+                side: BorderSide(color: Colors.amber.withValues(alpha: 0.3)),
               ),
               child: ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withOpacity(0.2),
+                    color: Colors.amber.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.alarm_on_rounded, color: Colors.amber, size: 20),
@@ -1106,14 +1132,14 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.black.withOpacity(0.05)),
+                side: BorderSide(color: Colors.black.withValues(alpha: 0.05)),
               ),
               child: ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
+                    color: Colors.red.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.assignment_late_rounded, color: Colors.red, size: 20),
@@ -1123,7 +1149,7 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                   style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                 ),
                 subtitle: Text(
-                  'Due for Class: ${sub.name} (${sub.courseCode} ${sub.yearLevel}-${sub.section})',
+                  'Due for Class: ${sub.name} (${sub.classLabel})',
                   style: const TextStyle(fontSize: 11, color: Colors.black54),
                 ),
                 trailing: const Icon(Icons.chevron_right_rounded, size: 18, color: Colors.black38),
@@ -1135,6 +1161,7 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                         assignment: a,
                         subjectName: sub.name,
                         totalStudents: sub.studentCount,
+                        courseYearSection: sub.classLabel,
                       ),
                     ),
                   );
@@ -1155,7 +1182,8 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
 
 class _DayName extends StatelessWidget {
   final String name;
-  const _DayName(this.name);
+  final Color? color;
+  const _DayName(this.name, {this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -1166,7 +1194,7 @@ class _DayName extends StatelessWidget {
         name,
         textAlign: TextAlign.center,
         style: TextStyle(
-          color: isWeekend ? Colors.redAccent.withOpacity(0.8) : Colors.black54,
+          color: color ?? (isWeekend ? Colors.redAccent.withValues(alpha: 0.8) : Colors.black54),
           fontWeight: FontWeight.bold,
           fontSize: 12,
         ),

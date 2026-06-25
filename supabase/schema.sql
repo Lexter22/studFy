@@ -10,7 +10,8 @@ create type public.request_kind as enum (
   'class_creation',
   'schedule_conflict',
   'role_assignment',
-  'subject_update'
+  'subject_update',
+  'student_unenroll'
 );
 
 create or replace function public.set_updated_at()

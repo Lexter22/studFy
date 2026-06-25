@@ -47,12 +47,42 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
   List<StudentData> _enrolledStudents = [];
   List<StudentData> _filteredEnrolled = [];
 
+  String? _selectedCourse;
+  String? _selectedSection;
+
   @override
   void initState() {
     super.initState();
     _subjectNameCtrl.text = widget.subjectName;
     _professorNameCtrl.text = widget.professor;
     _courseSectionCtrl.text = widget.courseSection;
+    
+    // Parse course and section from widget.courseSection
+    final parts = widget.courseSection.trim().split(' ');
+    String parsedCourse = 'BSIT';
+    String parsedSection = '1-1';
+    
+    if (parts.isNotEmpty) {
+      final lastPart = parts.last;
+      if (lastPart.contains('-') || RegExp(r'\d').hasMatch(lastPart)) {
+        parsedSection = lastPart;
+        final courseParts = parts.sublist(0, parts.length - 1);
+        final rawCourse = courseParts.join(' ').trim();
+        if (['BSIT', 'BSCS', 'BSCPE'].contains(rawCourse)) {
+          parsedCourse = rawCourse;
+        }
+      } else {
+        if (['BSIT', 'BSCS', 'BSCPE'].contains(parts.first)) {
+          parsedCourse = parts.first;
+        }
+        if (parts.length > 1) {
+          parsedSection = parts.last;
+        }
+      }
+    }
+    _selectedCourse = parsedCourse;
+    _selectedSection = parsedSection;
+
     if (widget.subjectId != null) _loadEnrolledStudents();
   }
 
@@ -93,17 +123,19 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
 
   Future<void> _saveEdits() async {
     if (widget.subjectId == null) return;
+    if (_selectedCourse == null || _selectedSection == null) {
+      await AppDialog.alert(context, title: 'Error', message: 'Please select both course and section.');
+      return;
+    }
     try {
-      final parts = _courseSectionCtrl.text.trim().split(' ');
       await context.read<AppState>().updateSubject(
         subjectId: widget.subjectId!,
         subjectName: _subjectNameCtrl.text,
-        courseCode: parts.first,
-        section: parts.length > 1 ? parts.last : parts.first,
-        room: _roomCtrl.text,
-        scheduleLabel: _scheduleCtrl.text,
+        courseCode: _selectedCourse!,
+        section: _selectedSection!,
       );
       if (!mounted) return;
+      _courseSectionCtrl.text = '$_selectedCourse $_selectedSection';
       setState(() => _isEditing = false);
       await AppDialog.result(context, type: DialogType.success, message: 'Subject updated successfully.');
     } catch (e) {
@@ -135,7 +167,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      color: Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 24),
@@ -173,7 +205,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                     labelText: 'Confirm Admin Password',
                     labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                     floatingLabelStyle: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-                    prefixIcon: Icon(Icons.lock_outline_rounded, color: Colors.red.withOpacity(0.7), size: 20),
+                    prefixIcon: Icon(Icons.lock_outline_rounded, color: Colors.red.withValues(alpha: 0.7), size: 20),
                     suffixIcon: IconButton(
                       icon: Icon(
                         obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
@@ -321,7 +353,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                           return ListTile(
                             contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                             leading: CircleAvatar(
-                              backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                              backgroundColor: AppColors.adminPrimary.withValues(alpha: 0.08),
                               child: const Icon(Icons.person, color: AppColors.adminPrimary, size: 20),
                             ),
                             title: Text(instructor.name, style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -389,8 +421,8 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
     String? selectedSection;
 
     final uniqueSections = allStudents
-        .map((s) => s.yearSection.trim())
-        .where((s) => s.isNotEmpty)
+        .where((s) => s.course.isNotEmpty && s.yearSection.isNotEmpty)
+        .map((s) => '${s.course.trim()} ${s.yearSection.trim()}')
         .toSet()
         .toList();
     uniqueSections.sort();
@@ -422,7 +454,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppColors.adminPrimary.withOpacity(0.1),
+                          color: AppColors.adminPrimary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(Icons.group_add_rounded, color: AppColors.adminPrimary, size: 24),
@@ -468,9 +500,9 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppColors.adminPrimary.withOpacity(0.04),
+                        color: AppColors.adminPrimary.withValues(alpha: 0.04),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.adminPrimary.withOpacity(0.08), width: 1.5),
+                        border: Border.all(color: AppColors.adminPrimary.withValues(alpha: 0.08), width: 1.5),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -522,8 +554,12 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                                 onPressed: selectedSection == null
                                     ? null
                                     : () async {
+                                        final parts = selectedSection!.split(' ');
+                                        if (parts.length < 2) return;
+                                        final coursePart = parts[0];
+                                        final sectionPart = parts.sublist(1).join(' ');
                                         final studentsInSection = allStudents
-                                            .where((s) => s.yearSection == selectedSection)
+                                            .where((s) => s.course.trim() == coursePart && s.yearSection.trim() == sectionPart)
                                             .toList();
                                         
                                         for (final s in studentsInSection) {
@@ -620,12 +656,12 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                                       decoration: BoxDecoration(
                                         color: isEnrolled
                                             ? const Color(0xFFE8F5E9)
-                                            : AppColors.adminPrimary.withOpacity(0.08),
+                                            : AppColors.adminPrimary.withValues(alpha: 0.08),
                                         borderRadius: BorderRadius.circular(20),
                                         border: Border.all(
                                           color: isEnrolled
                                               ? Colors.green.shade200
-                                              : AppColors.adminPrimary.withOpacity(0.2),
+                                              : AppColors.adminPrimary.withValues(alpha: 0.2),
                                           width: 1,
                                         ),
                                       ),
@@ -686,29 +722,25 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    if (widget.subjectId != null) {
+      final subject = appState.subjectOfferings.where((s) => s['id'] == widget.subjectId).firstOrNull;
+      if (subject != null && !_isEditing) {
+        if (_subjectNameCtrl.text.isEmpty) _subjectNameCtrl.text = subject['name'] ?? '';
+        if (_professorNameCtrl.text.isEmpty) _professorNameCtrl.text = subject['professor'] ?? '';
+        if (_courseSectionCtrl.text.isEmpty) {
+          _courseSectionCtrl.text = '${subject['course'] ?? ''} ${subject['section'] ?? ''}'.trim();
+          final parts = _courseSectionCtrl.text.split(' ');
+          if (parts.isNotEmpty) {
+            _selectedCourse = parts.first;
+            if (parts.length > 1) _selectedSection = parts.last;
+          }
+        }
+      }
+    }
+
     return Scaffold(
       backgroundColor: AppColors.adminPageBackground,
-      appBar: AppBar(
-        backgroundColor: AppColors.adminPrimary,
-        elevation: 0,
-        toolbarHeight: 70,
-        title: const Row(
-          children: [
-            Icon(Icons.school, color: Colors.white, size: 28),
-            SizedBox(width: 8),
-            Text('STUDFY', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
-          ],
-        ),
-        actions: const [
-          Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text('Admin 1', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
-            ),
-          ),
-        ],
-        automaticallyImplyLeading: false,
-      ),
       body: Stack(
         children: [
           SingleChildScrollView(
@@ -719,14 +751,18 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildBackButton(),
-                    const SizedBox(height: 12),
                     if (widget.pendingRequest != null && !_isRequestHandled) ...[
                       _buildPendingRequestBanner(),
                       const SizedBox(height: 16),
                     ],
-
-                    _buildSectionTitle('Subject Information'),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildSectionTitle('Subject Information'),
+                        _buildBackButton(),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
                     _buildProfileCard(),
                     const SizedBox(height: 28),
 
@@ -795,18 +831,38 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
               ),
             ),
           ),
-          const AdminFloatingNavBar(currentIndex: 4),
         ],
       ),
     );
   }
 
   Widget _buildBackButton() {
-    return TextButton.icon(
-      onPressed: () => context.pop(),
-      icon: const Icon(Icons.arrow_back_rounded, color: AppColors.adminPrimary, size: 18),
-      label: const Text('Back to Directory', style: TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold)),
-      style: TextButton.styleFrom(padding: EdgeInsets.zero),
+    return InkWell(
+      onTap: () => context.pop(),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.adminPrimary, width: 1.5),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.arrow_back, color: AppColors.adminPrimary, size: 18),
+            SizedBox(width: 8),
+            Text(
+              'Back',
+              style: TextStyle(
+                color: AppColors.adminPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -825,7 +881,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -840,7 +896,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
             children: [
               CircleAvatar(
                 radius: 36,
-                backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                backgroundColor: AppColors.adminPrimary.withValues(alpha: 0.08),
                 child: const Icon(
                   Icons.book_rounded,
                   color: AppColors.adminPrimary,
@@ -855,14 +911,67 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                     if (_isEditing) ...[
                       _buildEditField('Subject Name', _subjectNameCtrl),
                       const SizedBox(height: 8),
-                      _buildEditField('Course & Section (e.g. BSIT 1-1)', _courseSectionCtrl),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(child: _buildEditField('Schedule', _scheduleCtrl)),
-                          const SizedBox(width: 8),
-                          Expanded(child: _buildEditField('Room', _roomCtrl)),
+                      DropdownButtonFormField<String>(
+                        value: ['BSIT', 'BSCS', 'BSCPE'].contains(_selectedCourse) ? _selectedCourse : 'BSIT',
+                        decoration: InputDecoration(
+                          labelText: 'Course',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'BSIT', child: Text('BSIT', style: TextStyle(fontSize: 14))),
+                          DropdownMenuItem(value: 'BSCS', child: Text('BSCS', style: TextStyle(fontSize: 14))),
+                          DropdownMenuItem(value: 'BSCPE', child: Text('BSCPE', style: TextStyle(fontSize: 14))),
                         ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              _selectedCourse = val;
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: () {
+                          final sectionsList = [
+                            '1-1', '1-2', '1-3', '2-1', '2-2', '2-3', '3-1', '3-2', '3-3', '4-1', '4-2', '4-3'
+                          ];
+                          if (_selectedSection != null && !sectionsList.contains(_selectedSection)) {
+                            sectionsList.add(_selectedSection!);
+                          }
+                          sectionsList.sort();
+                          return _selectedSection;
+                        }(),
+                        decoration: InputDecoration(
+                          labelText: 'Section',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        items: () {
+                          final sectionsList = [
+                            '1-1', '1-2', '1-3', '2-1', '2-2', '2-3', '3-1', '3-2', '3-3', '4-1', '4-2', '4-3'
+                          ];
+                          if (_selectedSection != null && !sectionsList.contains(_selectedSection)) {
+                            sectionsList.add(_selectedSection!);
+                          }
+                          sectionsList.sort();
+                          return sectionsList.map((sec) {
+                            return DropdownMenuItem(
+                              value: sec,
+                              child: Text(sec, style: const TextStyle(fontSize: 14)),
+                            );
+                          }).toList();
+                        }(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              _selectedSection = val;
+                            });
+                          }
+                        },
                       ),
                     ] else ...[
                       Text(
@@ -917,52 +1026,6 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                               ],
                             ),
                           ),
-                          if (_scheduleCtrl.text.isNotEmpty)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF5F6F9),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.grey.shade200),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.access_time_rounded, size: 12, color: Colors.grey),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    _scheduleCtrl.text,
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          if (_roomCtrl.text.isNotEmpty)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF5F6F9),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.grey.shade200),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.meeting_room_rounded, size: 12, color: Colors.grey),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Room ${_roomCtrl.text}',
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
                         ],
                       ),
                     ],
@@ -1071,7 +1134,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
               children: [
                 CircleAvatar(
                   radius: 20,
-                  backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                  backgroundColor: AppColors.adminPrimary.withValues(alpha: 0.08),
                   child: Text(
                     initials,
                     style: const TextStyle(

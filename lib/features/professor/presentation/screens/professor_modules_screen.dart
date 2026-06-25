@@ -69,7 +69,7 @@ class _ProfessorModulesScreenState extends State<ProfessorModulesScreen> {
         // Filter by Course & Section
         if (_selectedCourseSection != null) {
           final filterStr = _selectedCourseSection!.toLowerCase();
-          final classCode = '${sub.courseCode} ${sub.yearLevel}-${sub.section}'.toLowerCase();
+          final classCode = sub.classLabel.toLowerCase();
           if (!classCode.contains(filterStr)) {
             return false;
           }
@@ -95,7 +95,7 @@ class _ProfessorModulesScreenState extends State<ProfessorModulesScreen> {
     final subjectNames = _allSubjects.map((s) => s.name).toSet().toList();
     // Get unique course codes for filter
     final courseSections = _allSubjects
-        .map((s) => '${s.courseCode} ${s.yearLevel}-${s.section}')
+        .map((s) => s.classLabel)
         .toSet()
         .toList();
 
@@ -288,7 +288,7 @@ class _ProfessorModulesScreenState extends State<ProfessorModulesScreen> {
                     ],
                   ),
           ),
-          const ProfessorFloatingNavBar(currentIndex: 1),
+          const ProfessorFloatingNavBar(currentIndex: 2),
         ],
       ),
     );
@@ -315,7 +315,7 @@ class _ProfessorModulesScreenState extends State<ProfessorModulesScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFF5F5F7),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black.withOpacity(0.06)),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
@@ -357,7 +357,7 @@ class _ProfessorModulesScreenState extends State<ProfessorModulesScreen> {
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: Colors.lightBlue.shade100, width: 1),
       ),
-      color: const Color(0xFF90CAF9).withOpacity(0.7), // Light blue shade card matching 2nd image
+      color: const Color(0xFF90CAF9).withValues(alpha: 0.7), // Light blue shade card matching 2nd image
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
@@ -388,7 +388,7 @@ class _ProfessorModulesScreenState extends State<ProfessorModulesScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                '${sub.courseCode} ${sub.yearLevel}-${sub.section}',
+                sub.classLabel,
                 style: TextStyle(
                   fontSize: 11,
                   color: Colors.blueGrey.shade900,

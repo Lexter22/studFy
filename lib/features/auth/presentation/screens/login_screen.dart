@@ -227,7 +227,7 @@ Widget build(BuildContext context) {
                                 disabledBackgroundColor: AppColors.authPrimary,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                 elevation: _isButtonEnabled ? 8 : 0,
-                                shadowColor: AppColors.authPrimary.withOpacity(0.4),
+                                shadowColor: AppColors.authPrimary.withValues(alpha: 0.4),
                               ),
                               onPressed: _isButtonEnabled ? _handleLogin : null,
                               child: const Text(
@@ -301,33 +301,6 @@ Widget build(BuildContext context) {
                           },
                         ),
                         
-                        // --- NEW CODE START ---
-                        const SizedBox(height: 32),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "Don't have an account? ",
-                              style: TextStyle(fontSize: 14, color: Colors.grey.shade700, fontWeight: FontWeight.w500),
-                            ),
-                            MouseRegion(
-                              cursor: SystemMouseCursors.click,
-                              child: GestureDetector(
-                                onTap: () {
-                                  context.goNamed(AppRoutes.accountCreation);
-                                },
-                                child: const Text(
-                                  "Create an account",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.authPrimary,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
                         // --- NEW CODE END ---
                       ],
                     ),

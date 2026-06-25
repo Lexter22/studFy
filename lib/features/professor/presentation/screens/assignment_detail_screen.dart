@@ -12,12 +12,14 @@ class AssignmentDetailScreen extends StatefulWidget {
   final SubjectAssignment assignment;
   final String subjectName;
   final int totalStudents;
+  final String courseYearSection;
 
   const AssignmentDetailScreen({
     super.key,
     required this.assignment,
     required this.subjectName,
     required this.totalStudents,
+    required this.courseYearSection,
   });
 
   @override
@@ -196,6 +198,11 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                                     widget.subjectName,
                                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF1565C0)),
                                   ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    widget.courseYearSection,
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1565C0)),
+                                  ),
                                 ],
                               ),
                             ),
@@ -320,7 +327,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                                 child: Row(children: [
                                   CircleAvatar(
                                     radius: 18,
-                                    backgroundColor: AppColors.authPrimary.withOpacity(0.1),
+                                    backgroundColor: AppColors.authPrimary.withValues(alpha: 0.1),
                                     child: Text(
                                       (s['name']?.toString() ?? '?')[0].toUpperCase(),
                                       style: const TextStyle(color: AppColors.authPrimary, fontWeight: FontWeight.bold, fontSize: 13),
@@ -382,7 +389,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
       borderRadius: BorderRadius.circular(16),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(0.04),
+          color: Colors.black.withValues(alpha: 0.04),
           blurRadius: 10,
           offset: const Offset(0, 4),
         ),
@@ -398,10 +405,10 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.12)),
+        border: Border.all(color: color.withValues(alpha: 0.12)),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.04),
+            color: color.withValues(alpha: 0.04),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -412,7 +419,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.08),
+              color: color.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: color, size: 24),
