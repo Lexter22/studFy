@@ -715,8 +715,11 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
 
   void _showCreateSubjectDialog() {
     final subjectNameCtrl = TextEditingController();
-    String? selectedCourseCode;
-    String? selectedSemester;
+    final courseCodeCtrl = TextEditingController();
+    final yearLevelCtrl = TextEditingController();
+    final semesterCtrl = TextEditingController();
+    final roomCtrl = TextEditingController();
+    final scheduleCtrl = TextEditingController();
     String? selectedProfessorId;
     String? selectedYearSec;
     
@@ -727,18 +730,13 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
 
     bool isLoading = false;
 
-    final semesterMapping = {
-      '1st Semester': 1,
-      '2nd Semester': 2,
-      'Summer': 3,
-    };
-
     int inferYearLevel(String sec) {
       final match = RegExp(r'\d').firstMatch(sec);
       if (match != null) {
         return int.tryParse(match.group(0)!) ?? 1;
       }
-      return 1;
+      // Also try yearLevelCtrl if section doesn't contain a digit
+      return int.tryParse(yearLevelCtrl.text.trim()) ?? 1;
     }
 
 
@@ -813,11 +811,12 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: selectedCourseCode,
-                    hint: Text('Select Course', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                  TextField(
+                    controller: courseCodeCtrl,
+                    textCapitalization: TextCapitalization.characters,
+                    inputFormatters: const [UpperCaseTextFormatter()],
                     decoration: InputDecoration(
-                      labelText: 'Course',
+                      labelText: 'Course Code (e.g. BSIT)',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
                       prefixIcon: Icon(Icons.school_outlined, color: AppColors.adminPrimary.withValues(alpha: 0.7), size: 20),
@@ -833,16 +832,6 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                         borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
                       ),
                     ),
-                    items: const [
-                      DropdownMenuItem(value: 'BSIT', child: Text('BSIT', style: TextStyle(fontSize: 13))),
-                      DropdownMenuItem(value: 'BSCS', child: Text('BSCS', style: TextStyle(fontSize: 13))),
-                      DropdownMenuItem(value: 'BSCPE', child: Text('BSCPE', style: TextStyle(fontSize: 13))),
-                    ],
-                    onChanged: (val) {
-                      setDialogState(() {
-                        selectedCourseCode = val;
-                      });
-                    },
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
@@ -878,11 +867,11 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: selectedSemester,
-                    hint: Text('Select Semester', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                  TextField(
+                    controller: semesterCtrl,
+                    keyboardType: TextInputType.number,
                     decoration: InputDecoration(
-                      labelText: 'Semester',
+                      labelText: 'Semester (1 or 2)',
                       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                       floatingLabelStyle: const TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold),
                       prefixIcon: Icon(Icons.calendar_today_outlined, color: AppColors.adminPrimary.withValues(alpha: 0.7), size: 20),
@@ -898,17 +887,6 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                         borderSide: const BorderSide(color: AppColors.adminPrimary, width: 2),
                       ),
                     ),
-                    items: semesterMapping.keys.map((sem) {
-                      return DropdownMenuItem(
-                        value: sem,
-                        child: Text(sem, style: const TextStyle(fontSize: 13)),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      setDialogState(() {
-                        selectedSemester = val;
-                      });
-                    },
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
@@ -970,19 +948,19 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
                   ? null
                   : () async {
                       if (subjectNameCtrl.text.trim().isEmpty ||
-                          selectedCourseCode == null ||
+                          courseCodeCtrl.text.trim().isEmpty ||
                           selectedYearSec == null ||
-                          selectedSemester == null) {
+                          semesterCtrl.text.trim().isEmpty) {
                         AppDialog.alert(ctx, title: 'Error', message: 'Please fill in all required fields.');
                         return;
                       }
                       setDialogState(() => isLoading = true);
                       try {
-                        final semesterVal = semesterMapping[selectedSemester];
+                        final semesterVal = int.tryParse(semesterCtrl.text.trim());
                         final yearLevelVal = inferYearLevel(selectedYearSec!);
                         await context.read<AppState>().createSubject(
                               subjectName: subjectNameCtrl.text,
-                              courseCode: selectedCourseCode!,
+                              courseCode: courseCodeCtrl.text.trim(),
                               section: selectedYearSec!,
                               yearLevel: yearLevelVal,
                               semester: semesterVal,
