@@ -631,10 +631,17 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      sub.professorName,
-                      style: const TextStyle(
+                      sub.professorName.trim().toLowerCase() == 'unknown' || sub.professorName.trim().toLowerCase() == 'unassigned'
+                          ? 'Unassigned Professor'
+                          : sub.professorName,
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Colors.black54,
+                        color: sub.professorName.trim().toLowerCase() == 'unknown' || sub.professorName.trim().toLowerCase() == 'unassigned'
+                            ? Colors.red.shade700
+                            : Colors.black54,
+                        fontWeight: sub.professorName.trim().toLowerCase() == 'unknown' || sub.professorName.trim().toLowerCase() == 'unassigned'
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                     ),
                   ],

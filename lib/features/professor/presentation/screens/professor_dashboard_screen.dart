@@ -385,7 +385,7 @@ class _ProfessorDashboardScreenState extends State<ProfessorDashboardScreen> {
                     ),
             ),
           ),
-          const ProfessorFloatingNavBar(currentIndex: 2),
+          const ProfessorFloatingNavBar(currentIndex: 0),
         ],
       ),
     );

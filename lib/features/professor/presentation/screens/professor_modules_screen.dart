@@ -288,7 +288,7 @@ class _ProfessorModulesScreenState extends State<ProfessorModulesScreen> {
                     ],
                   ),
           ),
-          const ProfessorFloatingNavBar(currentIndex: 1),
+          const ProfessorFloatingNavBar(currentIndex: 2),
         ],
       ),
     );

@@ -368,6 +368,30 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
     );
   }
 
+  void _verifyPasswordAndExecuteWithTextarea(
+    String actionDescription,
+    Future<void> Function(String reason) action, {
+    String confirmLabel = 'Confirm',
+  }) {
+    final user = context.read<AppState>().currentUser;
+    if (user == null) {
+      AppDialog.result(context, type: DialogType.error, message: 'User session not found.');
+      return;
+    }
+
+    AppDialog.confirmWithTextarea(
+      context,
+      title: 'Please Confirm',
+      message: 'Are you sure you want to proceed with $actionDescription? This action cannot be undone.',
+      textLabel: 'Request message (Optional)',
+      type: DialogType.warning,
+      confirmLabel: confirmLabel,
+      onConfirm: (reason) async {
+        await action(reason);
+      },
+    );
+  }
+
   void _confirmDeleteModuleAttachment(SubjectModule module) {
     _verifyPasswordAndExecute('deleting material "${module.fileName ?? module.title}"', () async {
       try {
@@ -2529,9 +2553,9 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
 
 
   void _confirmUnenroll(Map<String, String> student) {
-    _verifyPasswordAndExecute(
+    _verifyPasswordAndExecuteWithTextarea(
       'unenrolling student "${student['name'] ?? ''}"',
-      () async {
+      (reason) async {
         try {
           await _repo.requestUnenrollStudent(
             subjectId: widget.subject.id,
@@ -2539,6 +2563,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
             studentName: student['name'] ?? 'Student',
             subjectName: widget.subject.name,
             classLabel: widget.subject.classLabel,
+            reason: reason,
           );
           if (mounted) {
             AppDialog.result(

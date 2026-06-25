@@ -20,6 +20,8 @@ class _ProfessorAssignmentsScreenState extends State<ProfessorAssignmentsScreen>
   bool _loading = true;
   List<_AssignmentRowData> _activeAssignments = [];
   List<_AssignmentRowData> _inactiveAssignments = [];
+  int _activePage = 0;
+  int _inactivePage = 0;
 
   @override
   void initState() {
@@ -87,6 +89,15 @@ class _ProfessorAssignmentsScreenState extends State<ProfessorAssignmentsScreen>
           _activeAssignments = activeTemp;
           _inactiveAssignments = remainingInactive;
           _loading = false;
+
+          final int maxActivePage = (_activeAssignments.length / 5).ceil() - 1;
+          if (_activePage > maxActivePage) {
+            _activePage = maxActivePage < 0 ? 0 : maxActivePage;
+          }
+          final int maxInactivePage = (_inactiveAssignments.length / 5).ceil() - 1;
+          if (_inactivePage > maxInactivePage) {
+            _inactivePage = maxInactivePage < 0 ? 0 : maxInactivePage;
+          }
         });
       }
     } catch (_) {
@@ -190,7 +201,12 @@ class _ProfessorAssignmentsScreenState extends State<ProfessorAssignmentsScreen>
                           ],
                         ),
                         const SizedBox(height: 10),
-                        _buildAssignmentTable(_activeAssignments, 'No active assignments.'),
+                        _buildAssignmentTable(
+                          _activeAssignments,
+                          'No active assignments.',
+                          _activePage,
+                          (newPage) => setState(() => _activePage = newPage),
+                        ),
 
                         const SizedBox(height: 24),
 
@@ -217,7 +233,12 @@ class _ProfessorAssignmentsScreenState extends State<ProfessorAssignmentsScreen>
                           ],
                         ),
                         const SizedBox(height: 10),
-                        _buildAssignmentTable(_inactiveAssignments, 'No inactive assignments.'),
+                        _buildAssignmentTable(
+                          _inactiveAssignments,
+                          'No inactive assignments.',
+                          _inactivePage,
+                          (newPage) => setState(() => _inactivePage = newPage),
+                        ),
                       ],
                     ),
                   ),
@@ -228,7 +249,19 @@ class _ProfessorAssignmentsScreenState extends State<ProfessorAssignmentsScreen>
     );
   }
 
-  Widget _buildAssignmentTable(List<_AssignmentRowData> list, String emptyMessage) {
+  Widget _buildAssignmentTable(
+    List<_AssignmentRowData> list,
+    String emptyMessage,
+    int currentPage,
+    void Function(int) onPageChanged,
+  ) {
+    final int itemsPerPage = 5;
+    final int totalItems = list.length;
+    final int pageCount = (totalItems / itemsPerPage).ceil();
+    
+    // Paginated list
+    final paginatedList = list.skip(currentPage * itemsPerPage).take(itemsPerPage).toList();
+
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFF5F5F5),
@@ -293,7 +326,7 @@ class _ProfessorAssignmentsScreenState extends State<ProfessorAssignmentsScreen>
           const SizedBox(height: 8),
 
           // Dynamic or Fallback Rows
-          if (list.isEmpty)
+          if (paginatedList.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 24),
               child: Center(
@@ -307,8 +340,60 @@ class _ProfessorAssignmentsScreenState extends State<ProfessorAssignmentsScreen>
                 ),
               ),
             )
-          else
-            ...list.map((aData) => _buildTableRow(aData)),
+          else ...[
+            ...paginatedList.map((aData) => _buildTableRow(aData)),
+            if (pageCount > 1) ...[
+              const SizedBox(height: 12),
+              const Divider(height: 1, color: Colors.black12),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Page ${currentPage + 1} of $pageCount',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: currentPage > 0
+                            ? () => onPageChanged(currentPage - 1)
+                            : null,
+                        icon: const Icon(Icons.chevron_left_rounded, size: 20),
+                        style: IconButton.styleFrom(
+                          backgroundColor: currentPage > 0 ? const Color(0xFFF5F6F9) : Colors.transparent,
+                          foregroundColor: currentPage > 0 ? Colors.black87 : Colors.grey.shade300,
+                          disabledBackgroundColor: Colors.transparent,
+                          disabledForegroundColor: Colors.grey.shade300,
+                          shape: const CircleBorder(),
+                          padding: const EdgeInsets.all(8),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: currentPage < pageCount - 1
+                            ? () => onPageChanged(currentPage + 1)
+                            : null,
+                        icon: const Icon(Icons.chevron_right_rounded, size: 20),
+                        style: IconButton.styleFrom(
+                          backgroundColor: currentPage < pageCount - 1 ? const Color(0xFFF5F6F9) : Colors.transparent,
+                          foregroundColor: currentPage < pageCount - 1 ? Colors.black87 : Colors.grey.shade300,
+                          disabledBackgroundColor: Colors.transparent,
+                          disabledForegroundColor: Colors.grey.shade300,
+                          shape: const CircleBorder(),
+                          padding: const EdgeInsets.all(8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ],
         ],
       ),
     );
@@ -344,13 +429,30 @@ class _ProfessorAssignmentsScreenState extends State<ProfessorAssignmentsScreen>
               // Class
               Expanded(
                 flex: 2,
-                child: Text(
-                  aData.classCode,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: Colors.black87,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      aData.subjectName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      aData.classCode,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
                 ),
               ),
 

@@ -21,24 +21,60 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
   final TextEditingController _subjectNameController = TextEditingController();
   final TextEditingController _courseController = TextEditingController();
   final TextEditingController _professorController = TextEditingController();
+  int _currentPage = 0;
+  final int _pageSize = 10;
+  late ScrollController _scrollController;
+  bool _showStickyFilter = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _subjectNameController.addListener(_onFilterChanged);
+    _courseController.addListener(_onFilterChanged);
+    _professorController.addListener(_onFilterChanged);
+    _scrollController = ScrollController();
+    _scrollController.addListener(() {
+      final double offset = _scrollController.offset;
+      final bool shouldShow = offset > 180; // threshold when top filters scroll out
+      if (shouldShow != _showStickyFilter) {
+        setState(() {
+          _showStickyFilter = shouldShow;
+        });
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _scrollController.dispose();
+    _subjectNameController.removeListener(_onFilterChanged);
+    _courseController.removeListener(_onFilterChanged);
+    _professorController.removeListener(_onFilterChanged);
     _subjectNameController.dispose();
     _courseController.dispose();
     _professorController.dispose();
     super.dispose();
   }
 
+  void _onFilterChanged() {
+    setState(() {
+      _currentPage = 0;
+    });
+  }
+
   void _filterList() {
-    setState(() {});
+    setState(() {
+      _currentPage = 0;
+    });
   }
 
   void _clearFilters() {
     _subjectNameController.clear();
     _courseController.clear();
     _professorController.clear();
-    setState(() {});
+    setState(() {
+      _currentPage = 0;
+    });
   }
 
   @override
@@ -86,6 +122,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
       body: Stack(
         children: [
           SingleChildScrollView(
+            controller: _scrollController,
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
             child: Center(
@@ -236,6 +273,155 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
               ),
             ),
           ),
+          Positioned(
+            top: 0,
+            left: 16,
+            right: 16,
+            child: ValueListenableBuilder<List<Map<String, String>>>(
+              valueListenable: appState.subjectOfferingsNotifier,
+              builder: (context, subjects, child) {
+                final courseList = subjects
+                    .map((s) => s['course'] ?? '')
+                    .where((v) => v.isNotEmpty)
+                    .toSet()
+                    .toList()
+                  ..sort();
+                final professorList = subjects
+                    .map((s) => s['professor'] ?? '')
+                    .where((v) => v.isNotEmpty)
+                    .toSet()
+                    .toList()
+                  ..sort();
+
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: AnimatedSlide(
+                      duration: const Duration(milliseconds: 200),
+                      offset: _showStickyFilter ? Offset.zero : const Offset(0, -1.5),
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 200),
+                        opacity: _showStickyFilter ? 1.0 : 0.0,
+                        child: Container(
+                          margin: const EdgeInsets.only(top: 10),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 16,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: Container(
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF5F6F9),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: TextField(
+                                    controller: _subjectNameController,
+                                    onChanged: (_) => _filterList(),
+                                    decoration: InputDecoration(
+                                      hintText: 'Search...',
+                                      hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                                      prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 18),
+                                      border: InputBorder.none,
+                                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                flex: 2,
+                                child: Container(
+                                  height: 38,
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF5F6F9),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      isExpanded: true,
+                                      value: _courseController.text.isEmpty ? null : _courseController.text,
+                                      hint: const Text('Course', style: TextStyle(fontSize: 11)),
+                                      onChanged: (val) {
+                                        setState(() {
+                                          _courseController.text = val ?? '';
+                                        });
+                                        _filterList();
+                                      },
+                                      items: [
+                                        const DropdownMenuItem<String>(value: null, child: Text('All Courses', style: TextStyle(fontSize: 11))),
+                                        ...courseList.map((c) => DropdownMenuItem<String>(
+                                          value: c,
+                                          child: Text(c, style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis),
+                                        )),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                flex: 2,
+                                child: Container(
+                                  height: 38,
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF5F6F9),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      isExpanded: true,
+                                      value: _professorController.text.isEmpty ? null : _professorController.text,
+                                      hint: const Text('Professor', style: TextStyle(fontSize: 11)),
+                                      onChanged: (val) {
+                                        setState(() {
+                                          _professorController.text = val ?? '';
+                                        });
+                                        _filterList();
+                                      },
+                                      items: [
+                                        const DropdownMenuItem<String>(value: null, child: Text('All Professors', style: TextStyle(fontSize: 11))),
+                                        ...professorList.map((p) => DropdownMenuItem<String>(
+                                          value: p,
+                                          child: Text(p, style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis),
+                                        )),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              IconButton(
+                                onPressed: _clearFilters,
+                                icon: const Icon(Icons.filter_alt_off_rounded, color: Colors.black54, size: 20),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                                tooltip: 'Clear filters',
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
           const AdminFloatingNavBar(currentIndex: 3),
         ],
       ),
@@ -339,114 +525,189 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
       );
     }
 
-    return Column(
-      children: List.generate(filteredSubjects.length, (index) {
-        final subject = filteredSubjects[index];
-        final courses = _getCoursesForSubject(subject['name'] ?? '', subjects);
+    final totalItems = filteredSubjects.length;
+    final pageCount = (totalItems / _pageSize).ceil();
+    final safePage = _currentPage.clamp(0, pageCount - 1 >= 0 ? pageCount - 1 : 0);
+    final pagedSubjects = filteredSubjects.skip(safePage * _pageSize).take(_pageSize).toList();
 
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: Colors.grey.shade200),
-          ),
-          child: InkWell(
-            onTap: () async {
-              await context.pushNamed(
-                AppRoutes.adminSubjectsProfile,
-                extra: {
-                  'subjectId': subject['id'],
-                  'subjectName': subject['name'] ?? '',
-                  'courseSection': '${subject['course'] ?? ''} ${subject['section'] ?? ''}'.trim(),
-                  'professor': subject['professor'] ?? '',
-                },
-              );
-            },
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
-                    child: const Icon(Icons.book_rounded, color: AppColors.adminPrimary, size: 20),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          subject['name'] ?? '',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: Container(
-                                height: 32,
-                                alignment: Alignment.centerLeft,
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF5F6F9),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.grey.shade200),
-                                ),
-                                child: Text(
-                                  '${subject['course'] ?? ''} ${subject['section'] ?? ''}'.trim(),
-                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              flex: 3,
-                              child: Container(
-                                height: 32,
-                                alignment: Alignment.centerLeft,
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF5F6F9),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.grey.shade200),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.person_outline_rounded, size: 14, color: Colors.grey),
-                                    const SizedBox(width: 4),
-                                    Expanded(
-                                      child: Text(
-                                        subject['professor'] ?? 'Unassigned',
-                                        style: const TextStyle(fontSize: 11, color: Colors.black87),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+    return Column(
+      children: [
+        ...List.generate(pagedSubjects.length, (index) {
+          final subject = pagedSubjects[index];
+          final courses = _getCoursesForSubject(subject['name'] ?? '', subjects);
+
+          return Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: Colors.grey.shade200),
+            ),
+            child: InkWell(
+              onTap: () async {
+                await context.pushNamed(
+                  AppRoutes.adminSubjectsProfile,
+                  extra: {
+                    'subjectId': subject['id'],
+                    'subjectName': subject['name'] ?? '',
+                    'courseSection': '${subject['course'] ?? ''} ${subject['section'] ?? ''}'.trim(),
+                    'professor': subject['professor'] ?? '',
+                  },
+                );
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 22,
+                      backgroundColor: AppColors.adminPrimary.withOpacity(0.08),
+                      child: const Icon(Icons.book_rounded, color: AppColors.adminPrimary, size: 20),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Icon(Icons.chevron_right_rounded, color: Colors.grey),
-                ],
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            subject['name'] ?? '',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: Container(
+                                  height: 32,
+                                  alignment: Alignment.centerLeft,
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF5F6F9),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.grey.shade200),
+                                  ),
+                                  child: Text(
+                                    '${subject['course'] ?? ''} ${subject['section'] ?? ''}'.trim(),
+                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                flex: 3,
+                                child: Builder(
+                                  builder: (context) {
+                                    final String profName = subject['professor'] ?? '';
+                                    final bool isUnassigned = profName.isEmpty || profName.trim().toLowerCase() == 'unassigned';
+                                    return Container(
+                                      height: 32,
+                                      alignment: Alignment.centerLeft,
+                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                      decoration: BoxDecoration(
+                                        color: isUnassigned ? const Color(0xFFFFF5F5) : const Color(0xFFF5F6F9),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: isUnassigned ? Colors.red.shade200 : Colors.grey.shade200,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            isUnassigned ? Icons.warning_amber_rounded : Icons.person_outline_rounded,
+                                            size: 14,
+                                            color: isUnassigned ? Colors.red.shade700 : Colors.grey,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Expanded(
+                                            child: Text(
+                                              isUnassigned ? 'Unassigned' : profName,
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: isUnassigned ? Colors.red.shade700 : Colors.black87,
+                                                fontWeight: isUnassigned ? FontWeight.bold : FontWeight.normal,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                  ],
+                ),
               ),
             ),
+          );
+        }),
+        if (pageCount > 1) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Page ${safePage + 1} of $pageCount',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: safePage > 0
+                          ? () => setState(() => _currentPage = safePage - 1)
+                          : null,
+                      icon: const Icon(Icons.chevron_left_rounded, size: 20),
+                      style: IconButton.styleFrom(
+                        backgroundColor: safePage > 0 ? const Color(0xFFF5F6F9) : Colors.transparent,
+                        foregroundColor: safePage > 0 ? Colors.black87 : Colors.grey.shade300,
+                        disabledBackgroundColor: Colors.transparent,
+                        disabledForegroundColor: Colors.grey.shade300,
+                        shape: const CircleBorder(),
+                        padding: const EdgeInsets.all(8),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: safePage < pageCount - 1
+                          ? () => setState(() => _currentPage = safePage + 1)
+                          : null,
+                      icon: const Icon(Icons.chevron_right_rounded, size: 20),
+                      style: IconButton.styleFrom(
+                        backgroundColor: safePage < pageCount - 1 ? const Color(0xFFF5F6F9) : Colors.transparent,
+                        foregroundColor: safePage < pageCount - 1 ? Colors.black87 : Colors.grey.shade300,
+                        disabledBackgroundColor: Colors.transparent,
+                        disabledForegroundColor: Colors.grey.shade300,
+                        shape: const CircleBorder(),
+                        padding: const EdgeInsets.all(8),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        );
-      }),
+        ],
+      ],
     );
   }
 

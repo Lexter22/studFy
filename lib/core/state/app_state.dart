@@ -411,9 +411,11 @@ class AppState extends ChangeNotifier {
       'status': request['status'] ?? 'Pending Request',
       'request': request['status'] ?? 'Pending Request',
       'requester_profile_id': request['requester_profile_id'] ?? '',
+      'requester_name': request['requester_name'] ?? 'Professor',
       'kind': request['kind'] ?? '',
       'details': request['details'] ?? '',
       'requested_role': request['requested_role'] ?? '',
+      'reason': request['reason'] ?? '',
     };
   }
 

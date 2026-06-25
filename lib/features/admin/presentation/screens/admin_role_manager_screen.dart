@@ -42,6 +42,13 @@ class _AdminRoleManagerScreenState extends State<AdminRoleManagerScreen> with Si
     'unknown': true,
   };
 
+  final Map<String, int> _totalCount = {
+    'student': 0,
+    'professor': 0,
+    'admin': 0,
+    'unknown': 0,
+  };
+
   bool _loading = false;
   bool _isSaving = false;
   final int _pageSize = 10;
@@ -105,11 +112,30 @@ class _AdminRoleManagerScreenState extends State<AdminRoleManagerScreen> with Si
 
   Future<void> _fetchPage() async {
     final currentRole = _getActiveRole();
-    if (_loading || !_hasMore[currentRole]!) return;
+    if (_loading) return;
 
     setState(() => _loading = true);
 
     try {
+      // 1. Fetch total count
+      var countQuery = Supabase.instance.client
+          .from('profiles')
+          .select('id');
+
+      if (currentRole == 'unknown') {
+        countQuery = countQuery.filter('role', 'is', null);
+      } else {
+        countQuery = countQuery.eq('role', currentRole);
+      }
+
+      if (_searchQuery.isNotEmpty) {
+        countQuery = countQuery.or('display_name.ilike.%$_searchQuery%,email.ilike.%$_searchQuery%');
+      }
+
+      final countResponse = await countQuery;
+      final int totalCount = countResponse.length;
+
+      // 2. Fetch page data
       final page = _currentPage[currentRole]!;
       final from = (page - 1) * _pageSize;
       final to = from + _pageSize - 1;
@@ -135,12 +161,10 @@ class _AdminRoleManagerScreenState extends State<AdminRoleManagerScreen> with Si
       final newUsers = response.whereType<Map>().map((r) => Map<String, dynamic>.from(r)).toList();
 
       setState(() {
-        _categorizedUsers[currentRole]!.addAll(newUsers);
-        _currentPage[currentRole] = page + 1;
+        _categorizedUsers[currentRole] = newUsers;
+        _totalCount[currentRole] = totalCount;
         _loading = false;
-        if (newUsers.length < _pageSize) {
-          _hasMore[currentRole] = false;
-        }
+        _hasMore[currentRole] = (from + newUsers.length) < totalCount;
       });
     } catch (e) {
       setState(() => _loading = false);
@@ -497,25 +521,64 @@ class _AdminRoleManagerScreenState extends State<AdminRoleManagerScreen> with Si
       itemCount: list.length + 1,
       itemBuilder: (context, index) {
         if (index == list.length) {
-          // Pagination controls
-          if (_hasMore[roleKey]!) {
+          final int totalItems = _totalCount[roleKey] ?? 0;
+          final int pageCount = (totalItems / _pageSize).ceil();
+          final int currentPage = _currentPage[roleKey] ?? 1;
+
+          if (pageCount > 1) {
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Center(
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppColors.adminPrimary),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Page $currentPage of $pageCount',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                  onPressed: _fetchPage,
-                  child: _loading
-                      ? const SizedBox(
-                          height: 16,
-                          width: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.adminPrimary),
-                        )
-                      : const Text('Load More', style: TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold)),
-                ),
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: currentPage > 1 && !_loading
+                            ? () {
+                                setState(() => _currentPage[roleKey] = currentPage - 1);
+                                _fetchPage();
+                              }
+                            : null,
+                        icon: const Icon(Icons.chevron_left_rounded, size: 20),
+                        style: IconButton.styleFrom(
+                          backgroundColor: currentPage > 1 ? const Color(0xFFF5F6F9) : Colors.transparent,
+                          foregroundColor: currentPage > 1 ? Colors.black87 : Colors.grey.shade300,
+                          disabledBackgroundColor: Colors.transparent,
+                          disabledForegroundColor: Colors.grey.shade300,
+                          shape: const CircleBorder(),
+                          padding: const EdgeInsets.all(8),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: currentPage < pageCount && !_loading
+                            ? () {
+                                setState(() => _currentPage[roleKey] = currentPage + 1);
+                                _fetchPage();
+                              }
+                            : null,
+                        icon: const Icon(Icons.chevron_right_rounded, size: 20),
+                        style: IconButton.styleFrom(
+                          backgroundColor: currentPage < pageCount ? const Color(0xFFF5F6F9) : Colors.transparent,
+                          foregroundColor: currentPage < pageCount ? Colors.black87 : Colors.grey.shade300,
+                          disabledBackgroundColor: Colors.transparent,
+                          disabledForegroundColor: Colors.grey.shade300,
+                          shape: const CircleBorder(),
+                          padding: const EdgeInsets.all(8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             );
           } else {

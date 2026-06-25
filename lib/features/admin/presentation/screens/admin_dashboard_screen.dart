@@ -48,14 +48,33 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
     'unknown': true,
   };
 
+  final Map<String, int> _totalCount = {
+    'student': 0,
+    'professor': 0,
+    'admin': 0,
+    'unknown': 0,
+  };
+
   bool _loading = false;
   bool _isSaving = false;
   final int _pageSize = 10;
   String _searchQuery = '';
+  late ScrollController _scrollController;
+  bool _showStickyFilter = false;
 
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(() {
+      final double offset = _scrollController.offset;
+      final bool shouldShow = offset > 300; // threshold when top filters scroll out
+      if (shouldShow != _showStickyFilter) {
+        setState(() {
+          _showStickyFilter = shouldShow;
+        });
+      }
+    });
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(_handleTabChange);
     _searchController.addListener(_handleSearchChanged);
@@ -64,6 +83,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _tabController.removeListener(_handleTabChange);
     _tabController.dispose();
     _searchController.removeListener(_handleSearchChanged);
@@ -112,11 +132,30 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
 
   Future<void> _fetchPage() async {
     final currentRole = _getActiveRole();
-    if (_loading || !_hasMore[currentRole]!) return;
+    if (_loading) return;
 
     setState(() => _loading = true);
 
     try {
+      // 1. Fetch total count
+      var countQuery = Supabase.instance.client
+          .from('profiles')
+          .select('id');
+
+      if (currentRole == 'unknown') {
+        countQuery = countQuery.filter('role', 'is', null);
+      } else {
+        countQuery = countQuery.eq('role', currentRole);
+      }
+
+      if (_searchQuery.isNotEmpty) {
+        countQuery = countQuery.or('display_name.ilike.%$_searchQuery%,email.ilike.%$_searchQuery%');
+      }
+
+      final countResponse = await countQuery;
+      final int totalCount = countResponse.length;
+
+      // 2. Fetch page data
       final page = _currentPage[currentRole]!;
       final from = (page - 1) * _pageSize;
       final to = from + _pageSize - 1;
@@ -142,12 +181,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
       final newUsers = response.whereType<Map>().map((r) => Map<String, dynamic>.from(r)).toList();
 
       setState(() {
-        _categorizedUsers[currentRole]!.addAll(newUsers);
-        _currentPage[currentRole] = page + 1;
+        _categorizedUsers[currentRole] = newUsers;
+        _totalCount[currentRole] = totalCount;
         _loading = false;
-        if (newUsers.length < _pageSize) {
-          _hasMore[currentRole] = false;
-        }
+        _hasMore[currentRole] = (from + newUsers.length) < totalCount;
       });
     } catch (e) {
       setState(() => _loading = false);
@@ -476,6 +513,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
       body: Stack(
         children: [
           SingleChildScrollView(
+            controller: _scrollController,
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.only(
               left: 16.0,
@@ -564,6 +602,88 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                 // User list based on active tab
                 _buildUserList(_getActiveRole()),
               ],
+            ),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: IgnorePointer(
+              ignoring: !_showStickyFilter,
+              child: AnimatedSlide(
+                duration: const Duration(milliseconds: 200),
+                offset: _showStickyFilter ? Offset.zero : const Offset(0, -1.2),
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 200),
+                  opacity: _showStickyFilter ? 1.0 : 0.0,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                      border: const Border(
+                        bottom: BorderSide(color: Color(0xFFEEEEEE)),
+                      ),
+                    ),
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Search by name or email...',
+                            prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                            suffixIcon: _searchController.text.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      FocusScope.of(context).unfocus();
+                                    },
+                                  )
+                                : null,
+                            filled: true,
+                            fillColor: const Color(0xFFF5F6F9),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TabBar(
+                          controller: _tabController,
+                          indicatorColor: AppColors.adminPrimary,
+                          labelColor: AppColors.adminPrimary,
+                          unselectedLabelColor: Colors.grey,
+                          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                          tabs: const [
+                            Tab(text: 'STUDENTS'),
+                            Tab(text: 'PROFESSORS'),
+                            Tab(text: 'ADMINS'),
+                            Tab(text: 'UNASSIGNED'),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
           const AdminFloatingNavBar(currentIndex: 0),
@@ -714,25 +834,64 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
       itemCount: list.length + 1,
       itemBuilder: (context, index) {
         if (index == list.length) {
-          // Pagination controls
-          if (_hasMore[roleKey]!) {
+          final int totalItems = _totalCount[roleKey] ?? 0;
+          final int pageCount = (totalItems / _pageSize).ceil();
+          final int currentPage = _currentPage[roleKey] ?? 1;
+
+          if (pageCount > 1) {
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Center(
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppColors.adminPrimary),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Page $currentPage of $pageCount',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                  onPressed: _fetchPage,
-                  child: _loading
-                      ? const SizedBox(
-                          height: 16,
-                          width: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.adminPrimary),
-                        )
-                      : const Text('Load More', style: TextStyle(color: AppColors.adminPrimary, fontWeight: FontWeight.bold)),
-                ),
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: currentPage > 1 && !_loading
+                            ? () {
+                                setState(() => _currentPage[roleKey] = currentPage - 1);
+                                _fetchPage();
+                              }
+                            : null,
+                        icon: const Icon(Icons.chevron_left_rounded, size: 20),
+                        style: IconButton.styleFrom(
+                          backgroundColor: currentPage > 1 ? const Color(0xFFF5F6F9) : Colors.transparent,
+                          foregroundColor: currentPage > 1 ? Colors.black87 : Colors.grey.shade300,
+                          disabledBackgroundColor: Colors.transparent,
+                          disabledForegroundColor: Colors.grey.shade300,
+                          shape: const CircleBorder(),
+                          padding: const EdgeInsets.all(8),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: currentPage < pageCount && !_loading
+                            ? () {
+                                setState(() => _currentPage[roleKey] = currentPage + 1);
+                                _fetchPage();
+                              }
+                            : null,
+                        icon: const Icon(Icons.chevron_right_rounded, size: 20),
+                        style: IconButton.styleFrom(
+                          backgroundColor: currentPage < pageCount ? const Color(0xFFF5F6F9) : Colors.transparent,
+                          foregroundColor: currentPage < pageCount ? Colors.black87 : Colors.grey.shade300,
+                          disabledBackgroundColor: Colors.transparent,
+                          disabledForegroundColor: Colors.grey.shade300,
+                          shape: const CircleBorder(),
+                          padding: const EdgeInsets.all(8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             );
           } else {

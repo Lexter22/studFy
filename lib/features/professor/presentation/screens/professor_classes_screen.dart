@@ -119,6 +119,30 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
     );
   }
 
+  void _verifyPasswordAndExecuteWithTextarea(
+    String actionDescription,
+    Future<void> Function(String reason) action, {
+    String confirmLabel = 'Confirm',
+  }) {
+    final user = context.read<AppState>().currentUser;
+    if (user == null) {
+      AppDialog.result(context, type: DialogType.error, message: 'User session not found.');
+      return;
+    }
+
+    AppDialog.confirmWithTextarea(
+      context,
+      title: 'Please Confirm',
+      message: 'Are you sure you want to proceed with $actionDescription? This action cannot be undone.',
+      textLabel: 'Request message (Optional)',
+      type: DialogType.warning,
+      confirmLabel: confirmLabel,
+      onConfirm: (reason) async {
+        await action(reason);
+      },
+    );
+  }
+
   void _showViewStudentsDialog(ProfessorSubject sub) async {
     setState(() => _loading = true);
     List<Map<String, String>> students = [];
@@ -286,9 +310,9 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                                       icon: const Icon(Icons.delete_outline, color: Colors.red),
                                       iconSize: 20,
                                       onPressed: () {
-                                        _verifyPasswordAndExecute(
+                                        _verifyPasswordAndExecuteWithTextarea(
                                           'un-enrolling student "${s['name'] ?? ''}"',
-                                          () async {
+                                          (reason) async {
                                             try {
                                               await _repo.requestUnenrollStudent(
                                                 subjectId: sub.id,
@@ -296,6 +320,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                                                 studentName: s['name'] ?? 'Student',
                                                 subjectName: sub.name,
                                                 classLabel: sub.classLabel,
+                                                reason: reason,
                                               );
                                               if (!mounted) return;
                                               AppDialog.result(
@@ -1064,7 +1089,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                     ],
                   ),
           ),
-          const ProfessorFloatingNavBar(currentIndex: 0),
+          const ProfessorFloatingNavBar(currentIndex: 1),
         ],
       ),
     );

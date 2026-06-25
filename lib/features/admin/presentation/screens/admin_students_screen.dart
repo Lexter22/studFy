@@ -29,9 +29,27 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
   String? _selectedCourse;
   static const int _pageSize = 8; // Showing 8 items per page for a cleaner layout
   int _currentPage = 0;
+  late ScrollController _scrollController;
+  bool _showStickyFilter = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(() {
+      final double offset = _scrollController.offset;
+      final bool shouldShow = offset > 180; // threshold when top filters scroll out
+      if (shouldShow != _showStickyFilter) {
+        setState(() {
+          _showStickyFilter = shouldShow;
+        });
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -122,8 +140,11 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
               }
               final pagedStudents = filteredStudents.skip(safePage * _pageSize).take(_pageSize).toList();
 
-              return SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
+              return Stack(
+                children: [
+                  SingleChildScrollView(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 800),
@@ -306,8 +327,109 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                     ),
                   ),
                 ),
-              );
-            },
+              ),
+              Positioned(
+                top: 0,
+                left: 16,
+                right: 16,
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: AnimatedSlide(
+                      duration: const Duration(milliseconds: 200),
+                      offset: _showStickyFilter ? Offset.zero : const Offset(0, -1.5),
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 200),
+                        opacity: _showStickyFilter ? 1.0 : 0.0,
+                        child: Container(
+                          margin: const EdgeInsets.only(top: 10),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 16,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: Container(
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF5F6F9),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: TextField(
+                                    controller: _searchController,
+                                    onChanged: (_) => _applyFilter(),
+                                    decoration: InputDecoration(
+                                      hintText: 'Search...',
+                                      hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                                      prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 18),
+                                      border: InputBorder.none,
+                                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                flex: 2,
+                                child: Container(
+                                  height: 38,
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF5F6F9),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      isExpanded: true,
+                                      value: _selectedCourse,
+                                      hint: const Text('Course & Sec', style: TextStyle(fontSize: 12)),
+                                      onChanged: (val) {
+                                        setState(() {
+                                          _selectedCourse = val;
+                                        });
+                                        _applyFilter();
+                                      },
+                                      items: [
+                                        const DropdownMenuItem<String>(value: null, child: Text('All Courses', style: TextStyle(fontSize: 12))),
+                                        ...courseSectionList.map((sec) => DropdownMenuItem<String>(
+                                          value: sec,
+                                          child: Text(sec, style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
+                                        )),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              IconButton(
+                                onPressed: _clearFilter,
+                                icon: const Icon(Icons.filter_alt_off_rounded, color: Colors.black54, size: 20),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                                tooltip: 'Clear filters',
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
           ),
           const AdminFloatingNavBar(currentIndex: 2),
         ],
@@ -336,9 +458,14 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                 onPressed: currentPage > 0
                     ? () => setState(() => _currentPage = currentPage - 1)
                     : null,
-                icon: const Icon(Icons.chevron_left_rounded),
+                icon: const Icon(Icons.chevron_left_rounded, size: 20),
                 style: IconButton.styleFrom(
                   backgroundColor: currentPage > 0 ? const Color(0xFFF5F6F9) : Colors.transparent,
+                  foregroundColor: currentPage > 0 ? Colors.black87 : Colors.grey.shade300,
+                  disabledBackgroundColor: Colors.transparent,
+                  disabledForegroundColor: Colors.grey.shade300,
+                  shape: const CircleBorder(),
+                  padding: const EdgeInsets.all(8),
                 ),
               ),
               const SizedBox(width: 8),
@@ -346,9 +473,14 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                 onPressed: currentPage < pageCount - 1
                     ? () => setState(() => _currentPage = currentPage + 1)
                     : null,
-                icon: const Icon(Icons.chevron_right_rounded),
+                icon: const Icon(Icons.chevron_right_rounded, size: 20),
                 style: IconButton.styleFrom(
                   backgroundColor: currentPage < pageCount - 1 ? const Color(0xFFF5F6F9) : Colors.transparent,
+                  foregroundColor: currentPage < pageCount - 1 ? Colors.black87 : Colors.grey.shade300,
+                  disabledBackgroundColor: Colors.transparent,
+                  disabledForegroundColor: Colors.grey.shade300,
+                  shape: const CircleBorder(),
+                  padding: const EdgeInsets.all(8),
                 ),
               ),
             ],

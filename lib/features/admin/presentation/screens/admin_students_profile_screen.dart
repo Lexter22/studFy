@@ -816,12 +816,26 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
                           Expanded(
                             child: Row(
                               children: [
-                                const Icon(Icons.person_outline_rounded, size: 14, color: Colors.grey),
+                                Icon(
+                                  Icons.person_outline_rounded,
+                                  size: 14,
+                                  color: (subject['professor'] ?? 'unassigned').trim().toLowerCase() == 'unassigned'
+                                      ? Colors.red.shade700
+                                      : Colors.grey,
+                                ),
                                 const SizedBox(width: 4),
                                 Expanded(
                                   child: Text(
                                     subject['professor'] ?? 'Unassigned',
-                                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                                    style: TextStyle(
+                                      color: (subject['professor'] ?? 'unassigned').trim().toLowerCase() == 'unassigned'
+                                          ? Colors.red.shade700
+                                          : Colors.grey.shade600,
+                                      fontSize: 12,
+                                      fontWeight: (subject['professor'] ?? 'unassigned').trim().toLowerCase() == 'unassigned'
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),

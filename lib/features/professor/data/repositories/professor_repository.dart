@@ -378,6 +378,7 @@ class ProfessorRepository {
     required String studentName,
     required String subjectName,
     required String classLabel,
+    String? reason,
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('User not logged in');
@@ -394,6 +395,7 @@ class ProfessorRepository {
         'student_name': studentName,
         'subject_name': subjectName,
         'class_label': classLabel,
+        'reason': reason ?? '',
       },
     });
   }

@@ -16,6 +16,8 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
   bool _loading = true;
   List<Map<String, dynamic>> _records = [];
   Map<String, Map<String, int>> _summary = {};
+  int _currentPage = 0;
+  final int _pageSize = 10;
 
   @override
   void initState() {
@@ -24,7 +26,10 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _currentPage = 0;
+    });
     try {
       _records = await _repo.fetchMyAttendance();
       _summary = await _repo.fetchMyAttendanceSummary();
@@ -213,8 +218,18 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
 
                         if (_records.isEmpty)
                           _buildEmptyState()
-                        else
-                          ..._records.map((r) => _buildRecordCard(r)),
+                        else ...[
+                          ..._records
+                              .skip(_currentPage * _pageSize)
+                              .take(_pageSize)
+                              .map((r) => _buildRecordCard(r)),
+                          const SizedBox(height: 16),
+                          _buildPagination(
+                            totalItems: _records.length,
+                            pageCount: (_records.length / _pageSize).ceil(),
+                            currentPage: _currentPage,
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -312,6 +327,60 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
           Icon(Icons.event_available_outlined, size: 64, color: Colors.grey.shade400),
           const SizedBox(height: 16),
           Text('No attendance records yet.', style: TextStyle(fontSize: 16, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPagination({required int totalItems, required int pageCount, required int currentPage}) {
+    if (totalItems == 0) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'Page ${currentPage + 1} of $pageCount',
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+          ),
+          Row(
+            children: [
+              IconButton(
+                onPressed: currentPage > 0
+                    ? () => setState(() => _currentPage = currentPage - 1)
+                    : null,
+                icon: const Icon(Icons.chevron_left_rounded, size: 20),
+                style: IconButton.styleFrom(
+                  backgroundColor: currentPage > 0 ? const Color(0xFFF5F6F9) : Colors.transparent,
+                  foregroundColor: currentPage > 0 ? Colors.black87 : Colors.grey.shade300,
+                  disabledBackgroundColor: Colors.transparent,
+                  disabledForegroundColor: Colors.grey.shade300,
+                  shape: const CircleBorder(),
+                  padding: const EdgeInsets.all(8),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: currentPage < pageCount - 1
+                    ? () => setState(() => _currentPage = currentPage + 1)
+                    : null,
+                icon: const Icon(Icons.chevron_right_rounded, size: 20),
+                style: IconButton.styleFrom(
+                  backgroundColor: currentPage < pageCount - 1 ? const Color(0xFFF5F6F9) : Colors.transparent,
+                  foregroundColor: currentPage < pageCount - 1 ? Colors.black87 : Colors.grey.shade300,
+                  disabledBackgroundColor: Colors.transparent,
+                  disabledForegroundColor: Colors.grey.shade300,
+                  shape: const CircleBorder(),
+                  padding: const EdgeInsets.all(8),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

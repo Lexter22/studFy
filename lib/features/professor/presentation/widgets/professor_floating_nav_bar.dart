@@ -52,9 +52,9 @@ class _ProfessorFloatingNavBarState extends State<ProfessorFloatingNavBar> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildNavItem(Icons.layers_rounded, 'CLASSES', 0),
-                _buildNavItem(Icons.menu_book_rounded, 'MODULES', 1),
-                _buildNavItem(Icons.home_rounded, 'DASHBOARD', 2),
+                _buildNavItem(Icons.home_rounded, 'DASHBOARD', 0),
+                _buildNavItem(Icons.layers_rounded, 'CLASSES', 1),
+                _buildNavItem(Icons.menu_book_rounded, 'MODULES', 2),
                 _buildNavItem(Icons.edit_rounded, 'ASSIGNMENT', 3),
                 _buildNavItem(Icons.logout_rounded, 'LOGOUT', 4),
               ],
@@ -87,11 +87,11 @@ class _ProfessorFloatingNavBarState extends State<ProfessorFloatingNavBar> {
           }
 
           if (index == 0) {
-            context.goNamed(AppRoutes.professorClasses);
-          } else if (index == 1) {
-            context.goNamed(AppRoutes.professorModules);
-          } else if (index == 2) {
             context.goNamed(AppRoutes.professorDashboard);
+          } else if (index == 1) {
+            context.goNamed(AppRoutes.professorClasses);
+          } else if (index == 2) {
+            context.goNamed(AppRoutes.professorModules);
           } else if (index == 3) {
             context.goNamed(AppRoutes.professorAssignments);
           }
