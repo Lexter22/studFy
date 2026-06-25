@@ -995,7 +995,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
             ],
           ),
           content: Container(
-            width: 460,
+            constraints: BoxConstraints(maxWidth: 460),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,

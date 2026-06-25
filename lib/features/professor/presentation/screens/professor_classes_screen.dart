@@ -218,7 +218,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
               ],
             ),
             content: Container(
-              width: 480,
+              constraints: BoxConstraints(maxWidth: 480),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
@@ -600,7 +600,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
               ],
             ),
             content: SizedBox(
-              width: 480,
+              width: double.infinity,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,

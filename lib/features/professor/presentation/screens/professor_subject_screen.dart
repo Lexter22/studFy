@@ -103,7 +103,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
       builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
-          width: 450,
+          constraints: BoxConstraints(maxWidth: 450),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -229,7 +229,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
       builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
-          width: 450,
+          constraints: BoxConstraints(maxWidth: 450),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -432,8 +432,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
         builder: (ctx, setS) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
-            width: 600,
-            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
+            constraints: BoxConstraints(maxWidth: 600, maxHeight: MediaQuery.of(context).size.height * 0.85),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -758,7 +757,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
         builder: (ctx, setS) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
-            width: 450,
+            constraints: BoxConstraints(maxWidth: 450),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -1097,7 +1096,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
         builder: (ctx, setS) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
-            width: 450,
+            constraints: BoxConstraints(maxWidth: 450),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -1798,7 +1797,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
         builder: (ctx, setS) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
-            width: 450,
+            constraints: BoxConstraints(maxWidth: 450),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -2601,8 +2600,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
       builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
-          width: 550,
-          constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
+          constraints: BoxConstraints(maxWidth: 550, maxHeight: MediaQuery.of(context).size.height * 0.85),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -2758,8 +2756,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
         builder: (ctx, setS) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
-            width: 600,
-            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
+            constraints: BoxConstraints(maxWidth: 600, maxHeight: MediaQuery.of(context).size.height * 0.85),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -3345,7 +3342,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
           backgroundColor: const Color(0xFFF8F9FC),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           child: Container(
-            width: 480,
+            constraints: BoxConstraints(maxWidth: 480),
             padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -3897,8 +3894,7 @@ class _GradesContentWidgetState extends State<_GradesContentWidget> {
         builder: (ctx, setS) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
-            width: 520,
-            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
+            constraints: BoxConstraints(maxWidth: 520, maxHeight: MediaQuery.of(context).size.height * 0.85),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -4191,7 +4187,7 @@ class _GradesContentWidgetState extends State<_GradesContentWidget> {
         builder: (ctx, setS) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
-            width: 450,
+            constraints: BoxConstraints(maxWidth: 450),
             height: 600,
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
