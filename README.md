@@ -153,7 +153,7 @@ All admin write operations go through Supabase Edge Functions (because they requ
 
 ---
 
-## VS Code / Kiro Setup
+## VS Code 
 
 The project includes a `launch.json` with pre-configured targets:
 
