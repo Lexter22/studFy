@@ -417,7 +417,18 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
             ),
           );
         }
-        return Column(children: requests.map((r) => _buildRequestCard(r)).toList());
+        return ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 300),
+          child: Scrollbar(
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: requests.length,
+              itemBuilder: (context, index) {
+                return _buildRequestCard(requests[index]);
+              },
+            ),
+          ),
+        );
       },
     );
   }
@@ -431,7 +442,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
     final requesterName = r['requester_name'] ?? 'Professor';
     
     final displayTitle = isUnenroll ? requesterName : name;
-    final displaySubtitle = isUnenroll ? 'Request (un-enrol student)' : status;
+    final displaySubtitle = isUnenroll ? 'Request (unenroll student)' : status;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -684,7 +695,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
           children: [
             _buildDetailRow('Requester', isUnenroll ? requesterName : name),
             const SizedBox(height: 12),
-            _buildDetailRow('Request Type', isUnenroll ? 'Un-enrol student' : r['status'] ?? ''),
+            _buildDetailRow('Request Type', isUnenroll ? 'Unenroll student' : r['status'] ?? ''),
             if (isUnenroll) ...[
               const SizedBox(height: 12),
               _buildDetailRow('Student Name', name),

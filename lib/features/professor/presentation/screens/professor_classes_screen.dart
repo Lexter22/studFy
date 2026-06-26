@@ -357,7 +357,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                                       iconSize: 20,
                                       onPressed: () {
                                         _verifyPasswordAndExecuteWithTextarea(
-                                          'un-enrolling student "${s['name'] ?? ''}"',
+                                          'unenrolling student "${s['name'] ?? ''}"',
                                           (reason) async {
                                             try {
                                               await _repo.requestUnenrollStudent(
