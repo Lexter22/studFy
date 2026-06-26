@@ -600,8 +600,8 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
               ],
             ),
             content: SizedBox(
-              width: double.infinity,
-              height: MediaQuery.of(context).size.height * 0.55,
+              width: 450,
+              height: 450,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
