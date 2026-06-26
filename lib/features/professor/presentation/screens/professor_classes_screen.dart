@@ -1178,92 +1178,124 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
             border: Border.all(color: Colors.blue.shade100.withValues(alpha: 0.5)),
           ),
           padding: const EdgeInsets.all(16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Left side
-              Expanded(
-                child: Column(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isNarrow = constraints.maxWidth < 360;
+              if (isNarrow) {
+                return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       sub.name,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF1565C0),
-                      ),
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1565C0)),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      sub.classLabel,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.blueGrey.shade800,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    Text(sub.classLabel, style: TextStyle(fontSize: 13, color: Colors.blueGrey.shade800, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 2),
-                    Text(
-                      '${sub.studentCount} students',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.blueGrey.shade600,
-                      ),
+                    Text('${sub.studentCount} students', style: TextStyle(fontSize: 12, color: Colors.blueGrey.shade600)),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 34,
+                            child: ElevatedButton(
+                              onPressed: () => _showViewStudentsDialog(sub),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: const Color(0xFF1D4E8F),
+                                side: const BorderSide(color: Color(0xFF1D4E8F), width: 1.5),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: EdgeInsets.zero,
+                              ),
+                              child: const Text('View Students', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: SizedBox(
+                            height: 34,
+                            child: ElevatedButton(
+                              onPressed: () => _showAttendanceDialog(sub),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: const Color(0xFF1D4E8F),
+                                side: const BorderSide(color: Color(0xFF1D4E8F), width: 1.5),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: EdgeInsets.zero,
+                              ),
+                              child: const Text('Attendance', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
-                ),
-              ),
-
-              // Right side buttons
-              Column(
+                );
+              }
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  SizedBox(
-                    width: 140,
-                    height: 34,
-                    child: ElevatedButton(
-                      onPressed: () => _showViewStudentsDialog(sub),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF1D4E8F),
-                        side: const BorderSide(color: Color(0xFF1D4E8F), width: 1.5),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                  // Left side
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          sub.name,
+                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1565C0)),
                         ),
-                        padding: EdgeInsets.zero,
-                      ),
-                      child: const Text(
-                        'View Students',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-                      ),
+                        const SizedBox(height: 4),
+                        Text(sub.classLabel, style: TextStyle(fontSize: 13, color: Colors.blueGrey.shade800, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 2),
+                        Text('${sub.studentCount} students', style: TextStyle(fontSize: 12, color: Colors.blueGrey.shade600)),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: 140,
-                    height: 34,
-                    child: ElevatedButton(
-                      onPressed: () => _showAttendanceDialog(sub),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFFE65100),
-                        side: const BorderSide(color: Color(0xFFE65100), width: 1.5),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                  // Right side buttons
+                  Column(
+                    children: [
+                      SizedBox(
+                        width: 130,
+                        height: 34,
+                        child: ElevatedButton(
+                          onPressed: () => _showViewStudentsDialog(sub),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: const Color(0xFF1D4E8F),
+                            side: const BorderSide(color: Color(0xFF1D4E8F), width: 1.5),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: EdgeInsets.zero,
+                          ),
+                          child: const Text('View Students', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
                         ),
-                        padding: EdgeInsets.zero,
                       ),
-                      child: const Text(
-                        'Attendance Sheet',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: 130,
+                        height: 34,
+                        child: ElevatedButton(
+                          onPressed: () => _showAttendanceDialog(sub),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: const Color(0xFFE65100),
+                            side: const BorderSide(color: Color(0xFFE65100), width: 1.5),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: EdgeInsets.zero,
+                          ),
+                          child: const Text('Attendance', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
-              ),
-            ],
+              );
+            },
           ),
         ),
     );
