@@ -2459,6 +2459,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
           )
         else
           ListView.builder(
+            shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: _students.length,
             itemBuilder: (_, i) {
