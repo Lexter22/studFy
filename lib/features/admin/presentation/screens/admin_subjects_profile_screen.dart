@@ -193,6 +193,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
             ],
           ),
           content: Container(
+            width: double.infinity,
             constraints: BoxConstraints(maxWidth: 400),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -442,6 +443,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
             backgroundColor: const Color(0xFFF8F9FC),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             child: Container(
+              width: double.infinity,
               constraints: BoxConstraints(maxWidth: 500),
               height: 600,
               padding: const EdgeInsets.all(24),

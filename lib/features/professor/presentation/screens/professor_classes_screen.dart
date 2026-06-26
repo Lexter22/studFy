@@ -218,7 +218,8 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
               ],
             ),
             content: Container(
-              constraints: BoxConstraints(maxWidth: 480),
+              width: double.infinity,
+              constraints: const BoxConstraints(maxWidth: 480),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
