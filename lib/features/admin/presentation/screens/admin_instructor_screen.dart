@@ -494,11 +494,51 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
                         'Confirm',
                         Icons.check,
                         Colors.green,
-                        () => _resolveRequest(
-                          requestId: requestId,
-                          approve: true,
-                          action: 'Confirm',
-                        ),
+                        () async {
+                          await AppDialog.password(
+                            context,
+                            title: 'Authorize Confirmation',
+                            message: 'Please enter your password to confirm the unenrollment request.',
+                            onConfirm: (enteredPassword) async {
+                              if (enteredPassword.isEmpty) {
+                                throw Exception('Password cannot be empty');
+                              }
+                              try {
+                                final adminEmail = Supabase.instance.client.auth.currentUser?.email;
+                                if (adminEmail == null) {
+                                  throw Exception('Admin email not found. Please log in again.');
+                                }
+                                // Re-authenticate current admin
+                                await Supabase.instance.client.auth.signInWithPassword(
+                                  email: adminEmail,
+                                  password: enteredPassword,
+                                );
+                                // Resolve the request as approved
+                                await _resolveRequest(
+                                  requestId: requestId,
+                                  approve: true,
+                                  action: 'Confirm',
+                                );
+                              } on AuthException catch (e) {
+                                if (context.mounted) {
+                                  await AppDialog.result(
+                                    context,
+                                    type: DialogType.error,
+                                    message: e.message,
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  await AppDialog.result(
+                                    context,
+                                    type: DialogType.error,
+                                    message: e.toString().replaceAll('Exception: ', ''),
+                                  );
+                                }
+                              }
+                            },
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(width: 8),
