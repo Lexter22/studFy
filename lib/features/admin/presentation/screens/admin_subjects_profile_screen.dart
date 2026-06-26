@@ -194,6 +194,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
           ),
           content: Container(
             width: double.infinity,
+            height: 450,
             constraints: BoxConstraints(maxWidth: 400),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -325,6 +326,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
             title: const Text('Assign Professor', style: TextStyle(fontWeight: FontWeight.bold)),
             content: SizedBox(
               width: double.infinity,
+              height: 450,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [

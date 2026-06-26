@@ -116,6 +116,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
           ),
           content: Container(
             width: double.infinity,
+            height: 450,
             constraints: BoxConstraints(maxWidth: 400),
             child: Column(
               mainAxisSize: MainAxisSize.min,
