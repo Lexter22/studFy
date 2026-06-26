@@ -1,5 +1,10 @@
+import 'dart:convert';
+import 'dart:js_interop';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:web/web.dart' as web;
+import 'package:excel/excel.dart' as xl;
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/state/app_state.dart';
@@ -143,6 +148,49 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
     );
   }
 
+  void _exportStudentList(ProfessorSubject sub, List<Map<String, String>> students) {
+    final excel = xl.Excel.createExcel();
+    final sheet = excel['Students'];
+
+    // Header row
+    sheet.appendRow([
+      xl.TextCellValue('Name'),
+      xl.TextCellValue('Student Number'),
+      xl.TextCellValue('Email'),
+      xl.TextCellValue('Course'),
+      xl.TextCellValue('Year & Section'),
+    ]);
+
+    // Data rows
+    for (final s in students) {
+      sheet.appendRow([
+        xl.TextCellValue(s['name'] ?? ''),
+        xl.TextCellValue(s['studentNumber'] ?? ''),
+        xl.TextCellValue(s['email'] ?? ''),
+        xl.TextCellValue(s['course'] ?? ''),
+        xl.TextCellValue(s['yearSection'] ?? ''),
+      ]);
+    }
+
+    // Remove the default 'Sheet1'
+    if (excel.sheets.containsKey('Sheet1')) {
+      excel.delete('Sheet1');
+    }
+
+    final bytes = excel.encode();
+    if (bytes == null) return;
+
+    // Download via browser
+    final uint8 = Uint8List.fromList(bytes);
+    final blob = web.Blob([uint8.toJS].toJS, web.BlobPropertyBag(type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'));
+    final url = web.URL.createObjectURL(blob);
+    final anchor = web.document.createElement('a') as web.HTMLAnchorElement;
+    anchor.href = url;
+    anchor.download = '${sub.name}_${sub.courseCode}_${sub.yearLevel}-${sub.section}_students.xlsx';
+    anchor.click();
+    web.URL.revokeObjectURL(url);
+  }
+
   void _showViewStudentsDialog(ProfessorSubject sub) async {
     setState(() => _loading = true);
     List<Map<String, String>> students = [];
@@ -218,15 +266,14 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
               ],
             ),
             content: Container(
-              width: double.infinity,
-              constraints: BoxConstraints(maxWidth: 480, maxHeight: MediaQuery.of(context).size.height * 0.6),
+              width: 450,
+              height: 400,
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.grey.shade200, width: 1.5),
               ),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
                 children: [
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -281,8 +328,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                     ),
                   ),
                   const Divider(height: 1, thickness: 1),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 350),
+                  Expanded(
                     child: filteredStudents.isEmpty
                         ? const Padding(
                             padding: EdgeInsets.symmetric(vertical: 24),
@@ -351,6 +397,18 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
               ),
             ),
             actions: [
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0A5C36),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  elevation: 0,
+                ),
+                onPressed: () => _exportStudentList(sub, students),
+                icon: const Icon(Icons.download_rounded, size: 18),
+                label: const Text('Export', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
               OutlinedButton(
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(color: Colors.grey.shade300, width: 1.5),
