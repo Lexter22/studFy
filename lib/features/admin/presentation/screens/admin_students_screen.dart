@@ -456,7 +456,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
   Widget _buildStudentList(List<StudentData> students) {
     if (students.isEmpty) {
       return Container(
-        width: double.infinity,
+        width: 450,
         padding: const EdgeInsets.symmetric(vertical: 60),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -645,7 +645,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
             ],
           ),
           content: Container(
-            width: double.infinity,
+            width: 450,
             height: 450,
             constraints: BoxConstraints(maxWidth: 460),
             child: SingleChildScrollView(
@@ -896,7 +896,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
             ],
           ),
           content: Container(
-            width: double.infinity,
+            width: 450,
             height: 450,
             constraints: BoxConstraints(maxWidth: 400),
             child: Column(
@@ -1064,7 +1064,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
             ],
           ),
           content: Container(
-            width: double.infinity,
+            width: 450,
             height: 450,
             constraints: BoxConstraints(maxWidth: 460),
             child: SingleChildScrollView(
@@ -1479,7 +1479,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
             ],
           ),
           content: SizedBox(
-            width: double.infinity,
+            width: 450,
             height: 300,
             child: ListView.separated(
               itemCount: students.length,
@@ -1625,7 +1625,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
           ],
         ),
         content: SizedBox(
-          width: double.infinity,
+          width: 450,
           height: 350,
           child: ListView(
             children: [

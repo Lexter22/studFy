@@ -535,7 +535,7 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
     yearSecList.sort();
 
     return Container(
-      width: double.infinity,
+      width: 450,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -726,7 +726,7 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
 
     if (_enrolledSubjects.isEmpty) {
       return Container(
-        width: double.infinity,
+        width: 450,
         padding: const EdgeInsets.symmetric(vertical: 40),
         decoration: BoxDecoration(
           color: Colors.white,

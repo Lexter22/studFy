@@ -397,7 +397,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
       builder: (context, requests, _) {
         if (requests.isEmpty) {
           return Container(
-            width: double.infinity,
+            width: 450,
             padding: const EdgeInsets.symmetric(vertical: 24),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -662,7 +662,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
             ),
             const SizedBox(height: 6),
             Container(
-              width: double.infinity,
+              width: 450,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -684,7 +684,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
         ),
         actions: [
           SizedBox(
-            width: double.infinity,
+            width: 450,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.adminPrimary,
@@ -758,7 +758,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
   Widget _buildInstructorList(List<Instructor> instructors) {
     if (instructors.isEmpty) {
       return Container(
-        width: double.infinity,
+        width: 450,
         padding: const EdgeInsets.symmetric(vertical: 40),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -995,7 +995,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
             ],
           ),
           content: Container(
-            width: double.infinity,
+            width: 450,
             constraints: BoxConstraints(maxWidth: 460),
             child: SingleChildScrollView(
               child: Column(

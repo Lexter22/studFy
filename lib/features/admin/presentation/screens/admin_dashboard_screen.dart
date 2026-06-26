@@ -736,7 +736,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
           ),
           const SizedBox(height: 12),
           Container(
-            width: double.infinity,
+            width: 450,
             padding: EdgeInsets.symmetric(vertical: isMobile ? 8 : 10),
             decoration: BoxDecoration(
               color: color,

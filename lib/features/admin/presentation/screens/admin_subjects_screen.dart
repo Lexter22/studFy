@@ -468,7 +468,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
   Widget _buildSubjectListArea(List<Map<String, String>> filteredSubjects, List<Map<String, String>> subjects) {
     if (filteredSubjects.isEmpty) {
       return Container(
-        width: double.infinity,
+        width: 450,
         padding: const EdgeInsets.symmetric(vertical: 40),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -784,7 +784,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
             ],
           ),
           content: Container(
-            width: double.infinity,
+            width: 450,
             constraints: BoxConstraints(maxWidth: 460),
             child: SingleChildScrollView(
               child: Column(

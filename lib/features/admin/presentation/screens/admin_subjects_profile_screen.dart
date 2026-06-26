@@ -193,7 +193,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
             ],
           ),
           content: Container(
-            width: double.infinity,
+            width: 450,
             height: 450,
             constraints: BoxConstraints(maxWidth: 400),
             child: Column(
@@ -325,7 +325,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: const Text('Assign Professor', style: TextStyle(fontWeight: FontWeight.bold)),
             content: SizedBox(
-              width: double.infinity,
+              width: 450,
               height: 450,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -444,7 +444,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
             backgroundColor: const Color(0xFFF8F9FC),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             child: Container(
-              width: double.infinity,
+              width: 450,
               constraints: BoxConstraints(maxWidth: 500),
               height: 600,
               padding: const EdgeInsets.all(24),
@@ -877,7 +877,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
 
   Widget _buildProfileCard() {
     return Container(
-      width: double.infinity,
+      width: 450,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -1096,7 +1096,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
 
     if (_filteredEnrolled.isEmpty) {
       return Container(
-        width: double.infinity,
+        width: 450,
         padding: const EdgeInsets.symmetric(vertical: 40),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -1194,7 +1194,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
 
   Widget _buildPendingRequestBanner() {
     return Container(
-      width: double.infinity,
+      width: 450,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF3E0),

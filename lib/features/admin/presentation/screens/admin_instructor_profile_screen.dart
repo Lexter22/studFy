@@ -115,7 +115,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
             ],
           ),
           content: Container(
-            width: double.infinity,
+            width: 450,
             height: 450,
             constraints: BoxConstraints(maxWidth: 400),
             child: Column(
@@ -234,7 +234,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
           backgroundColor: const Color(0xFFF8F9FC),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           child: Container(
-            width: double.infinity,
+            width: 450,
             constraints: BoxConstraints(maxWidth: 500),
             height: 550,
             padding: const EdgeInsets.all(24),
@@ -500,7 +500,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
     deptList.sort();
 
     return Container(
-      width: double.infinity,
+      width: 450,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -649,7 +649,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
   Widget _buildSubjectsList(List<Map<String, String>> assignedSubjects) {
     if (assignedSubjects.isEmpty) {
       return Container(
-        width: double.infinity,
+        width: 450,
         padding: const EdgeInsets.symmetric(vertical: 40),
         decoration: BoxDecoration(
           color: Colors.white,

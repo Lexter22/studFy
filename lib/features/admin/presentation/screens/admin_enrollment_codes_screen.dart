@@ -137,7 +137,7 @@ class AdminEnrollmentCodesScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 if (codes.isEmpty)
                   Container(
-                    width: double.infinity,
+                    width: 450,
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       color: Colors.white,

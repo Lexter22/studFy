@@ -382,7 +382,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
   }
 
   Widget _sectionCard({required Widget child}) => Container(
-    width: double.infinity,
+    width: 450,
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
       color: Colors.white,
