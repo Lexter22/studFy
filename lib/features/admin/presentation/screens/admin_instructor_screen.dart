@@ -397,7 +397,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
       builder: (context, requests, _) {
         if (requests.isEmpty) {
           return Container(
-            width: double.infinity,
+            width: 450,
             padding: const EdgeInsets.symmetric(vertical: 24),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -417,7 +417,18 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
             ),
           );
         }
-        return Column(children: requests.map((r) => _buildRequestCard(r)).toList());
+        return ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 300),
+          child: Scrollbar(
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: requests.length,
+              itemBuilder: (context, index) {
+                return _buildRequestCard(requests[index]);
+              },
+            ),
+          ),
+        );
       },
     );
   }
@@ -431,7 +442,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
     final requesterName = r['requester_name'] ?? 'Professor';
     
     final displayTitle = isUnenroll ? requesterName : name;
-    final displaySubtitle = isUnenroll ? 'Request (un-enrol student)' : status;
+    final displaySubtitle = isUnenroll ? 'Request (unenroll student)' : status;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -494,11 +505,51 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
                         'Confirm',
                         Icons.check,
                         Colors.green,
-                        () => _resolveRequest(
-                          requestId: requestId,
-                          approve: true,
-                          action: 'Confirm',
-                        ),
+                        () async {
+                          await AppDialog.password(
+                            context,
+                            title: 'Authorize Confirmation',
+                            message: 'Please enter your password to confirm the unenrollment request.',
+                            onConfirm: (enteredPassword) async {
+                              if (enteredPassword.isEmpty) {
+                                throw Exception('Password cannot be empty');
+                              }
+                              try {
+                                final adminEmail = Supabase.instance.client.auth.currentUser?.email;
+                                if (adminEmail == null) {
+                                  throw Exception('Admin email not found. Please log in again.');
+                                }
+                                // Re-authenticate current admin
+                                await Supabase.instance.client.auth.signInWithPassword(
+                                  email: adminEmail,
+                                  password: enteredPassword,
+                                );
+                                // Resolve the request as approved
+                                await _resolveRequest(
+                                  requestId: requestId,
+                                  approve: true,
+                                  action: 'Confirm',
+                                );
+                              } on AuthException catch (e) {
+                                if (context.mounted) {
+                                  await AppDialog.result(
+                                    context,
+                                    type: DialogType.error,
+                                    message: e.message,
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  await AppDialog.result(
+                                    context,
+                                    type: DialogType.error,
+                                    message: e.toString().replaceAll('Exception: ', ''),
+                                  );
+                                }
+                              }
+                            },
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -644,7 +695,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
           children: [
             _buildDetailRow('Requester', isUnenroll ? requesterName : name),
             const SizedBox(height: 12),
-            _buildDetailRow('Request Type', isUnenroll ? 'Un-enrol student' : r['status'] ?? ''),
+            _buildDetailRow('Request Type', isUnenroll ? 'Unenroll student' : r['status'] ?? ''),
             if (isUnenroll) ...[
               const SizedBox(height: 12),
               _buildDetailRow('Student Name', name),
@@ -662,7 +713,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
             ),
             const SizedBox(height: 6),
             Container(
-              width: double.infinity,
+              width: 450,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -684,7 +735,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
         ),
         actions: [
           SizedBox(
-            width: double.infinity,
+            width: 450,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.adminPrimary,
@@ -758,7 +809,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
   Widget _buildInstructorList(List<Instructor> instructors) {
     if (instructors.isEmpty) {
       return Container(
-        width: double.infinity,
+        width: 450,
         padding: const EdgeInsets.symmetric(vertical: 40),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -995,7 +1046,7 @@ class _AdminInstructorScreenState extends State<AdminInstructorScreen> {
             ],
           ),
           content: Container(
-            width: double.infinity,
+            width: 450,
             constraints: BoxConstraints(maxWidth: 460),
             child: SingleChildScrollView(
               child: Column(

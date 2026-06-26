@@ -456,7 +456,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
   Widget _buildStudentList(List<StudentData> students) {
     if (students.isEmpty) {
       return Container(
-        width: double.infinity,
+        width: 450,
         padding: const EdgeInsets.symmetric(vertical: 60),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -645,8 +645,11 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
             ],
           ),
           content: Container(
-            width: double.infinity,
-            constraints: BoxConstraints(maxWidth: 460),
+            width: MediaQuery.of(dialogCtx).size.width * 0.9,
+            constraints: BoxConstraints(
+              maxWidth: 460,
+              maxHeight: MediaQuery.of(dialogCtx).size.height * 0.6,
+            ),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -895,47 +898,49 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
             ],
           ),
           content: Container(
-            width: double.infinity,
-            constraints: BoxConstraints(maxWidth: 400),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 8),
-                TextField(
-                  controller: passwordCtrl,
-                  obscureText: obscurePassword,
-                  decoration: InputDecoration(
-                    labelText: 'Confirm Admin Password',
-                    labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                    floatingLabelStyle: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-                    prefixIcon: Icon(Icons.lock_outline_rounded, color: Colors.red.withValues(alpha: 0.7), size: 20),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        color: Colors.grey.shade600,
-                        size: 20,
+            width: MediaQuery.of(dialogCtx).size.width * 0.9,
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: passwordCtrl,
+                    obscureText: obscurePassword,
+                    decoration: InputDecoration(
+                      labelText: 'Confirm Admin Password',
+                      labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                      floatingLabelStyle: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                      prefixIcon: Icon(Icons.lock_outline_rounded, color: Colors.red.withValues(alpha: 0.7), size: 20),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          color: Colors.grey.shade600,
+                          size: 20,
+                        ),
+                        onPressed: () {
+                          setDialogState(() {
+                            obscurePassword = !obscurePassword;
+                          });
+                        },
                       ),
-                      onPressed: () {
-                        setDialogState(() {
-                          obscurePassword = !obscurePassword;
-                        });
-                      },
-                    ),
-                    filled: true,
-                    fillColor: const Color(0xFFF8F9FC),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Colors.red, width: 2),
+                      filled: true,
+                      fillColor: const Color(0xFFF8F9FC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Colors.red, width: 2),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 8),
-              ],
+                  const SizedBox(height: 8),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -1062,8 +1067,11 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
             ],
           ),
           content: Container(
-            width: double.infinity,
-            constraints: BoxConstraints(maxWidth: 460),
+            width: MediaQuery.of(dialogCtx).size.width * 0.9,
+            constraints: BoxConstraints(
+              maxWidth: 460,
+              maxHeight: MediaQuery.of(dialogCtx).size.height * 0.6,
+            ),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1476,7 +1484,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
             ],
           ),
           content: SizedBox(
-            width: double.infinity,
+            width: 450,
             height: 300,
             child: ListView.separated(
               itemCount: students.length,
@@ -1622,7 +1630,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
           ],
         ),
         content: SizedBox(
-          width: double.infinity,
+          width: 450,
           height: 350,
           child: ListView(
             children: [

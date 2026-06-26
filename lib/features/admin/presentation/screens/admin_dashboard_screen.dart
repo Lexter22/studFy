@@ -70,8 +70,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
       final double offset = _scrollController.offset;
       final bool shouldShow = offset > 300; // threshold when top filters scroll out
       if (shouldShow != _showStickyFilter) {
-        setState(() {
-          _showStickyFilter = shouldShow;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && shouldShow != _showStickyFilter) {
+            setState(() {
+              _showStickyFilter = shouldShow;
+            });
+          }
         });
       }
     });
@@ -93,7 +97,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
 
   void _handleTabChange() {
     if (_tabController.indexIsChanging) return;
-    setState(() {}); // Rebuild to render the correct active tab's list
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0);
+    }
+    setState(() {
+      _showStickyFilter = false;
+    }); // Rebuild to render the correct active tab's list
     final currentRole = _getActiveRole();
     if (_categorizedUsers[currentRole]!.isEmpty && _hasMore[currentRole]!) {
       _fetchPage();
@@ -122,10 +131,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
 
   void _resetAndFetch() {
     final currentRole = _getActiveRole();
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0);
+    }
     setState(() {
       _categorizedUsers[currentRole] = [];
       _currentPage[currentRole] = 1;
       _hasMore[currentRole] = true;
+      _showStickyFilter = false;
     });
     _fetchPage();
   }
@@ -736,7 +749,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
           ),
           const SizedBox(height: 12),
           Container(
-            width: double.infinity,
+            width: 450,
             padding: EdgeInsets.symmetric(vertical: isMobile ? 8 : 10),
             decoration: BoxDecoration(
               color: color,

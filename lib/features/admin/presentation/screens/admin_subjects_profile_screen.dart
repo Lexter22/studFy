@@ -193,47 +193,49 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
             ],
           ),
           content: Container(
-            width: double.infinity,
-            constraints: BoxConstraints(maxWidth: 400),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 8),
-                TextField(
-                  controller: passwordCtrl,
-                  obscureText: obscurePassword,
-                  decoration: InputDecoration(
-                    labelText: 'Confirm Admin Password',
-                    labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                    floatingLabelStyle: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-                    prefixIcon: Icon(Icons.lock_outline_rounded, color: Colors.red.withValues(alpha: 0.7), size: 20),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        color: Colors.grey.shade600,
-                        size: 20,
+            width: MediaQuery.of(dialogCtx).size.width * 0.9,
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: passwordCtrl,
+                    obscureText: obscurePassword,
+                    decoration: InputDecoration(
+                      labelText: 'Confirm Admin Password',
+                      labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                      floatingLabelStyle: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                      prefixIcon: Icon(Icons.lock_outline_rounded, color: Colors.red.withValues(alpha: 0.7), size: 20),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          color: Colors.grey.shade600,
+                          size: 20,
+                        ),
+                        onPressed: () {
+                          setDialogState(() {
+                            obscurePassword = !obscurePassword;
+                          });
+                        },
                       ),
-                      onPressed: () {
-                        setDialogState(() {
-                          obscurePassword = !obscurePassword;
-                        });
-                      },
-                    ),
-                    filled: true,
-                    fillColor: const Color(0xFFF8F9FC),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Colors.red, width: 2),
+                      filled: true,
+                      fillColor: const Color(0xFFF8F9FC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Colors.red, width: 2),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 8),
-              ],
+                  const SizedBox(height: 8),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -324,7 +326,8 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: const Text('Assign Professor', style: TextStyle(fontWeight: FontWeight.bold)),
             content: SizedBox(
-              width: double.infinity,
+              width: MediaQuery.of(dialogCtx).size.width * 0.9 > 450 ? 450 : MediaQuery.of(dialogCtx).size.width * 0.9,
+              height: MediaQuery.of(dialogCtx).size.height * 0.6 > 450 ? 450 : MediaQuery.of(dialogCtx).size.height * 0.6,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -442,9 +445,8 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
             backgroundColor: const Color(0xFFF8F9FC),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             child: Container(
-              width: double.infinity,
-              constraints: BoxConstraints(maxWidth: 500),
-              height: 600,
+              width: MediaQuery.of(dialogCtx).size.width * 0.9 > 500 ? 500 : MediaQuery.of(dialogCtx).size.width * 0.9,
+              height: MediaQuery.of(dialogCtx).size.height * 0.8 > 600 ? 600 : MediaQuery.of(dialogCtx).size.height * 0.8,
               padding: const EdgeInsets.all(24),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -875,7 +877,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
 
   Widget _buildProfileCard() {
     return Container(
-      width: double.infinity,
+      width: 450,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -1037,20 +1039,19 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
           const SizedBox(height: 20),
           const Divider(),
           const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.end,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               if (_isEditing) ...[
                 _buildActionButton('Cancel', Colors.grey.shade600, Icons.close_rounded, () => setState(() => _isEditing = false)),
-                const SizedBox(width: 8),
                 _buildActionButton('Save Changes', Colors.green, Icons.save_rounded, () => _saveEdits()),
               ] else ...[
                 _buildActionButton('Delete Subject', const Color(0xFF8B0000), Icons.delete_rounded, _showDeleteDialog),
-                if (widget.subjectId != null) ...[
-                  const SizedBox(width: 8),
+                if (widget.subjectId != null)
                   _buildActionButton('Assign Professor', const Color(0xFF1E63D2), Icons.person_add_rounded, _showAssignProfessorDialog),
-                ],
-                const SizedBox(width: 8),
                 _buildActionButton('Edit Details', const Color(0xFF2B67E1), Icons.edit_rounded, () => setState(() => _isEditing = true)),
               ],
             ],
@@ -1094,7 +1095,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
 
     if (_filteredEnrolled.isEmpty) {
       return Container(
-        width: double.infinity,
+        width: 450,
         padding: const EdgeInsets.symmetric(vertical: 40),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -1192,7 +1193,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
 
   Widget _buildPendingRequestBanner() {
     return Container(
-      width: double.infinity,
+      width: 450,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF3E0),

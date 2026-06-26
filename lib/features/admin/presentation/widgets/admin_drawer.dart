@@ -21,7 +21,7 @@ class AdminDrawer extends StatelessWidget {
             // Drawer Header
             Container(
               height: 120,
-              width: double.infinity,
+              width: 450,
               color: AppColors.adminPrimary,
               padding: const EdgeInsets.only(top: 40, left: 24, right: 24, bottom: 20),
               child: const Row(

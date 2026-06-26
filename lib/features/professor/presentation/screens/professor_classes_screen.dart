@@ -357,7 +357,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                                       iconSize: 20,
                                       onPressed: () {
                                         _verifyPasswordAndExecuteWithTextarea(
-                                          'un-enrolling student "${s['name'] ?? ''}"',
+                                          'unenrolling student "${s['name'] ?? ''}"',
                                           (reason) async {
                                             try {
                                               await _repo.requestUnenrollStudent(
@@ -657,9 +657,12 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                 ),
               ],
             ),
-            content: SizedBox(
-              width: 450,
-              height: 450,
+            content: Container(
+              width: MediaQuery.of(ctx).size.width * 0.9,
+              constraints: BoxConstraints(
+                maxWidth: 450,
+                maxHeight: MediaQuery.of(ctx).size.height * 0.65,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [

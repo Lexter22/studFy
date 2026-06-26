@@ -103,7 +103,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
       builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
-          width: double.infinity,
+          width: 450,
           constraints: BoxConstraints(maxWidth: 450),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
@@ -230,7 +230,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
       builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
-          width: double.infinity,
+          width: 450,
           constraints: BoxConstraints(maxWidth: 450),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
@@ -635,7 +635,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                         const SizedBox(height: 12),
                         if (questions.isEmpty)
                           Container(
-                            width: double.infinity,
+                            width: 450,
                             padding: const EdgeInsets.symmetric(vertical: 24),
                             decoration: BoxDecoration(
                               color: Colors.grey.shade50,
@@ -759,7 +759,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
         builder: (ctx, setS) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
-            width: double.infinity,
+            width: 450,
             constraints: BoxConstraints(maxWidth: 450),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -1099,7 +1099,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
         builder: (ctx, setS) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
-            width: double.infinity,
+            width: 450,
             constraints: BoxConstraints(maxWidth: 450),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -1474,7 +1474,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                 ),
                 const SizedBox(height: 20),
                 Container(
-                  width: double.infinity,
+                  width: 450,
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   decoration: BoxDecoration(
                     color: AppColors.authPrimary.withValues(alpha: 0.06),
@@ -1801,7 +1801,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
         builder: (ctx, setS) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
-            width: double.infinity,
+            width: 450,
             constraints: BoxConstraints(maxWidth: 450),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -2030,7 +2030,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
         const SizedBox(height: 12),
         if (subjectMeetings.isEmpty)
           Container(
-            width: double.infinity,
+            width: 450,
             padding: const EdgeInsets.symmetric(vertical: 20),
             decoration: BoxDecoration(
               color: Colors.grey.shade50,
@@ -2459,6 +2459,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
           )
         else
           ListView.builder(
+            shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: _students.length,
             itemBuilder: (_, i) {
@@ -2525,7 +2526,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
         const SizedBox(height: 12),
         if (subjectAnnouncements.isEmpty)
           Container(
-            width: double.infinity,
+            width: 450,
             padding: const EdgeInsets.symmetric(vertical: 40),
             decoration: BoxDecoration(
               color: Colors.grey.shade50,
@@ -2960,7 +2961,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
                         const SizedBox(height: 12),
                         if (questions.isEmpty)
                           Container(
-                            width: double.infinity,
+                            width: 450,
                             padding: const EdgeInsets.symmetric(vertical: 24),
                             decoration: BoxDecoration(
                               color: Colors.grey.shade50,
@@ -3182,7 +3183,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
   Widget _buildPerformanceSummaryCard() {
     if (_students.isEmpty) {
       return Container(
-        width: double.infinity,
+        width: 450,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -3199,7 +3200,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
 
     if (_gradeSummaries.isEmpty) {
       return Container(
-        width: double.infinity,
+        width: 450,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -3344,7 +3345,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
           backgroundColor: const Color(0xFFF8F9FC),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           child: Container(
-            width: double.infinity,
+            width: 450,
             constraints: BoxConstraints(maxWidth: 480),
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -4190,7 +4191,7 @@ class _GradesContentWidgetState extends State<_GradesContentWidget> {
         builder: (ctx, setS) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
-            width: double.infinity,
+            width: 450,
             constraints: BoxConstraints(maxWidth: 450),
             height: 600,
             padding: const EdgeInsets.all(24),
@@ -4528,7 +4529,7 @@ class _GradesContentWidgetState extends State<_GradesContentWidget> {
         // Grade entries list
         if (_filteredGrades.isEmpty)
           Container(
-            width: double.infinity,
+            width: 450,
             padding: const EdgeInsets.symmetric(vertical: 40),
             decoration: BoxDecoration(
               color: Colors.grey.shade50,
