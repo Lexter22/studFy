@@ -103,6 +103,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
       builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
+          width: double.infinity,
           constraints: BoxConstraints(maxWidth: 450),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
@@ -229,6 +230,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
       builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
+          width: double.infinity,
           constraints: BoxConstraints(maxWidth: 450),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
@@ -757,6 +759,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
         builder: (ctx, setS) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
+            width: double.infinity,
             constraints: BoxConstraints(maxWidth: 450),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -1096,6 +1099,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
         builder: (ctx, setS) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
+            width: double.infinity,
             constraints: BoxConstraints(maxWidth: 450),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -1797,6 +1801,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
         builder: (ctx, setS) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
+            width: double.infinity,
             constraints: BoxConstraints(maxWidth: 450),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -2052,7 +2057,6 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
               thumbVisibility: true,
               child: ListView.builder(
                 controller: _meetingsScrollController,
-                shrinkWrap: true,
                 padding: const EdgeInsets.only(right: 8),
                 itemCount: subjectMeetings.length,
                 itemBuilder: (ctx, i) {
@@ -2455,7 +2459,6 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
           )
         else
           ListView.builder(
-            shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: _students.length,
             itemBuilder: (_, i) {
@@ -3251,7 +3254,6 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
               thumbVisibility: true,
               child: ListView.builder(
                 controller: _gradesScrollController,
-                shrinkWrap: true,
                 itemCount: _gradeSummaries.length,
                 itemBuilder: (ctx, i) {
                   final s = _gradeSummaries[i];
@@ -3342,6 +3344,7 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
           backgroundColor: const Color(0xFFF8F9FC),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           child: Container(
+            width: double.infinity,
             constraints: BoxConstraints(maxWidth: 480),
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -4187,6 +4190,7 @@ class _GradesContentWidgetState extends State<_GradesContentWidget> {
         builder: (ctx, setS) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
+            width: double.infinity,
             constraints: BoxConstraints(maxWidth: 450),
             height: 600,
             padding: const EdgeInsets.all(24),

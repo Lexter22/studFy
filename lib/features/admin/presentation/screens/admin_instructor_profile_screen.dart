@@ -115,6 +115,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
             ],
           ),
           content: Container(
+            width: double.infinity,
             constraints: BoxConstraints(maxWidth: 400),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -232,6 +233,7 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
           backgroundColor: const Color(0xFFF8F9FC),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           child: Container(
+            width: double.infinity,
             constraints: BoxConstraints(maxWidth: 500),
             height: 550,
             padding: const EdgeInsets.all(24),
@@ -267,7 +269,6 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
                 const SizedBox(height: 16),
                 Expanded(
                   child: ListView.builder(
-                    shrinkWrap: true,
                     itemCount: subjects.length,
                     itemBuilder: (_, index) {
                       final subject = subjects[index];

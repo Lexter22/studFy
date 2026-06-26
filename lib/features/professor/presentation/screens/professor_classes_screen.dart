@@ -1,5 +1,10 @@
+import 'dart:convert';
+import 'dart:js_interop';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:web/web.dart' as web;
+import 'package:excel/excel.dart' as xl;
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/state/app_state.dart';
@@ -143,6 +148,49 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
     );
   }
 
+  void _exportStudentList(ProfessorSubject sub, List<Map<String, String>> students) {
+    final excel = xl.Excel.createExcel();
+    final sheet = excel['Students'];
+
+    // Header row
+    sheet.appendRow([
+      xl.TextCellValue('Name'),
+      xl.TextCellValue('Student Number'),
+      xl.TextCellValue('Email'),
+      xl.TextCellValue('Course'),
+      xl.TextCellValue('Year & Section'),
+    ]);
+
+    // Data rows
+    for (final s in students) {
+      sheet.appendRow([
+        xl.TextCellValue(s['name'] ?? ''),
+        xl.TextCellValue(s['studentNumber'] ?? ''),
+        xl.TextCellValue(s['email'] ?? ''),
+        xl.TextCellValue(s['course'] ?? ''),
+        xl.TextCellValue(s['yearSection'] ?? ''),
+      ]);
+    }
+
+    // Remove the default 'Sheet1'
+    if (excel.sheets.containsKey('Sheet1')) {
+      excel.delete('Sheet1');
+    }
+
+    final bytes = excel.encode();
+    if (bytes == null) return;
+
+    // Download via browser
+    final uint8 = Uint8List.fromList(bytes);
+    final blob = web.Blob([uint8.toJS].toJS, web.BlobPropertyBag(type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'));
+    final url = web.URL.createObjectURL(blob);
+    final anchor = web.document.createElement('a') as web.HTMLAnchorElement;
+    anchor.href = url;
+    anchor.download = '${sub.name}_${sub.courseCode}_${sub.yearLevel}-${sub.section}_students.xlsx';
+    anchor.click();
+    web.URL.revokeObjectURL(url);
+  }
+
   void _showViewStudentsDialog(ProfessorSubject sub) async {
     setState(() => _loading = true);
     List<Map<String, String>> students = [];
@@ -218,14 +266,14 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
               ],
             ),
             content: Container(
-              constraints: BoxConstraints(maxWidth: 480),
+              width: 450,
+              height: 400,
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.grey.shade200, width: 1.5),
               ),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
                 children: [
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -280,15 +328,13 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                     ),
                   ),
                   const Divider(height: 1, thickness: 1),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 350),
+                  Expanded(
                     child: filteredStudents.isEmpty
                         ? const Padding(
                             padding: EdgeInsets.symmetric(vertical: 24),
                             child: Center(child: Text('No students found.')),
                           )
                         : ListView.builder(
-                            shrinkWrap: true,
                             itemCount: filteredStudents.length,
                             itemBuilder: (_, i) {
                               final s = filteredStudents[i];
@@ -351,6 +397,18 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
               ),
             ),
             actions: [
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0A5C36),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  elevation: 0,
+                ),
+                onPressed: () => _exportStudentList(sub, students),
+                icon: const Icon(Icons.download_rounded, size: 18),
+                label: const Text('Export', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
               OutlinedButton(
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(color: Colors.grey.shade300, width: 1.5),
@@ -600,9 +658,9 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
               ],
             ),
             content: SizedBox(
-              width: double.infinity,
+              width: 450,
+              height: 450,
               child: Column(
-                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Segmented control bar
@@ -623,66 +681,65 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                   ),
 
                   if (activeView == 'history')
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey.shade200, width: 1.5),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
-                            child: Text(
-                              'Attendance History',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade200, width: 1.5),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
+                              child: Text(
+                                'Attendance History',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                              ),
                             ),
-                          ),
-                          const Divider(height: 1),
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(maxHeight: 300),
-                            child: historyData.isEmpty
-                                ? const Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 24),
-                                    child: Center(child: Text('No attendance records yet.', style: TextStyle(color: Colors.grey))),
-                                  )
-                                : ListView.builder(
-                                    shrinkWrap: true,
-                                    itemCount: historyData.length,
-                                    itemBuilder: (_, i) => buildHistoryRow(historyData[i]),
-                                  ),
-                          ),
-                        ],
+                            const Divider(height: 1),
+                            Expanded(
+                              child: historyData.isEmpty
+                                  ? const Padding(
+                                      padding: EdgeInsets.symmetric(vertical: 24),
+                                      child: Center(child: Text('No attendance records yet.', style: TextStyle(color: Colors.grey))),
+                                    )
+                                  : ListView.builder(
+                                      itemCount: historyData.length,
+                                      itemBuilder: (_, i) => buildHistoryRow(historyData[i]),
+                                    ),
+                            ),
+                          ],
+                        ),
                       ),
                     )
                   else if (activeView == 'summary')
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey.shade200, width: 1.5),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
-                            child: Text(
-                              'Attendance Summary (Overall)',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade200, width: 1.5),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
+                              child: Text(
+                                'Attendance Summary (Overall)',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                              ),
                             ),
-                          ),
-                          const Divider(height: 1),
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(maxHeight: 300),
-                            child: summaryData.isEmpty
+                            const Divider(height: 1),
+                            Expanded(
+                              child: summaryData.isEmpty
                                 ? const Padding(
                                     padding: EdgeInsets.symmetric(vertical: 24),
                                     child: Center(child: Text('No attendance data yet.', style: TextStyle(color: Colors.grey))),
                                   )
                                 : ListView.builder(
-                                    shrinkWrap: true,
                                     itemCount: summaryData.length,
                                     itemBuilder: (_, i) {
                                       final s = summaryData[i];
@@ -722,19 +779,20 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                                       );
                                     },
                                   ),
-                          ),
-                        ],
+                            ),
+                          ],
+                        ),
                       ),
                     )
                   else
-                    Container(
-                      decoration: BoxDecoration(
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: Colors.grey.shade200, width: 1.5),
                       ),
                       child: Column(
-                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Padding(
                             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -762,15 +820,13 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                             ),
                           ),
                           const Divider(height: 1, thickness: 1),
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(maxHeight: 300),
+                          Expanded(
                             child: students.isEmpty
                                 ? const Padding(
                                     padding: EdgeInsets.symmetric(vertical: 24),
                                     child: Center(child: Text('No students found.')),
                                   )
                                 : ListView.builder(
-                                    shrinkWrap: true,
                                     itemCount: students.length,
                                     itemBuilder: (_, i) {
                                       final s = students[i];
@@ -836,6 +892,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                         ],
                       ),
                     ),
+                  ),
                 ],
               ),
             ),
@@ -1179,92 +1236,124 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
             border: Border.all(color: Colors.blue.shade100.withValues(alpha: 0.5)),
           ),
           padding: const EdgeInsets.all(16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Left side
-              Expanded(
-                child: Column(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isNarrow = constraints.maxWidth < 360;
+              if (isNarrow) {
+                return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       sub.name,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF1565C0),
-                      ),
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1565C0)),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      sub.classLabel,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.blueGrey.shade800,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    Text(sub.classLabel, style: TextStyle(fontSize: 13, color: Colors.blueGrey.shade800, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 2),
-                    Text(
-                      '${sub.studentCount} students',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.blueGrey.shade600,
-                      ),
+                    Text('${sub.studentCount} students', style: TextStyle(fontSize: 12, color: Colors.blueGrey.shade600)),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 34,
+                            child: ElevatedButton(
+                              onPressed: () => _showViewStudentsDialog(sub),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: const Color(0xFF1D4E8F),
+                                side: const BorderSide(color: Color(0xFF1D4E8F), width: 1.5),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: EdgeInsets.zero,
+                              ),
+                              child: const Text('View Students', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: SizedBox(
+                            height: 34,
+                            child: ElevatedButton(
+                              onPressed: () => _showAttendanceDialog(sub),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: const Color(0xFF1D4E8F),
+                                side: const BorderSide(color: Color(0xFF1D4E8F), width: 1.5),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: EdgeInsets.zero,
+                              ),
+                              child: const Text('Attendance', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
-                ),
-              ),
-
-              // Right side buttons
-              Column(
+                );
+              }
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  SizedBox(
-                    width: 140,
-                    height: 34,
-                    child: ElevatedButton(
-                      onPressed: () => _showViewStudentsDialog(sub),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF1D4E8F),
-                        side: const BorderSide(color: Color(0xFF1D4E8F), width: 1.5),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                  // Left side
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          sub.name,
+                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1565C0)),
                         ),
-                        padding: EdgeInsets.zero,
-                      ),
-                      child: const Text(
-                        'View Students',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-                      ),
+                        const SizedBox(height: 4),
+                        Text(sub.classLabel, style: TextStyle(fontSize: 13, color: Colors.blueGrey.shade800, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 2),
+                        Text('${sub.studentCount} students', style: TextStyle(fontSize: 12, color: Colors.blueGrey.shade600)),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: 140,
-                    height: 34,
-                    child: ElevatedButton(
-                      onPressed: () => _showAttendanceDialog(sub),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFFE65100),
-                        side: const BorderSide(color: Color(0xFFE65100), width: 1.5),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                  // Right side buttons
+                  Column(
+                    children: [
+                      SizedBox(
+                        width: 130,
+                        height: 34,
+                        child: ElevatedButton(
+                          onPressed: () => _showViewStudentsDialog(sub),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: const Color(0xFF1D4E8F),
+                            side: const BorderSide(color: Color(0xFF1D4E8F), width: 1.5),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: EdgeInsets.zero,
+                          ),
+                          child: const Text('View Students', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
                         ),
-                        padding: EdgeInsets.zero,
                       ),
-                      child: const Text(
-                        'Attendance Sheet',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: 130,
+                        height: 34,
+                        child: ElevatedButton(
+                          onPressed: () => _showAttendanceDialog(sub),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: const Color(0xFFE65100),
+                            side: const BorderSide(color: Color(0xFFE65100), width: 1.5),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: EdgeInsets.zero,
+                          ),
+                          child: const Text('Attendance', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
-              ),
-            ],
+              );
+            },
           ),
         ),
     );

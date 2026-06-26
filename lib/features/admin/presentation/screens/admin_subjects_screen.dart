@@ -784,6 +784,7 @@ class _AdminSubjectsScreenState extends State<AdminSubjectsScreen> {
             ],
           ),
           content: Container(
+            width: double.infinity,
             constraints: BoxConstraints(maxWidth: 460),
             child: SingleChildScrollView(
               child: Column(

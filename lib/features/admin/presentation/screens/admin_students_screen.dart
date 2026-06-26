@@ -645,6 +645,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
             ],
           ),
           content: Container(
+            width: double.infinity,
             constraints: BoxConstraints(maxWidth: 460),
             child: SingleChildScrollView(
               child: Column(
@@ -894,6 +895,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
             ],
           ),
           content: Container(
+            width: double.infinity,
             constraints: BoxConstraints(maxWidth: 400),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1060,6 +1062,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
             ],
           ),
           content: Container(
+            width: double.infinity,
             constraints: BoxConstraints(maxWidth: 460),
             child: SingleChildScrollView(
               child: Column(

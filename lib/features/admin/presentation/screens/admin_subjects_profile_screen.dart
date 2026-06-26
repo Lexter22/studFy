@@ -193,6 +193,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
             ],
           ),
           content: Container(
+            width: double.infinity,
             constraints: BoxConstraints(maxWidth: 400),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -346,7 +347,6 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                   else
                     Flexible(
                       child: ListView.builder(
-                        shrinkWrap: true,
                         itemCount: filtered.length,
                         itemBuilder: (ctx, index) {
                           final instructor = filtered[index];
@@ -442,6 +442,7 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
             backgroundColor: const Color(0xFFF8F9FC),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             child: Container(
+              width: double.infinity,
               constraints: BoxConstraints(maxWidth: 500),
               height: 600,
               padding: const EdgeInsets.all(24),
@@ -599,7 +600,6 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                     child: filteredStudents.isEmpty
                         ? const Center(child: Text('No students found.', style: TextStyle(color: Color(0xFF64748B))))
                         : ListView.builder(
-                            shrinkWrap: true,
                             itemCount: filteredStudents.length,
                             itemBuilder: (ctx, index) {
                               final student = filteredStudents[index];
