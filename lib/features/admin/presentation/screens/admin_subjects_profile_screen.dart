@@ -193,9 +193,8 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
             ],
           ),
           content: Container(
-            width: 450,
-            height: 450,
-            constraints: BoxConstraints(maxWidth: 400),
+            width: MediaQuery.of(dialogCtx).size.width * 0.9,
+            constraints: const BoxConstraints(maxWidth: 400),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -325,8 +324,8 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: const Text('Assign Professor', style: TextStyle(fontWeight: FontWeight.bold)),
             content: SizedBox(
-              width: 450,
-              height: 450,
+              width: MediaQuery.of(dialogCtx).size.width * 0.9 > 450 ? 450 : MediaQuery.of(dialogCtx).size.width * 0.9,
+              height: MediaQuery.of(dialogCtx).size.height * 0.6 > 450 ? 450 : MediaQuery.of(dialogCtx).size.height * 0.6,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -444,9 +443,8 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
             backgroundColor: const Color(0xFFF8F9FC),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             child: Container(
-              width: 450,
-              constraints: BoxConstraints(maxWidth: 500),
-              height: 600,
+              width: MediaQuery.of(dialogCtx).size.width * 0.9 > 500 ? 500 : MediaQuery.of(dialogCtx).size.width * 0.9,
+              height: MediaQuery.of(dialogCtx).size.height * 0.8 > 600 ? 600 : MediaQuery.of(dialogCtx).size.height * 0.8,
               padding: const EdgeInsets.all(24),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1039,20 +1037,19 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
           const SizedBox(height: 20),
           const Divider(),
           const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.end,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               if (_isEditing) ...[
                 _buildActionButton('Cancel', Colors.grey.shade600, Icons.close_rounded, () => setState(() => _isEditing = false)),
-                const SizedBox(width: 8),
                 _buildActionButton('Save Changes', Colors.green, Icons.save_rounded, () => _saveEdits()),
               ] else ...[
                 _buildActionButton('Delete Subject', const Color(0xFF8B0000), Icons.delete_rounded, _showDeleteDialog),
-                if (widget.subjectId != null) ...[
-                  const SizedBox(width: 8),
+                if (widget.subjectId != null)
                   _buildActionButton('Assign Professor', const Color(0xFF1E63D2), Icons.person_add_rounded, _showAssignProfessorDialog),
-                ],
-                const SizedBox(width: 8),
                 _buildActionButton('Edit Details', const Color(0xFF2B67E1), Icons.edit_rounded, () => setState(() => _isEditing = true)),
               ],
             ],

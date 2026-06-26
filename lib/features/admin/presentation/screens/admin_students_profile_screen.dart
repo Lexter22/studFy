@@ -84,8 +84,8 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
           backgroundColor: const Color(0xFFF8F9FC),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           child: Container(
-            width: 500,
-            height: 550,
+            width: MediaQuery.of(dialogContext).size.width * 0.9 > 500 ? 500 : MediaQuery.of(dialogContext).size.width * 0.9,
+            height: MediaQuery.of(dialogContext).size.height * 0.8 > 550 ? 550 : MediaQuery.of(dialogContext).size.height * 0.8,
             padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -671,16 +671,17 @@ class _AdminStudentsProfileScreenState extends State<AdminStudentsProfileScreen>
           const SizedBox(height: 20),
           const Divider(),
           const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.end,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               if (_isEditing) ...[
                 _buildActionButton('Cancel', Colors.grey.shade600, Icons.close_rounded, () => setState(() => _isEditing = false)),
-                const SizedBox(width: 8),
                 _buildActionButton('Save Changes', Colors.green, Icons.save_rounded, () => _saveEdits()),
               ] else ...[
                 _buildActionButton('Delete Student', const Color(0xFF8B0000), Icons.delete_rounded, _showDeleteDialog),
-                const SizedBox(width: 8),
                 _buildActionButton('Edit Details', const Color(0xFF2B67E1), Icons.edit_rounded, () => setState(() => _isEditing = true)),
               ],
             ],
