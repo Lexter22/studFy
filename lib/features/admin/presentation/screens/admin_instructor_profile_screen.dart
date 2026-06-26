@@ -269,7 +269,6 @@ class _AdminInstructorProfileScreenState extends State<AdminInstructorProfileScr
                 const SizedBox(height: 16),
                 Expanded(
                   child: ListView.builder(
-                    shrinkWrap: true,
                     itemCount: subjects.length,
                     itemBuilder: (_, index) {
                       final subject = subjects[index];

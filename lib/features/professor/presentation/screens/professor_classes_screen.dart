@@ -219,7 +219,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
             ),
             content: Container(
               width: double.infinity,
-              constraints: const BoxConstraints(maxWidth: 480),
+              constraints: BoxConstraints(maxWidth: 480, maxHeight: MediaQuery.of(context).size.height * 0.6),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
@@ -289,7 +289,6 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                             child: Center(child: Text('No students found.')),
                           )
                         : ListView.builder(
-                            shrinkWrap: true,
                             itemCount: filteredStudents.length,
                             itemBuilder: (_, i) {
                               final s = filteredStudents[i];
@@ -602,6 +601,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
             ),
             content: SizedBox(
               width: double.infinity,
+              height: MediaQuery.of(context).size.height * 0.55,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -649,7 +649,6 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                                     child: Center(child: Text('No attendance records yet.', style: TextStyle(color: Colors.grey))),
                                   )
                                 : ListView.builder(
-                                    shrinkWrap: true,
                                     itemCount: historyData.length,
                                     itemBuilder: (_, i) => buildHistoryRow(historyData[i]),
                                   ),
@@ -683,7 +682,6 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                                     child: Center(child: Text('No attendance data yet.', style: TextStyle(color: Colors.grey))),
                                   )
                                 : ListView.builder(
-                                    shrinkWrap: true,
                                     itemCount: summaryData.length,
                                     itemBuilder: (_, i) {
                                       final s = summaryData[i];
@@ -771,7 +769,6 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                                     child: Center(child: Text('No students found.')),
                                   )
                                 : ListView.builder(
-                                    shrinkWrap: true,
                                     itemCount: students.length,
                                     itemBuilder: (_, i) {
                                       final s = students[i];

@@ -347,7 +347,6 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                   else
                     Flexible(
                       child: ListView.builder(
-                        shrinkWrap: true,
                         itemCount: filtered.length,
                         itemBuilder: (ctx, index) {
                           final instructor = filtered[index];
@@ -601,7 +600,6 @@ class _AdminSubjectsProfileScreenState extends State<AdminSubjectsProfileScreen>
                     child: filteredStudents.isEmpty
                         ? const Center(child: Text('No students found.', style: TextStyle(color: Color(0xFF64748B))))
                         : ListView.builder(
-                            shrinkWrap: true,
                             itemCount: filteredStudents.length,
                             itemBuilder: (ctx, index) {
                               final student = filteredStudents[index];

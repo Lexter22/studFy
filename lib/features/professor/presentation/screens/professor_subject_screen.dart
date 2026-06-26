@@ -2057,7 +2057,6 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
               thumbVisibility: true,
               child: ListView.builder(
                 controller: _meetingsScrollController,
-                shrinkWrap: true,
                 padding: const EdgeInsets.only(right: 8),
                 itemCount: subjectMeetings.length,
                 itemBuilder: (ctx, i) {
@@ -2460,7 +2459,6 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
           )
         else
           ListView.builder(
-            shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: _students.length,
             itemBuilder: (_, i) {
@@ -3256,7 +3254,6 @@ class _ProfessorSubjectScreenState extends State<ProfessorSubjectScreen> {
               thumbVisibility: true,
               child: ListView.builder(
                 controller: _gradesScrollController,
-                shrinkWrap: true,
                 itemCount: _gradeSummaries.length,
                 itemBuilder: (ctx, i) {
                   final s = _gradeSummaries[i];
