@@ -603,7 +603,6 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
               width: double.infinity,
               height: MediaQuery.of(context).size.height * 0.55,
               child: Column(
-                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Segmented control bar
@@ -624,59 +623,60 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                   ),
 
                   if (activeView == 'history')
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey.shade200, width: 1.5),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
-                            child: Text(
-                              'Attendance History',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade200, width: 1.5),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
+                              child: Text(
+                                'Attendance History',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                              ),
                             ),
-                          ),
-                          const Divider(height: 1),
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(maxHeight: 300),
-                            child: historyData.isEmpty
-                                ? const Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 24),
-                                    child: Center(child: Text('No attendance records yet.', style: TextStyle(color: Colors.grey))),
-                                  )
-                                : ListView.builder(
-                                    itemCount: historyData.length,
-                                    itemBuilder: (_, i) => buildHistoryRow(historyData[i]),
-                                  ),
-                          ),
-                        ],
+                            const Divider(height: 1),
+                            Expanded(
+                              child: historyData.isEmpty
+                                  ? const Padding(
+                                      padding: EdgeInsets.symmetric(vertical: 24),
+                                      child: Center(child: Text('No attendance records yet.', style: TextStyle(color: Colors.grey))),
+                                    )
+                                  : ListView.builder(
+                                      itemCount: historyData.length,
+                                      itemBuilder: (_, i) => buildHistoryRow(historyData[i]),
+                                    ),
+                            ),
+                          ],
+                        ),
                       ),
                     )
                   else if (activeView == 'summary')
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey.shade200, width: 1.5),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
-                            child: Text(
-                              'Attendance Summary (Overall)',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade200, width: 1.5),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
+                              child: Text(
+                                'Attendance Summary (Overall)',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                              ),
                             ),
-                          ),
-                          const Divider(height: 1),
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(maxHeight: 300),
-                            child: summaryData.isEmpty
+                            const Divider(height: 1),
+                            Expanded(
+                              child: summaryData.isEmpty
                                 ? const Padding(
                                     padding: EdgeInsets.symmetric(vertical: 24),
                                     child: Center(child: Text('No attendance data yet.', style: TextStyle(color: Colors.grey))),
@@ -721,19 +721,20 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                                       );
                                     },
                                   ),
-                          ),
-                        ],
+                            ),
+                          ],
+                        ),
                       ),
                     )
                   else
-                    Container(
-                      decoration: BoxDecoration(
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: Colors.grey.shade200, width: 1.5),
                       ),
                       child: Column(
-                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Padding(
                             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -761,8 +762,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                             ),
                           ),
                           const Divider(height: 1, thickness: 1),
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(maxHeight: 300),
+                          Expanded(
                             child: students.isEmpty
                                 ? const Padding(
                                     padding: EdgeInsets.symmetric(vertical: 24),
@@ -834,6 +834,7 @@ class _ProfessorClassesScreenState extends State<ProfessorClassesScreen> {
                         ],
                       ),
                     ),
+                  ),
                 ],
               ),
             ),
